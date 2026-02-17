@@ -37,7 +37,7 @@ export default function Layout({ children, currentPageName }) {
             <img 
               src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6993eba91209ee0a1089f355/fd9cfe023_6f5fd5cc-8fc9-4041-9d87-c24e77a3bc58.png"
               alt="Stand Tall Barbershop"
-              className="w-12 h-12 rounded-lg"
+              className="w-24 h-24 rounded-lg"
             />
           </Link>
 
