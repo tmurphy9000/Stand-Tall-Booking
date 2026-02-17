@@ -39,9 +39,11 @@ function isSlotBookable(time, barberHours, shopHours, dayName) {
   return true;
 }
 
-function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragStart, slotHeight }) {
+function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragStart, slotHeight, onResize }) {
   const durationSlots = Math.ceil((booking.duration || 30) / SLOT_MINUTES);
   const height = durationSlots * slotHeight - 2;
+  const [showHandles, setShowHandles] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
 
   const statusColors = {
     scheduled: "bg-purple-100 border-purple-500 text-purple-800",
@@ -52,25 +54,76 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
     no_show: "bg-orange-50 border-orange-300 text-orange-500",
   };
 
+  const handleResizeStart = (e, direction) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIsResizing(true);
+    
+    const startY = e.clientY;
+    const startDuration = booking.duration || 30;
+    
+    const handleMouseMove = (moveEvent) => {
+      const deltaY = moveEvent.clientY - startY;
+      const slotsChanged = Math.round(deltaY / slotHeight);
+      const newDuration = direction === 'top' 
+        ? Math.max(15, startDuration - (slotsChanged * SLOT_MINUTES))
+        : Math.max(15, startDuration + (slotsChanged * SLOT_MINUTES));
+      
+      if (newDuration !== startDuration && onResize) {
+        onResize(booking, newDuration, direction);
+      }
+    };
+    
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
   return (
     <div
-      draggable
-      onDragStart={(e) => onDragStart(e, booking)}
-      onContextMenu={(e) => onContextMenu(e, booking)}
+      draggable={!isResizing}
+      onDragStart={(e) => !isResizing && onDragStart(e, booking)}
+      onClick={(e) => {
+        e.stopPropagation();
+        onContextMenu(e, booking);
+      }}
+      onMouseEnter={() => setShowHandles(true)}
+      onMouseLeave={() => !isResizing && setShowHandles(false)}
       className={cn(
         "booking-card absolute left-0.5 right-0.5 rounded-md border-l-[3px] px-1.5 py-0.5 overflow-hidden z-10",
         statusColors[booking.status] || statusColors.scheduled
       )}
       style={{ top: 0, height }}
     >
+      {/* Top resize handle */}
+      {showHandles && (
+        <div
+          onMouseDown={(e) => handleResizeStart(e, 'top')}
+          className="absolute -top-1 left-1 w-4 h-4 bg-white border border-gray-400 rounded-full cursor-ns-resize z-20 shadow-sm hover:scale-110 transition-transform"
+        />
+      )}
+      
       <p className="text-[10px] font-semibold truncate leading-tight">{booking.client_name}</p>
       <p className="text-[9px] truncate opacity-75">{booking.service_name}</p>
       <p className="text-[9px] opacity-60">{booking.start_time} - {booking.end_time}</p>
+      
+      {/* Bottom resize handle */}
+      {showHandles && (
+        <div
+          onMouseDown={(e) => handleResizeStart(e, 'bottom')}
+          className="absolute -bottom-1 right-1 w-4 h-4 bg-white border border-gray-400 rounded-full cursor-ns-resize z-20 shadow-sm hover:scale-110 transition-transform"
+        />
+      )}
     </div>
   );
 }
 
-export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlotClick, onBookingContext, onDrop, zoomLevel = 1, columnWidth = 140 }) {
+export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlotClick, onBookingContext, onDrop, onBookingResize, zoomLevel = 1, columnWidth = 140 }) {
   const slotHeight = BASE_SLOT_HEIGHT * zoomLevel;
   const timeSlots = generateTimeSlots(7, 22);
   const dayName = format(date, "EEEE").toLowerCase();
@@ -181,6 +234,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
                         totalSlots={timeSlots.length}
                         onContextMenu={onBookingContext}
                         onDragStart={handleDragStart}
+                        onResize={onBookingResize}
                         slotHeight={slotHeight}
                       />
                     ))}
