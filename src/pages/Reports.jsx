@@ -9,10 +9,13 @@ import { RevenueChart, ServiceBreakdownChart, BarberPerformanceChart, RetentionC
 import { Button } from "@/components/ui/button";
 import { Download, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { usePermissions } from "../components/permissions/usePermissions";
+import { Card, CardContent } from "@/components/ui/card";
 
 export default function ReportsPage() {
   const [dateRange, setDateRange] = useState("30");
   const [barberFilter, setBarberFilter] = useState("all");
+  const { hasFullAccess } = usePermissions();
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["bookings-all"],
@@ -272,6 +275,19 @@ export default function ReportsPage() {
     window.URL.revokeObjectURL(url);
     toast.success("Report exported to CSV");
   };
+
+  if (!hasFullAccess) {
+    return (
+      <div className="p-6">
+        <Card className="max-w-md mx-auto mt-12">
+          <CardContent className="p-8 text-center">
+            <p className="text-gray-600">You don't have permission to access reports.</p>
+            <p className="text-sm text-gray-400 mt-2">Contact an owner or manager for access.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 space-y-4">

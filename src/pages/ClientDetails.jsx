@@ -8,10 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, User, Calendar, DollarSign, Phone, Mail, Star, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import ClientNotesCard from "../components/client/ClientNotesCard";
+import { usePermissions } from "../components/permissions/usePermissions";
 
 export default function ClientDetails() {
   const [searchParams] = useSearchParams();
   const clientId = searchParams.get("id");
+  const { hasFullAccess, canViewClientDetails } = usePermissions();
 
   const { data: client, isLoading } = useQuery({
     queryKey: ["client", clientId],
@@ -66,6 +68,18 @@ export default function ClientDetails() {
     );
   }
 
+  if (!canViewClientDetails) {
+    return (
+      <div className="p-4">
+        <Card className="max-w-md mx-auto mt-12">
+          <CardContent className="p-8 text-center">
+            <p className="text-gray-600">You don't have permission to view client details.</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   const completedBookings = bookings.filter(b => b.status === "completed");
   const upcomingBookings = bookings.filter(b => b.date >= format(new Date(), "yyyy-MM-dd") && b.status !== "cancelled" && b.status !== "completed");
 
@@ -94,18 +108,23 @@ export default function ClientDetails() {
               )}
               <div className="flex-1">
                 <h2 className="text-2xl font-bold">{client.name}</h2>
-                <div className="mt-2 space-y-1 text-sm">
-                  <div className="flex items-center gap-2 text-gray-600">
-                    <Mail className="w-4 h-4" />
-                    <span>{client.email}</span>
-                  </div>
-                  {client.phone && (
+                {hasFullAccess && (
+                  <div className="mt-2 space-y-1 text-sm">
                     <div className="flex items-center gap-2 text-gray-600">
-                      <Phone className="w-4 h-4" />
-                      <span>{client.phone}</span>
+                      <Mail className="w-4 h-4" />
+                      <span>{client.email}</span>
                     </div>
-                  )}
-                </div>
+                    {client.phone && (
+                      <div className="flex items-center gap-2 text-gray-600">
+                        <Phone className="w-4 h-4" />
+                        <span>{client.phone}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {!hasFullAccess && (
+                  <p className="text-sm text-gray-400 mt-2">Contact info hidden (service provider view)</p>
+                )}
               </div>
             </div>
 

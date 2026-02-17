@@ -5,13 +5,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, Store, Users, Scissors, Clock } from "lucide-react";
+import { Loader2, Store, Users, Scissors, Clock, Shield } from "lucide-react";
 import BarberManager from "../components/settings/BarberManager";
 import ServiceManager from "../components/settings/ServiceManager";
 import ShopHoursEditor from "../components/settings/ShopHoursEditor";
+import PermissionsManager from "../components/settings/PermissionsManager";
+import { usePermissions } from "../components/permissions/usePermissions";
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
+  const { isAdmin } = usePermissions();
 
   const { data: barbers = [], isLoading: barbersLoading } = useQuery({
     queryKey: ["barbers"],
@@ -79,7 +82,7 @@ export default function SettingsPage() {
       <h1 className="text-lg font-bold mb-4">Settings</h1>
 
       <Tabs defaultValue="barbers" className="space-y-4">
-        <TabsList className="grid grid-cols-4 w-full bg-gray-100 h-9">
+        <TabsList className="grid grid-cols-5 w-full bg-gray-100 h-9">
           <TabsTrigger value="barbers" className="text-xs gap-1 data-[state=active]:bg-white">
             <Users className="w-3 h-3" /> Barbers
           </TabsTrigger>
@@ -92,6 +95,11 @@ export default function SettingsPage() {
           <TabsTrigger value="shop" className="text-xs gap-1 data-[state=active]:bg-white">
             <Store className="w-3 h-3" /> Shop
           </TabsTrigger>
+          {isAdmin && (
+            <TabsTrigger value="permissions" className="text-xs gap-1 data-[state=active]:bg-white">
+              <Shield className="w-3 h-3" /> Access
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="barbers">
@@ -168,6 +176,12 @@ export default function SettingsPage() {
             </div>
           </div>
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="permissions">
+            <PermissionsManager />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );
