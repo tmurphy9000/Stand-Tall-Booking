@@ -10,6 +10,7 @@ import BarberManager from "../components/settings/BarberManager";
 import ServiceManager from "../components/settings/ServiceManager";
 import ShopHoursEditor from "../components/settings/ShopHoursEditor";
 import PermissionsManager from "../components/settings/PermissionsManager";
+import AdminPasswordManager from "../components/settings/AdminPasswordManager";
 import { usePermissions } from "../components/permissions/usePermissions";
 
 export default function SettingsPage() {
@@ -179,7 +180,10 @@ export default function SettingsPage() {
 
         {isAdmin && (
           <TabsContent value="permissions">
-            <PermissionsManager />
+            <div className="space-y-4">
+              <PermissionsManager />
+              <AdminPasswordManager settings={settings} />
+            </div>
           </TabsContent>
         )}
       </Tabs>
