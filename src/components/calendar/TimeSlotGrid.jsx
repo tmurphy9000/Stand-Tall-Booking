@@ -70,9 +70,8 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
   );
 }
 
-export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlotClick, onBookingContext, onDrop, zoomLevel = 1 }) {
+export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlotClick, onBookingContext, onDrop, zoomLevel = 1, columnWidth = 140 }) {
   const slotHeight = BASE_SLOT_HEIGHT * zoomLevel;
-  const slotWidth = BASE_SLOT_WIDTH * zoomLevel;
   const timeSlots = generateTimeSlots(7, 22);
   const dayName = format(date, "EEEE").toLowerCase();
   const dateStr = format(date, "yyyy-MM-dd");
@@ -108,7 +107,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
 
   return (
     <div ref={gridRef} className="overflow-auto flex-1">
-      <div className="min-w-[600px]">
+      <div className="inline-block min-w-full">
         {/* Barber header columns */}
         <div className="sticky top-0 z-20 bg-[#FAFAF8] flex border-b border-gray-100">
           <div className="w-14 flex-shrink-0" />
@@ -120,7 +119,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
             ).length;
             
             return (
-              <div key={barber.id} className="flex-1 px-2 py-2 text-center border-l border-gray-50" style={{ minWidth: `${slotWidth}px` }}>
+              <div key={barber.id} className="px-2 py-2 text-center border-l border-gray-50" style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px` }}>
                 <div className="flex flex-col items-center gap-1">
                   {barber.photo_url ? (
                     <img src={barber.photo_url} alt={barber.name} className="w-7 h-7 rounded-full object-cover ring-2 ring-[#8B9A7E]/30" />
@@ -162,13 +161,13 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
                   <div
                     key={`${barber.id}-${slot.time}`}
                     className={cn(
-                      "calendar-slot flex-1 border-l border-b border-gray-50 relative",
+                      "calendar-slot border-l border-b border-gray-50 relative",
                       !bookable && "bg-gray-100/50",
                       bookable && "hover:bg-[#8B9A7E]/5 cursor-pointer",
                       slot.minute === 0 && "border-t border-gray-200/50",
                       isDragOver && bookable && "bg-[#8B9A7E]/10"
                     )}
-                    style={{ minWidth: `${slotWidth}px`, height: `${slotHeight}px` }}
+                    style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, height: `${slotHeight}px` }}
                     onClick={() => bookable && onSlotClick(barber, slot.time, dateStr)}
                     onDragOver={(e) => bookable && handleDragOver(e, barber.id, slot.time)}
                     onDragLeave={() => setDragOverSlot(null)}
