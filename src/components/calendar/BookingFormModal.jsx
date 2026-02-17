@@ -70,9 +70,10 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
 
   const selectedService = services.find(s => s.id === form.service_id);
   const selectedBarber = barbers.find(b => b.id === form.barber_id);
+  const serviceDuration = selectedBarber?.service_durations?.[form.service_id] || selectedService?.duration || 30;
 
   const endTime = selectedService
-    ? format(addMinutes(parse(form.start_time, "HH:mm", new Date()), selectedService.duration), "HH:mm")
+    ? format(addMinutes(parse(form.start_time, "HH:mm", new Date()), serviceDuration), "HH:mm")
     : "";
 
   const finalPrice = selectedService ? (() => {
@@ -88,7 +89,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
       ...form,
       barber_name: selectedBarber?.name || "",
       service_name: selectedService?.name || "",
-      duration: selectedService?.duration || 30,
+      duration: serviceDuration,
       price: selectedService?.price || 0,
       end_time: endTime,
       final_price: finalPrice,
@@ -181,7 +182,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
             <div className="bg-gray-50 rounded-lg p-3 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">Duration</span>
-                <span>{selectedService.duration} min</span>
+                <span>{serviceDuration} min {selectedBarber?.service_durations?.[form.service_id] && <span className="text-[10px] text-[#8B9A7E]">(custom)</span>}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">End Time</span>
