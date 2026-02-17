@@ -11,11 +11,12 @@ function generateTimeSlots(startHour = 8, endHour = 21) {
   for (let h = startHour; h < endHour; h++) {
     for (let m = 0; m < 60; m += SLOT_MINUTES) {
       const timeStr = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      const displayLabel = format(new Date(2000, 0, 1, h, m), m === 0 ? "h a" : "h:mm");
       slots.push({
         time: timeStr,
         hour: h,
         minute: m,
-        label: m === 0 ? format(new Date(2000, 0, 1, h, 0), "h a") : timeStr,
+        label: displayLabel,
         isHour: m === 0,
       });
     }
