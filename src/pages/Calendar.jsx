@@ -77,6 +77,30 @@ export default function CalendarPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bookings"] }),
   });
 
+  const handleBookingResize = (booking, newDuration, direction) => {
+    const [hours, minutes] = booking.start_time.split(':').map(Number);
+    let newStartTime = booking.start_time;
+    
+    if (direction === 'top') {
+      const oldDuration = booking.duration || 30;
+      const durationDiff = oldDuration - newDuration;
+      const newStartMinutes = hours * 60 + minutes + durationDiff;
+      newStartTime = `${String(Math.floor(newStartMinutes / 60)).padStart(2, '0')}:${String(newStartMinutes % 60).padStart(2, '0')}`;
+    }
+    
+    const newEndMinutes = (direction === 'top' ? (hours * 60 + minutes + (booking.duration - newDuration)) : (hours * 60 + minutes)) + newDuration;
+    const newEndTime = `${String(Math.floor(newEndMinutes / 60)).padStart(2, '0')}:${String(newEndMinutes % 60).padStart(2, '0')}`;
+    
+    updateBooking.mutate({
+      id: booking.id,
+      data: {
+        start_time: newStartTime,
+        end_time: newEndTime,
+        duration: newDuration
+      }
+    });
+  };
+
   // Group barbers for display
   const activeBarbers = barbers.filter(b => b.is_active !== false);
   const totalGroups = Math.max(1, Math.ceil(activeBarbers.length / BARBERS_PER_GROUP));
@@ -194,6 +218,7 @@ export default function CalendarPage() {
           onSlotClick={handleSlotClick}
           onBookingContext={handleBookingContext}
           onDrop={handleDrop}
+          onBookingResize={handleBookingResize}
           zoomLevel={zoomLevel}
           columnWidth={columnWidth}
         />
