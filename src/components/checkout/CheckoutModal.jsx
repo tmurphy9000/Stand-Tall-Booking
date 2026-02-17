@@ -1,0 +1,375 @@
+import React, { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { X, Plus, DollarSign } from "lucide-react";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
+
+export default function CheckoutModal({ open, onClose, booking, onComplete }) {
+  const [items, setItems] = useState([]);
+  const [discount, setDiscount] = useState({ type: "none", value: 0 });
+  const [tip, setTip] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [additionalBookings, setAdditionalBookings] = useState([]);
+
+  const { data: services = [] } = useQuery({
+    queryKey: ["services"],
+    queryFn: () => base44.entities.Service.list(),
+  });
+
+  const { data: products = [] } = useQuery({
+    queryKey: ["products"],
+    queryFn: () => base44.entities.Product.list(),
+  });
+
+  const { data: barbers = [] } = useQuery({
+    queryKey: ["barbers"],
+    queryFn: () => base44.entities.Barber.list(),
+  });
+
+  const { data: bookings = [] } = useQuery({
+    queryKey: ["bookings"],
+    queryFn: () => base44.entities.Booking.list("-date", 100),
+    enabled: open,
+  });
+
+  useEffect(() => {
+    if (booking) {
+      setItems([{
+        id: Date.now(),
+        type: "service",
+        name: booking.service_name,
+        price: booking.price || 0,
+        serviceId: booking.service_id,
+        barberId: booking.barber_id,
+        barberName: booking.barber_name,
+        bookingId: booking.id,
+      }]);
+    }
+  }, [booking]);
+
+  const addProduct = (productId) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    setItems([...items, {
+      id: Date.now(),
+      type: "product",
+      name: product.name,
+      price: product.retail_price,
+      tax: product.tax_enabled ? (product.tax_rate || 7.5) : 0,
+      productId: product.id,
+    }]);
+  };
+
+  const addService = (serviceId) => {
+    const service = services.find(s => s.id === serviceId);
+    if (!service) return;
+    setItems([...items, {
+      id: Date.now(),
+      type: "service",
+      name: service.name,
+      price: service.price,
+      serviceId: service.id,
+      barberId: booking?.barber_id,
+      barberName: booking?.barber_name,
+    }]);
+  };
+
+  const addBookingToTransaction = (bookingId) => {
+    const selectedBooking = bookings.find(b => b.id === bookingId);
+    if (!selectedBooking || additionalBookings.includes(bookingId)) return;
+    
+    setAdditionalBookings([...additionalBookings, bookingId]);
+    setItems([...items, {
+      id: Date.now(),
+      type: "service",
+      name: selectedBooking.service_name,
+      price: selectedBooking.price || 0,
+      serviceId: selectedBooking.service_id,
+      barberId: selectedBooking.barber_id,
+      barberName: selectedBooking.barber_name,
+      bookingId: selectedBooking.id,
+    }]);
+  };
+
+  const removeItem = (itemId) => {
+    const item = items.find(i => i.id === itemId);
+    if (item?.bookingId) {
+      setAdditionalBookings(additionalBookings.filter(id => id !== item.bookingId));
+    }
+    setItems(items.filter(i => i.id !== itemId));
+  };
+
+  const subtotal = items.reduce((sum, item) => sum + (item.price || 0), 0);
+  const taxAmount = items.reduce((sum, item) => {
+    if (item.type === "product" && item.tax) {
+      return sum + (item.price * item.tax / 100);
+    }
+    return sum;
+  }, 0);
+  
+  const discountAmount = discount.type === "percentage" 
+    ? subtotal * (discount.value / 100)
+    : discount.type === "fixed" ? discount.value : 0;
+  
+  const total = subtotal + taxAmount - discountAmount + (tip || 0);
+
+  const handleCheckout = async () => {
+    try {
+      // Update primary booking
+      await base44.entities.Booking.update(booking.id, {
+        status: "completed",
+        payment_method: paymentMethod,
+        discount_type: discount.type,
+        discount_value: discount.value,
+        final_price: total,
+      });
+
+      // Update additional bookings
+      for (const bookingId of additionalBookings) {
+        await base44.entities.Booking.update(bookingId, {
+          status: "completed",
+          payment_method: paymentMethod,
+        });
+      }
+
+      // Record cash transaction if cash payment
+      if (paymentMethod === "cash") {
+        await base44.entities.CashTransaction.create({
+          type: "inflow",
+          amount: total,
+          barber_id: booking.barber_id,
+          barber_name: booking.barber_name,
+          booking_id: booking.id,
+          note: `Checkout: ${booking.client_name} - ${items.map(i => i.name).join(", ")}`,
+          date: new Date().toISOString().split('T')[0],
+          time: new Date().toTimeString().slice(0, 5),
+        });
+      }
+
+      // Update product inventory
+      for (const item of items.filter(i => i.type === "product")) {
+        const product = products.find(p => p.id === item.productId);
+        if (product) {
+          await base44.entities.Product.update(item.productId, {
+            stock_quantity: Math.max(0, (product.stock_quantity || 0) - 1),
+            total_units_sold: (product.total_units_sold || 0) + 1,
+            total_revenue: (product.total_revenue || 0) + item.price,
+          });
+        }
+      }
+
+      toast.success("Checkout completed successfully");
+      onComplete();
+      onClose();
+    } catch (error) {
+      toast.error("Checkout failed: " + error.message);
+    }
+  };
+
+  if (!booking) return null;
+
+  const availableBookings = bookings.filter(b => 
+    b.status === "checked_in" && 
+    b.id !== booking.id &&
+    !additionalBookings.includes(b.id)
+  );
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Checkout - {booking.client_name}</DialogTitle>
+        </DialogHeader>
+
+        <div className="space-y-4">
+          {/* Client & Barber Info */}
+          <div className="bg-gray-50 p-3 rounded-lg">
+            <p className="text-sm font-semibold">{booking.client_name}</p>
+            <p className="text-xs text-gray-600">Barber: {booking.barber_name}</p>
+          </div>
+
+          {/* Items List */}
+          <div className="space-y-2">
+            <Label className="text-sm font-semibold">Items</Label>
+            {items.map((item) => (
+              <div key={item.id} className="flex items-center justify-between bg-white border border-gray-200 p-2 rounded">
+                <div className="flex-1">
+                  <p className="text-sm font-medium">{item.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {item.type === "service" ? `Service by ${item.barberName}` : "Product"}
+                    {item.tax > 0 && ` • Tax: ${item.tax}%`}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold">${item.price.toFixed(2)}</span>
+                  {items.length > 1 && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6"
+                      onClick={() => removeItem(item.id)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Add Items */}
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <Label className="text-xs">Add Product</Label>
+              <Select onValueChange={addProduct}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Select product" />
+                </SelectTrigger>
+                <SelectContent>
+                  {products.filter(p => p.is_active).map(p => (
+                    <SelectItem key={p.id} value={p.id} className="text-xs">
+                      {p.name} - ${p.retail_price}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-xs">Add Service</Label>
+              <Select onValueChange={addService}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Select service" />
+                </SelectTrigger>
+                <SelectContent>
+                  {services.filter(s => s.is_active).map(s => (
+                    <SelectItem key={s.id} value={s.id} className="text-xs">
+                      {s.name} - ${s.price}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label className="text-xs">Add Appointment</Label>
+              <Select onValueChange={addBookingToTransaction}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Select booking" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableBookings.map(b => (
+                    <SelectItem key={b.id} value={b.id} className="text-xs">
+                      {b.client_name} - {b.service_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Discount */}
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <Label className="text-xs">Discount Type</Label>
+              <Select value={discount.type} onValueChange={(val) => setDiscount({ ...discount, type: val })}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Discount</SelectItem>
+                  <SelectItem value="percentage">Percentage</SelectItem>
+                  <SelectItem value="fixed">Fixed Amount</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {discount.type !== "none" && (
+              <div>
+                <Label className="text-xs">Discount Value</Label>
+                <Input
+                  type="number"
+                  className="h-8 text-xs"
+                  value={discount.value}
+                  onChange={(e) => setDiscount({ ...discount, value: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Tip */}
+          <div>
+            <Label className="text-xs">Tip</Label>
+            <Input
+              type="number"
+              className="h-8 text-xs"
+              value={tip}
+              onChange={(e) => setTip(parseFloat(e.target.value) || 0)}
+              placeholder="0.00"
+            />
+          </div>
+
+          {/* Payment Method */}
+          <div>
+            <Label className="text-xs">Payment Method</Label>
+            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <SelectTrigger className="h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="cash">Cash</SelectItem>
+                <SelectItem value="card">Card</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Summary */}
+          <div className="bg-[#8B9A7E]/10 p-3 rounded-lg space-y-1">
+            <div className="flex justify-between text-sm">
+              <span>Subtotal:</span>
+              <span>${subtotal.toFixed(2)}</span>
+            </div>
+            {taxAmount > 0 && (
+              <div className="flex justify-between text-sm">
+                <span>Tax:</span>
+                <span>${taxAmount.toFixed(2)}</span>
+              </div>
+            )}
+            {discountAmount > 0 && (
+              <div className="flex justify-between text-sm text-red-600">
+                <span>Discount:</span>
+                <span>-${discountAmount.toFixed(2)}</span>
+              </div>
+            )}
+            {tip > 0 && (
+              <div className="flex justify-between text-sm">
+                <span>Tip:</span>
+                <span>${tip.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex justify-between text-lg font-bold border-t pt-1">
+              <span>Total:</span>
+              <span>${total.toFixed(2)}</span>
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose} className="flex-1">
+              Cancel
+            </Button>
+            <Button onClick={handleCheckout} className="flex-1 bg-[#8B9A7E] hover:bg-[#6B7A5E]">
+              <DollarSign className="w-4 h-4 mr-2" />
+              Complete Checkout
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

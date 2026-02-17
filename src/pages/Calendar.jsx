@@ -10,6 +10,7 @@ import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BarberAssistant from "../components/assistant/BarberAssistant";
 import LeaderboardCard from "../components/calendar/LeaderboardCard";
+import CheckoutModal from "../components/checkout/CheckoutModal";
 
 const BARBERS_PER_GROUP = 5;
 
@@ -23,6 +24,7 @@ export default function CalendarPage() {
   const [bookingPrefill, setBookingPrefill] = useState(null);
   const [contextMenu, setContextMenu] = useState({ booking: null, position: { x: 0, y: 0 } });
   const [slotMenu, setSlotMenu] = useState({ barber: null, time: null, date: null, position: { x: 0, y: 0 } });
+  const [checkoutBooking, setCheckoutBooking] = useState(null);
   const [initialPinchDistance, setInitialPinchDistance] = useState(null);
   const [initialZoomLevel, setInitialZoomLevel] = useState(1);
   const [showAssistant, setShowAssistant] = useState(false);
@@ -125,6 +127,12 @@ export default function CalendarPage() {
   };
 
   const handleContextAction = (action, bookingId, extra) => {
+    if (action === "checkout") {
+      const booking = bookings.find(b => b.id === bookingId);
+      setCheckoutBooking(booking);
+      setContextMenu({ booking: null, position: { x: 0, y: 0 } });
+      return;
+    }
     const statusMap = { confirm: "confirmed", checked_in: "checked_in", completed: "completed", cancel: "cancelled" };
     const data = { status: statusMap[action] || action };
     if (extra?.cancel_reason) data.cancel_reason = extra.cancel_reason;
@@ -269,6 +277,13 @@ export default function CalendarPage() {
       <BarberAssistant
         open={showAssistant}
         onClose={() => setShowAssistant(false)}
+      />
+
+      <CheckoutModal
+        open={!!checkoutBooking}
+        onClose={() => setCheckoutBooking(null)}
+        booking={checkoutBooking}
+        onComplete={() => queryClient.invalidateQueries({ queryKey: ["bookings"] })}
       />
 
       {/* Slot Action Menu */}
