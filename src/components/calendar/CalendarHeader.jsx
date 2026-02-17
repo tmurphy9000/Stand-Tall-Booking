@@ -1,10 +1,10 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, ZoomIn, ZoomOut } from "lucide-react";
 import { format, addDays, startOfWeek } from "date-fns";
 import { cn } from "@/lib/utils";
 
-export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, setViewMode, onNewBooking, barberGroupIndex, setBarberGroupIndex, totalBarberGroups }) {
+export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, setViewMode, onNewBooking, barberGroupIndex, setBarberGroupIndex, totalBarberGroups, zoomLevel, setZoomLevel }) {
   const goNext = () => {
     setCurrentDate(prev => addDays(prev, viewMode === "day" ? 1 : 7));
   };
@@ -65,31 +65,57 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
           ))}
         </div>
 
-        {totalBarberGroups > 1 && (
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-1">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="h-6 w-6 p-0"
-              disabled={barberGroupIndex === 0}
-              onClick={() => setBarberGroupIndex(prev => prev - 1)}
+              className="h-7 w-7 p-0"
+              disabled={zoomLevel <= 0.5}
+              onClick={() => setZoomLevel(prev => Math.max(0.5, prev - 0.25))}
             >
-              <ChevronLeft className="w-3 h-3" />
+              <ZoomOut className="w-3.5 h-3.5" />
             </Button>
-            <span className="text-[10px] text-gray-400">
-              {barberGroupIndex + 1}/{totalBarberGroups}
+            <span className="text-[10px] text-gray-500 min-w-[45px] text-center">
+              {Math.round(zoomLevel * 100)}%
             </span>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="h-6 w-6 p-0"
-              disabled={barberGroupIndex >= totalBarberGroups - 1}
-              onClick={() => setBarberGroupIndex(prev => prev + 1)}
+              className="h-7 w-7 p-0"
+              disabled={zoomLevel >= 2}
+              onClick={() => setZoomLevel(prev => Math.min(2, prev + 0.25))}
             >
-              <ChevronRight className="w-3 h-3" />
+              <ZoomIn className="w-3.5 h-3.5" />
             </Button>
           </div>
-        )}
+
+          {totalBarberGroups > 1 && (
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                disabled={barberGroupIndex === 0}
+                onClick={() => setBarberGroupIndex(prev => prev - 1)}
+              >
+                <ChevronLeft className="w-3 h-3" />
+              </Button>
+              <span className="text-[10px] text-gray-400">
+                {barberGroupIndex + 1}/{totalBarberGroups}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 w-6 p-0"
+                disabled={barberGroupIndex >= totalBarberGroups - 1}
+                onClick={() => setBarberGroupIndex(prev => prev + 1)}
+              >
+                <ChevronRight className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

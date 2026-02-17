@@ -14,6 +14,7 @@ export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState("day");
   const [barberGroupIndex, setBarberGroupIndex] = useState(0);
+  const [zoomLevel, setZoomLevel] = useState(1);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [bookingPrefill, setBookingPrefill] = useState(null);
   const [contextMenu, setContextMenu] = useState({ booking: null, position: { x: 0, y: 0 } });
@@ -123,6 +124,8 @@ export default function CalendarPage() {
         barberGroupIndex={barberGroupIndex}
         setBarberGroupIndex={setBarberGroupIndex}
         totalBarberGroups={totalGroups}
+        zoomLevel={zoomLevel}
+        setZoomLevel={setZoomLevel}
       />
 
       {isLoading ? (
@@ -138,6 +141,7 @@ export default function CalendarPage() {
           onSlotClick={handleSlotClick}
           onBookingContext={handleBookingContext}
           onDrop={handleDrop}
+          zoomLevel={zoomLevel}
         />
       ) : (
         <div className="flex-1 overflow-x-auto">

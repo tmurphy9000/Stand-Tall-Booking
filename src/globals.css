@@ -1,3 +1,4 @@
+css
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -76,11 +77,7 @@
   }
 }
 
-/* Calendar slot height */
-.calendar-slot {
-  height: 20px;
-  min-height: 20px;
-}
+/* Calendar slot - dynamic height via inline styles */
 
 /* Booking card in calendar */
 .booking-card {

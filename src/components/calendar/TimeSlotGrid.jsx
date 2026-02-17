@@ -2,7 +2,8 @@ import React, { useState, useRef, useCallback } from "react";
 import { format, parse, addMinutes, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 
-const SLOT_HEIGHT = 20;
+const BASE_SLOT_HEIGHT = 20;
+const BASE_SLOT_WIDTH = 360;
 const SLOT_MINUTES = 15;
 
 function generateTimeSlots(startHour = 8, endHour = 21) {
@@ -35,9 +36,9 @@ function isSlotBookable(time, barberHours, shopHours, dayName) {
   return true;
 }
 
-function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragStart }) {
+function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragStart, slotHeight }) {
   const durationSlots = Math.ceil((booking.duration || 30) / SLOT_MINUTES);
-  const height = durationSlots * SLOT_HEIGHT - 2;
+  const height = durationSlots * slotHeight - 2;
 
   const statusColors = {
     scheduled: "bg-[#8B9A7E]/15 border-[#8B9A7E] text-[#6B7A5E]",
@@ -66,7 +67,9 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
   );
 }
 
-export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlotClick, onBookingContext, onDrop }) {
+export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlotClick, onBookingContext, onDrop, zoomLevel = 1 }) {
+  const slotHeight = BASE_SLOT_HEIGHT * zoomLevel;
+  const slotWidth = BASE_SLOT_WIDTH * zoomLevel;
   const timeSlots = generateTimeSlots(7, 22);
   const dayName = format(date, "EEEE").toLowerCase();
   const dateStr = format(date, "yyyy-MM-dd");
@@ -107,7 +110,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
         <div className="sticky top-0 z-20 bg-[#FAFAF8] flex border-b border-gray-100">
           <div className="w-14 flex-shrink-0" />
           {barbers.map((barber) => (
-            <div key={barber.id} className="flex-1 min-w-[360px] px-2 py-2 text-center border-l border-gray-50">
+            <div key={barber.id} className="flex-1 px-2 py-2 text-center border-l border-gray-50" style={{ minWidth: `${slotWidth}px` }}>
               <div className="flex flex-col items-center gap-1">
                 {barber.photo_url ? (
                   <img src={barber.photo_url} alt={barber.name} className="w-7 h-7 rounded-full object-cover ring-2 ring-[#8B9A7E]/30" />
@@ -140,12 +143,13 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
                   <div
                     key={`${barber.id}-${slot.time}`}
                     className={cn(
-                      "calendar-slot flex-1 min-w-[360px] border-l border-b border-gray-50 relative",
+                      "calendar-slot flex-1 border-l border-b border-gray-50 relative",
                       !bookable && "bg-gray-100/50",
                       bookable && "hover:bg-[#8B9A7E]/5 cursor-pointer",
                       slot.minute === 0 && "border-t border-gray-200/50",
                       isDragOver && bookable && "bg-[#8B9A7E]/10"
                     )}
+                    style={{ minWidth: `${slotWidth}px`, height: `${slotHeight}px` }}
                     onClick={() => bookable && onSlotClick(barber, slot.time, dateStr)}
                     onDragOver={(e) => bookable && handleDragOver(e, barber.id, slot.time)}
                     onDragLeave={() => setDragOverSlot(null)}
@@ -159,6 +163,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
                         totalSlots={timeSlots.length}
                         onContextMenu={onBookingContext}
                         onDragStart={handleDragStart}
+                        slotHeight={slotHeight}
                       />
                     ))}
                   </div>
