@@ -107,7 +107,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
         <div className="sticky top-0 z-20 bg-[#FAFAF8] flex border-b border-gray-100">
           <div className="w-14 flex-shrink-0" />
           {barbers.map((barber) => (
-            <div key={barber.id} className="flex-1 min-w-[120px] px-2 py-2 text-center border-l border-gray-50">
+            <div key={barber.id} className="flex-1 min-w-[360px] px-2 py-2 text-center border-l border-gray-50">
               <div className="flex flex-col items-center gap-1">
                 {barber.photo_url ? (
                   <img src={barber.photo_url} alt={barber.name} className="w-7 h-7 rounded-full object-cover ring-2 ring-[#8B9A7E]/30" />
@@ -140,7 +140,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
                   <div
                     key={`${barber.id}-${slot.time}`}
                     className={cn(
-                      "calendar-slot flex-1 min-w-[120px] border-l border-b border-gray-50 relative",
+                      "calendar-slot flex-1 min-w-[360px] border-l border-b border-gray-50 relative",
                       !bookable && "bg-gray-100/50",
                       bookable && "hover:bg-[#8B9A7E]/5 cursor-pointer",
                       slot.minute === 0 && "border-t border-gray-200/50",
