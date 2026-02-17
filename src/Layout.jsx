@@ -5,6 +5,7 @@ import { Calendar, Package, BarChart3, Banknote, Settings, Scissors, DollarSign 
 import { cn } from "@/lib/utils";
 import { base44 } from "@/api/base44Client";
 import NotificationBell from "./components/notifications/NotificationBell";
+import { Button } from "@/components/ui/button";
 
 import { usePermissions } from "./components/permissions/usePermissions";
 import { Users } from "lucide-react";
