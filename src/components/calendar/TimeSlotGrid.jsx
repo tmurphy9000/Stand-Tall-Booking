@@ -86,8 +86,14 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
 
   return (
     <div
-      draggable={!isResizing}
-      onDragStart={(e) => !isResizing && onDragStart(e, booking)}
+      draggable
+      onDragStart={(e) => {
+        if (isResizing) {
+          e.preventDefault();
+          return;
+        }
+        onDragStart(e, booking);
+      }}
       onClick={(e) => {
         e.stopPropagation();
         onContextMenu(e, booking);
