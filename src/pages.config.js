@@ -49,30 +49,32 @@
  */
 import Calendar from './pages/Calendar';
 import CashTracker from './pages/CashTracker';
+import ClientBooking from './pages/ClientBooking';
+import ClientDetails from './pages/ClientDetails';
+import ClientHistory from './pages/ClientHistory';
+import ClientList from './pages/ClientList';
+import ClientPortal from './pages/ClientPortal';
 import Inventory from './pages/Inventory';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
-import ClientPortal from './pages/ClientPortal';
-import ClientHistory from './pages/ClientHistory';
-import ClientBooking from './pages/ClientBooking';
-import ClientDetails from './pages/ClientDetails';
-import ClientList from './pages/ClientList';
 import StaffSchedule from './pages/StaffSchedule';
+import Payroll from './pages/Payroll';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "Calendar": Calendar,
     "CashTracker": CashTracker,
+    "ClientBooking": ClientBooking,
+    "ClientDetails": ClientDetails,
+    "ClientHistory": ClientHistory,
+    "ClientList": ClientList,
+    "ClientPortal": ClientPortal,
     "Inventory": Inventory,
     "Reports": Reports,
     "Settings": Settings,
-    "ClientPortal": ClientPortal,
-    "ClientHistory": ClientHistory,
-    "ClientBooking": ClientBooking,
-    "ClientDetails": ClientDetails,
-    "ClientList": ClientList,
     "StaffSchedule": StaffSchedule,
+    "Payroll": Payroll,
 }
 
 export const pagesConfig = {

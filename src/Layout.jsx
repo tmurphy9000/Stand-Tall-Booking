@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
-import { Calendar, Package, BarChart3, Banknote, Settings, Scissors } from "lucide-react";
+import { Calendar, Package, BarChart3, Banknote, Settings, Scissors, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { base44 } from "@/api/base44Client";
 import NotificationBell from "./components/notifications/NotificationBell";
@@ -14,6 +14,7 @@ const tabs = [
   { name: "Schedule", icon: Users, page: "StaffSchedule" },
   { name: "Inventory", icon: Package, page: "Inventory" },
   { name: "Reports", icon: BarChart3, page: "Reports", requiresFullAccess: true },
+  { name: "Payroll", icon: DollarSign, page: "Payroll", requiresFullAccess: true },
   { name: "Cash", icon: Banknote, page: "CashTracker" },
   { name: "Settings", icon: Settings, page: "Settings" },
 ];
