@@ -172,6 +172,8 @@ export default function CalendarPage() {
         totalBarberGroups={totalGroups}
         zoomLevel={zoomLevel}
         setZoomLevel={setZoomLevel}
+        columnWidth={columnWidth}
+        setColumnWidth={setColumnWidth}
       />
 
       {isLoading ? (
@@ -188,6 +190,7 @@ export default function CalendarPage() {
           onBookingContext={handleBookingContext}
           onDrop={handleDrop}
           zoomLevel={zoomLevel}
+          columnWidth={columnWidth}
         />
       ) : (
         <div className="flex-1 overflow-x-auto">
