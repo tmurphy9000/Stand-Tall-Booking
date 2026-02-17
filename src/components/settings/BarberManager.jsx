@@ -10,7 +10,6 @@ import { Plus, Pencil, Clock, Camera, Trash2, CheckCircle, XCircle, Timer } from
 import BarberHoursEditor from "./BarberHoursEditor";
 import BarberServiceDurations from "./BarberServiceDurations";
 import { useQuery } from "@tanstack/react-query";
-import { base44 } from "@/api/base44Client";
 
 export default function BarberManager({ barbers, onCreate, onUpdate, onDelete }) {
   const [showForm, setShowForm] = useState(false);
@@ -196,6 +195,18 @@ export default function BarberManager({ barbers, onCreate, onUpdate, onDelete })
           )}
         </DialogContent>
       </Dialog>
+
+      {showDurations && (
+        <BarberServiceDurations
+          barber={showDurations}
+          services={services}
+          onSave={(id, data) => {
+            onUpdate(id, data);
+            setShowDurations(null);
+          }}
+          onClose={() => setShowDurations(null)}
+        />
+      )}
     </div>
   );
 }
