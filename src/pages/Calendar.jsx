@@ -127,7 +127,7 @@ export default function CalendarPage() {
 
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-[#C9A94E]" />
+          <Loader2 className="w-6 h-6 animate-spin text-[#8B9A7E]" />
         </div>
       ) : viewMode === "day" ? (
         <TimeSlotGrid
@@ -153,11 +153,11 @@ export default function CalendarPage() {
                     <div
                       key={b.id}
                       onClick={(e) => handleBookingContext(e, b)}
-                      className="bg-white rounded-lg border border-gray-100 p-2 cursor-pointer hover:border-[#C9A94E]/30 transition-all"
+                      className="bg-white rounded-lg border border-gray-100 p-2 cursor-pointer hover:border-[#8B9A7E]/30 transition-all"
                     >
                       <p className="text-[10px] font-semibold">{b.client_name}</p>
                       <p className="text-[9px] text-gray-400">{b.barber_name} • {b.start_time} - {b.end_time}</p>
-                      <p className="text-[9px] text-[#C9A94E]">{b.service_name}</p>
+                      <p className="text-[9px] text-[#8B9A7E]">{b.service_name}</p>
                     </div>
                   ))}
                 </div>

@@ -40,7 +40,7 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
   const height = durationSlots * SLOT_HEIGHT - 2;
 
   const statusColors = {
-    scheduled: "bg-[#C9A94E]/15 border-[#C9A94E] text-[#8B7023]",
+    scheduled: "bg-[#8B9A7E]/15 border-[#8B9A7E] text-[#6B7A5E]",
     confirmed: "bg-blue-50 border-blue-400 text-blue-700",
     checked_in: "bg-green-50 border-green-400 text-green-700",
     completed: "bg-gray-50 border-gray-300 text-gray-500",
@@ -110,9 +110,9 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
             <div key={barber.id} className="flex-1 min-w-[120px] px-2 py-2 text-center border-l border-gray-50">
               <div className="flex flex-col items-center gap-1">
                 {barber.photo_url ? (
-                  <img src={barber.photo_url} alt={barber.name} className="w-7 h-7 rounded-full object-cover ring-2 ring-[#C9A94E]/30" />
+                  <img src={barber.photo_url} alt={barber.name} className="w-7 h-7 rounded-full object-cover ring-2 ring-[#8B9A7E]/30" />
                 ) : (
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-[#C9A94E] to-[#A07D2B] flex items-center justify-center text-white text-[10px] font-bold">
+                  <div className="w-7 h-7 rounded-full bg-[#8B9A7E] flex items-center justify-center text-[#FAFAF8] text-[10px] font-bold">
                     {barber.name?.charAt(0)}
                   </div>
                 )}
@@ -142,9 +142,9 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
                     className={cn(
                       "calendar-slot flex-1 min-w-[120px] border-l border-b border-gray-50 relative",
                       !bookable && "bg-gray-100/50",
-                      bookable && "hover:bg-[#C9A94E]/5 cursor-pointer",
+                      bookable && "hover:bg-[#8B9A7E]/5 cursor-pointer",
                       slot.minute === 0 && "border-t border-gray-200/50",
-                      isDragOver && bookable && "bg-[#C9A94E]/10"
+                      isDragOver && bookable && "bg-[#8B9A7E]/10"
                     )}
                     onClick={() => bookable && onSlotClick(barber, slot.time, dateStr)}
                     onDragOver={(e) => bookable && handleDragOver(e, barber.id, slot.time)}
