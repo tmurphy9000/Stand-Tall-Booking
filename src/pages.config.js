@@ -51,6 +51,7 @@ import Calendar from './pages/Calendar';
 import Inventory from './pages/Inventory';
 import Reports from './pages/Reports';
 import CashTracker from './pages/CashTracker';
+import Settings from './pages/Settings';
 import __Layout from './Layout.jsx';
 
 
@@ -59,6 +60,7 @@ export const PAGES = {
     "Inventory": Inventory,
     "Reports": Reports,
     "CashTracker": CashTracker,
+    "Settings": Settings,
 }
 
 export const pagesConfig = {
