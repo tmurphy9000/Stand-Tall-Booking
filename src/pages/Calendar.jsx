@@ -22,6 +22,7 @@ export default function CalendarPage() {
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [bookingPrefill, setBookingPrefill] = useState(null);
   const [contextMenu, setContextMenu] = useState({ booking: null, position: { x: 0, y: 0 } });
+  const [slotMenu, setSlotMenu] = useState({ barber: null, time: null, date: null, position: { x: 0, y: 0 } });
   const [initialPinchDistance, setInitialPinchDistance] = useState(null);
   const [initialZoomLevel, setInitialZoomLevel] = useState(1);
   const [showAssistant, setShowAssistant] = useState(false);
@@ -84,9 +85,13 @@ export default function CalendarPage() {
     (barberGroupIndex + 1) * BARBERS_PER_GROUP
   );
 
-  const handleSlotClick = (barber, time, date) => {
-    setBookingPrefill({ barber_id: barber.id, start_time: time, date });
-    setShowBookingForm(true);
+  const handleSlotClick = (e, barber, time, date) => {
+    setSlotMenu({ 
+      barber, 
+      time, 
+      date, 
+      position: { x: Math.min(e.clientX, window.innerWidth - 200), y: Math.min(e.clientY, window.innerHeight - 180) } 
+    });
   };
 
   const handleBookingContext = (e, booking) => {
@@ -240,6 +245,48 @@ export default function CalendarPage() {
         open={showAssistant}
         onClose={() => setShowAssistant(false)}
       />
+
+      {/* Slot Action Menu */}
+      {slotMenu.barber && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setSlotMenu({ barber: null, time: null, date: null, position: { x: 0, y: 0 } })} />
+          <div
+            className="fixed z-50 bg-white rounded-lg shadow-xl border border-gray-200 p-2 min-w-[180px]"
+            style={{ top: slotMenu.position.y, left: slotMenu.position.x }}
+          >
+            <div className="px-2 py-1 border-b border-gray-100 mb-1">
+              <p className="text-xs font-semibold text-gray-700">{slotMenu.barber.name}</p>
+              <p className="text-[10px] text-gray-500">{slotMenu.time} • {format(new Date(slotMenu.date + "T12:00:00"), "MMM d")}</p>
+            </div>
+            <button
+              onClick={() => {
+                setBookingPrefill({ barber_id: slotMenu.barber.id, start_time: slotMenu.time, date: slotMenu.date });
+                setShowBookingForm(true);
+                setSlotMenu({ barber: null, time: null, date: null, position: { x: 0, y: 0 } });
+              }}
+              className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 rounded flex items-center gap-2"
+            >
+              <span>📅</span> Create Appointment
+            </button>
+            <button
+              onClick={() => {
+                setBookingPrefill({ 
+                  barber_id: slotMenu.barber.id, 
+                  start_time: slotMenu.time, 
+                  date: slotMenu.date,
+                  client_name: "BLOCKED TIME",
+                  service_name: "Blocked"
+                });
+                setShowBookingForm(true);
+                setSlotMenu({ barber: null, time: null, date: null, position: { x: 0, y: 0 } });
+              }}
+              className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 rounded flex items-center gap-2"
+            >
+              <span>🚫</span> Block Time
+            </button>
+          </div>
+        </>
+      )}
 
       {/* AI Assistant FAB */}
       <Button

@@ -168,7 +168,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
                       isDragOver && bookable && "bg-[#8B9A7E]/10"
                     )}
                     style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px`, height: `${slotHeight}px` }}
-                    onClick={() => bookable && onSlotClick(barber, slot.time, dateStr)}
+                    onClick={(e) => bookable && onSlotClick(e, barber, slot.time, dateStr)}
                     onDragOver={(e) => bookable && handleDragOver(e, barber.id, slot.time)}
                     onDragLeave={() => setDragOverSlot(null)}
                     onDrop={(e) => bookable && handleDrop(e, barber.id, slot.time)}
