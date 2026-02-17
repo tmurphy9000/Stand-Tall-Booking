@@ -9,6 +9,7 @@ import BookingContextMenu from "../components/calendar/BookingContextMenu";
 import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BarberAssistant from "../components/assistant/BarberAssistant";
+import LeaderboardCard from "../components/calendar/LeaderboardCard";
 
 const BARBERS_PER_GROUP = 5;
 
@@ -54,6 +55,11 @@ export default function CalendarPage() {
       const all = await base44.entities.Booking.list("-date", 500);
       return all.filter(b => b.date >= dateRange[0] && b.date <= dateRange[dateRange.length - 1]);
     },
+  });
+
+  const { data: cashTransactions = [] } = useQuery({
+    queryKey: ["cashTransactions"],
+    queryFn: () => base44.entities.CashTransaction.list("-date", 500),
   });
 
   const createBooking = useMutation({
@@ -148,11 +154,12 @@ export default function CalendarPage() {
 
   return (
     <div 
-      className="flex flex-col h-[calc(100vh-120px)]"
+      className="flex h-[calc(100vh-120px)]"
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
+      <div className="flex-1 flex flex-col overflow-hidden">
       <CalendarHeader
         currentDate={currentDate}
         setCurrentDate={setCurrentDate}
@@ -238,6 +245,16 @@ export default function CalendarPage() {
       >
         <Sparkles className="w-6 h-6 text-white" />
       </Button>
+      </div>
+
+      {/* Leaderboard Sidebar */}
+      <div className="w-80 flex-shrink-0 border-l border-gray-100 overflow-y-auto p-4 bg-white">
+        <LeaderboardCard 
+          bookings={bookings}
+          cashTransactions={cashTransactions}
+          barbers={barbers}
+        />
+      </div>
     </div>
   );
 }
