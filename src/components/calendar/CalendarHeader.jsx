@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Plus, ZoomIn, ZoomOut } from "lucide-react";
 import { format, addDays, startOfWeek } from "date-fns";
 import { cn } from "@/lib/utils";
+import ColorLegend from "./ColorLegend";
 
 export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, setViewMode, onNewBooking, barberGroupIndex, setBarberGroupIndex, totalBarberGroups, zoomLevel, setZoomLevel }) {
   const goNext = () => {
@@ -37,14 +38,18 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
           }
         </h2>
 
-        <Button
-          onClick={onNewBooking}
-          size="sm"
-          className="h-8 bg-[#C9A94E] hover:bg-[#A07D2B] text-white gap-1"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline text-xs">Book</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ColorLegend />
+          
+          <Button
+            onClick={onNewBooking}
+            size="sm"
+            className="h-8 bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white gap-1"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline text-xs">Book</span>
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center justify-between px-4 pb-2">
