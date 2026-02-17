@@ -12,6 +12,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
     client_name: "",
     client_phone: "",
     client_email: "",
+    client_id: "",
     barber_id: "",
     service_id: "",
     date: format(new Date(), "yyyy-MM-dd"),
@@ -20,6 +21,11 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
     payment_method: "cash",
     discount_type: "none",
     discount_value: 0,
+  });
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: () => base44.entities.Client.list(),
   });
 
   useEffect(() => {

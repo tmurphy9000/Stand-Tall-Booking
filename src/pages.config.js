@@ -55,6 +55,7 @@ import Settings from './pages/Settings';
 import ClientPortal from './pages/ClientPortal';
 import ClientHistory from './pages/ClientHistory';
 import ClientBooking from './pages/ClientBooking';
+import ClientDetails from './pages/ClientDetails';
 import __Layout from './Layout.jsx';
 
 
@@ -67,6 +68,7 @@ export const PAGES = {
     "ClientPortal": ClientPortal,
     "ClientHistory": ClientHistory,
     "ClientBooking": ClientBooking,
+    "ClientDetails": ClientDetails,
 }
 
 export const pagesConfig = {
