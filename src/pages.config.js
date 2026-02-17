@@ -52,6 +52,9 @@ import CashTracker from './pages/CashTracker';
 import Inventory from './pages/Inventory';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
+import ClientPortal from './pages/ClientPortal';
+import ClientHistory from './pages/ClientHistory';
+import ClientBooking from './pages/ClientBooking';
 import __Layout from './Layout.jsx';
 
 
@@ -61,6 +64,9 @@ export const PAGES = {
     "Inventory": Inventory,
     "Reports": Reports,
     "Settings": Settings,
+    "ClientPortal": ClientPortal,
+    "ClientHistory": ClientHistory,
+    "ClientBooking": ClientBooking,
 }
 
 export const pagesConfig = {
