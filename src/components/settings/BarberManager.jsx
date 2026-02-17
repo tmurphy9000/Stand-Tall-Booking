@@ -57,7 +57,7 @@ export default function BarberManager({ barbers, onCreate, onUpdate, onDelete })
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Barbers</h3>
-        <Button size="sm" className="h-7 text-xs bg-[#C9A94E] hover:bg-[#A07D2B] text-white gap-1" onClick={openNew}>
+        <Button size="sm" className="h-7 text-xs bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white gap-1" onClick={openNew}>
           <Plus className="w-3 h-3" /> Add
         </Button>
       </div>
@@ -66,9 +66,9 @@ export default function BarberManager({ barbers, onCreate, onUpdate, onDelete })
         {barbers.map(b => (
           <div key={b.id} className="bg-gray-50 rounded-xl px-3 py-3 flex items-center gap-3">
             {b.photo_url ? (
-              <img src={b.photo_url} alt={b.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-[#C9A94E]/30" />
+              <img src={b.photo_url} alt={b.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-[#B0BFA4]/30" />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#C9A94E] to-[#A07D2B] flex items-center justify-center text-white font-bold text-sm">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#B0BFA4] to-[#8B9A7E] flex items-center justify-center text-white font-bold text-sm">
                 {b.name?.charAt(0)}
               </div>
             )}
@@ -121,7 +121,7 @@ export default function BarberManager({ barbers, onCreate, onUpdate, onDelete })
               <label className="cursor-pointer">
                 <input type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
                 {form.photo_url ? (
-                  <img src={form.photo_url} alt="" className="w-16 h-16 rounded-full object-cover ring-2 ring-[#C9A94E]/30" />
+                  <img src={form.photo_url} alt="" className="w-16 h-16 rounded-full object-cover ring-2 ring-[#B0BFA4]/30" />
                 ) : (
                   <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
                     <Camera className="w-5 h-5 text-gray-400" />
@@ -171,7 +171,7 @@ export default function BarberManager({ barbers, onCreate, onUpdate, onDelete })
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
-            <Button onClick={save} className="bg-[#C9A94E] hover:bg-[#A07D2B] text-white">
+            <Button onClick={save} className="bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white">
               {editing ? "Update" : "Add Barber"}
             </Button>
           </DialogFooter>

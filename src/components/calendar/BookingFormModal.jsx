@@ -216,7 +216,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
           {selectedService && (
             <div className="bg-[#0A0A0A] text-white rounded-lg p-3 flex justify-between items-center">
               <span className="text-sm">Total</span>
-              <span className="text-lg font-bold text-[#C9A94E]">${finalPrice.toFixed(2)}</span>
+              <span className="text-lg font-bold text-[#B0BFA4]">${finalPrice.toFixed(2)}</span>
             </div>
           )}
 
@@ -240,7 +240,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSave} className="bg-[#C9A94E] hover:bg-[#A07D2B] text-white">
+          <Button onClick={handleSave} className="bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white">
             Create Booking
           </Button>
         </DialogFooter>

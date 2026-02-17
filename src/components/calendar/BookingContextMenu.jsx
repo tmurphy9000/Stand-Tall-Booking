@@ -44,7 +44,7 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
               onClick={onClose}
               className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 transition-colors border-b border-gray-50"
             >
-              <User className="w-4 h-4 text-[#C9A94E]" />
+              <User className="w-4 h-4 text-[#B0BFA4]" />
               <span className="text-sm">View Client</span>
             </Link>
           )}

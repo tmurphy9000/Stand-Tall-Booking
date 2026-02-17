@@ -324,14 +324,14 @@ export default function ReportsPage() {
 
       {isLoading ? (
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="w-6 h-6 animate-spin text-[#C9A94E]" />
+          <Loader2 className="w-6 h-6 animate-spin text-[#B0BFA4]" />
         </div>
       ) : (
         <>
           {/* KPI Cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Revenue", value: `$${totalRevenue.toFixed(0)}`, icon: DollarSign, color: "text-[#C9A94E]" },
+              { label: "Revenue", value: `$${totalRevenue.toFixed(0)}`, icon: DollarSign, color: "text-[#B0BFA4]" },
               { label: "Bookings", value: totalBookings, icon: TrendingUp, color: "text-[#0A0A0A]" },
               { label: "Clients", value: uniqueClients, icon: Users, color: "text-blue-600" },
               { label: "Retention", value: `${retentionRate}%`, icon: Repeat, color: "text-green-600" },
