@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, User, Star, Clock, Phone, Mail, Loader2, Settings } from "lucide-react";
+import { Calendar, User, Star, Clock, Phone, Mail, Loader2, Settings, Bell } from "lucide-react";
 import { format } from "date-fns";
 import ProfileEditor from "../components/client/ProfileEditor";
+import NotificationBell from "../components/notifications/NotificationBell";
 
 export default function ClientPortal() {
   const [isLogin, setIsLogin] = useState(true);
@@ -168,6 +169,7 @@ export default function ClientPortal() {
             <p className="text-sm text-gray-500">Stand Tall Client Portal</p>
           </div>
           <div className="flex gap-2">
+            <NotificationBell userEmail={client.email} userType="client" />
             <Button variant="outline" size="sm" onClick={() => setShowProfileEditor(true)}>
               <Settings className="w-4 h-4" />
             </Button>

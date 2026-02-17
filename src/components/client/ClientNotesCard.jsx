@@ -21,8 +21,29 @@ export default function ClientNotesCard({ client }) {
     },
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
     updateNotes.mutate({ staff_notes: notes });
+    
+    // Send notification to admins about note update
+    if (client?.email) {
+      try {
+        const users = await base44.entities.User.list();
+        const admins = users.filter(u => u.role === 'admin');
+        
+        for (const admin of admins) {
+          await base44.functions.invoke('sendNotification', {
+            recipient_email: admin.email,
+            recipient_type: 'staff',
+            type: 'client_note_added',
+            title: 'Client Note Updated',
+            message: `Notes updated for client: ${client.name}\n\nEmail: ${client.email}`,
+            client_id: client.id
+          });
+        }
+      } catch (error) {
+        console.error("Failed to send notification:", error);
+      }
+    }
   };
 
   const handleCancel = () => {

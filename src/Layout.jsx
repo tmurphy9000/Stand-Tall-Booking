@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { Calendar, Package, BarChart3, Banknote, Settings, Scissors } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { base44 } from "@/api/base44Client";
+import NotificationBell from "./components/notifications/NotificationBell";
 
 const tabs = [
   { name: "Calendar", icon: Calendar, page: "Calendar" },
@@ -13,7 +15,12 @@ const tabs = [
 ];
 
 export default function Layout({ children, currentPageName }) {
-  const showTabs = !["ClientBooking"].includes(currentPageName);
+  const showTabs = !["ClientBooking", "ClientPortal", "ClientHistory", "ClientDetails"].includes(currentPageName);
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    base44.auth.me().then(setUser).catch(() => setUser(null));
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#FAFAF8] flex flex-col">
@@ -25,6 +32,9 @@ export default function Layout({ children, currentPageName }) {
           </div>
           <span className="font-semibold text-sm tracking-wide">STAND TALL</span>
         </Link>
+        {user && (
+          <NotificationBell userEmail={user.email} userType="staff" />
+        )}
       </header>
 
       {/* Main content */}
