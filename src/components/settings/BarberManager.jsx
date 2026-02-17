@@ -6,12 +6,21 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Clock, Camera, Trash2, CheckCircle, XCircle } from "lucide-react";
+import { Plus, Pencil, Clock, Camera, Trash2, CheckCircle, XCircle, Timer } from "lucide-react";
 import BarberHoursEditor from "./BarberHoursEditor";
+import BarberServiceDurations from "./BarberServiceDurations";
+import { useQuery } from "@tanstack/react-query";
+import { base44 } from "@/api/base44Client";
 
 export default function BarberManager({ barbers, onCreate, onUpdate, onDelete }) {
   const [showForm, setShowForm] = useState(false);
   const [showHours, setShowHours] = useState(null);
+  const [showDurations, setShowDurations] = useState(null);
+
+  const { data: services = [] } = useQuery({
+    queryKey: ["services"],
+    queryFn: () => base44.entities.Service.list(),
+  });
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
     name: "", email: "", phone: "", service_commission_rate: 50, product_commission_rate: 10,
@@ -78,6 +87,9 @@ export default function BarberManager({ barbers, onCreate, onUpdate, onDelete })
             <div className="flex gap-1">
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowHours(b)}>
                 <Clock className="w-3.5 h-3.5" />
+              </Button>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowDurations(b)}>
+                <Timer className="w-3.5 h-3.5" />
               </Button>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(b)}>
                 <Pencil className="w-3.5 h-3.5" />
