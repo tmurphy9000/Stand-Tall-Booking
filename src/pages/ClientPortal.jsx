@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Calendar, User, Star, Clock, Phone, Mail, Loader2 } from "lucide-react";
+import { Calendar, User, Star, Clock, Phone, Mail, Loader2, Settings } from "lucide-react";
 import { format } from "date-fns";
+import ProfileEditor from "../components/client/ProfileEditor";
 
 export default function ClientPortal() {
   const [isLogin, setIsLogin] = useState(true);
@@ -16,6 +17,7 @@ export default function ClientPortal() {
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
   const [clientId, setClientId] = useState(localStorage.getItem("clientId") || null);
+  const [showProfileEditor, setShowProfileEditor] = useState(false);
 
   const { data: client, isLoading: clientLoading } = useQuery({
     queryKey: ["client", clientId],
@@ -151,14 +153,28 @@ export default function ClientPortal() {
     <div className="min-h-screen bg-gradient-to-br from-[#FAFAF8] to-[#F5F3EE] p-4 pb-24">
       <div className="max-w-4xl mx-auto space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            {client.photo_url ? (
+              <img src={client.photo_url} alt={client.name} className="w-16 h-16 rounded-full object-cover" />
+            ) : (
+              <div className="w-16 h-16 rounded-full bg-[#C9A94E]/20 flex items-center justify-center">
+                <User className="w-8 h-8 text-[#C9A94E]" />
+              </div>
+            )}
+          </div>
+          <div className="flex-1">
             <h1 className="text-2xl font-bold">Welcome, {client.name}</h1>
             <p className="text-sm text-gray-500">Stand Tall Client Portal</p>
           </div>
-          <Button variant="outline" size="sm" onClick={handleLogout}>
-            Sign Out
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setShowProfileEditor(true)}>
+              <Settings className="w-4 h-4" />
+            </Button>
+            <Button variant="outline" size="sm" onClick={handleLogout}>
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -276,7 +292,66 @@ export default function ClientPortal() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Preferences Summary */}
+        {(client.preferred_barber_ids?.length > 0 || client.preferred_service_ids?.length > 0 || client.preferred_brands?.length > 0) && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">My Preferences</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              {client.preferred_barber_ids?.length > 0 && (
+                <div>
+                  <p className="text-gray-500 font-medium mb-1">Preferred Barbers:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {client.preferred_barber_ids.map(barberId => {
+                      const barber = barbers.find(b => b.id === barberId);
+                      return barber ? (
+                        <span key={barberId} className="px-2 py-1 bg-[#C9A94E]/10 text-[#C9A94E] rounded-full text-xs">
+                          {barber.name}
+                        </span>
+                      ) : null;
+                    })}
+                  </div>
+                </div>
+              )}
+              {client.preferred_service_ids?.length > 0 && (
+                <div>
+                  <p className="text-gray-500 font-medium mb-1">Preferred Services:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {client.preferred_service_ids.map(serviceId => {
+                      const service = services.find(s => s.id === serviceId);
+                      return service ? (
+                        <span key={serviceId} className="px-2 py-1 bg-blue-100 text-blue-600 rounded-full text-xs">
+                          {service.name}
+                        </span>
+                      ) : null;
+                    })}
+                  </div>
+                </div>
+              )}
+              {client.preferred_brands?.length > 0 && (
+                <div>
+                  <p className="text-gray-500 font-medium mb-1">Preferred Brands:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {client.preferred_brands.map(brand => (
+                      <span key={brand} className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
+                        {brand}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </div>
+
+      <ProfileEditor
+        client={client}
+        open={showProfileEditor}
+        onClose={() => setShowProfileEditor(false)}
+      />
     </div>
   );
 }
