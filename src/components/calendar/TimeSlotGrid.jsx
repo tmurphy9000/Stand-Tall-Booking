@@ -10,11 +10,13 @@ function generateTimeSlots(startHour = 8, endHour = 21) {
   const slots = [];
   for (let h = startHour; h < endHour; h++) {
     for (let m = 0; m < 60; m += SLOT_MINUTES) {
+      const timeStr = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
       slots.push({
-        time: `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`,
+        time: timeStr,
         hour: h,
         minute: m,
-        label: m === 0 ? format(new Date(2000, 0, 1, h, 0), "h a") : "",
+        label: m === 0 ? format(new Date(2000, 0, 1, h, 0), "h a") : timeStr,
+        isHour: m === 0,
       });
     }
   }
@@ -130,9 +132,12 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
           return (
             <div key={slot.time} className="flex">
               <div className="w-14 flex-shrink-0 pr-2 text-right">
-                {slot.label && (
-                  <span className="text-[10px] text-gray-400 leading-none relative -top-1.5">{slot.label}</span>
-                )}
+                <span className={cn(
+                  "text-[10px] leading-none relative -top-1.5",
+                  slot.isHour ? "text-gray-600 font-bold" : "text-gray-400"
+                )}>
+                  {slot.label}
+                </span>
               </div>
               {barbers.map((barber) => {
                 const bookable = isSlotBookable(slot.time, barber.hours, shopHours, dayName);
