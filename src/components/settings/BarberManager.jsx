@@ -6,10 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Clock, Camera } from "lucide-react";
+import { Plus, Pencil, Clock, Camera, Trash2, CheckCircle, XCircle } from "lucide-react";
 import BarberHoursEditor from "./BarberHoursEditor";
 
-export default function BarberManager({ barbers, onCreate, onUpdate }) {
+export default function BarberManager({ barbers, onCreate, onUpdate, onDelete }) {
   const [showForm, setShowForm] = useState(false);
   const [showHours, setShowHours] = useState(null);
   const [editing, setEditing] = useState(null);
@@ -67,7 +67,11 @@ export default function BarberManager({ barbers, onCreate, onUpdate }) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium">{b.name}</p>
-                {!b.is_active && <span className="text-[9px] text-red-400 bg-red-50 px-1.5 py-0.5 rounded-full">Inactive</span>}
+                {b.is_active !== false ? (
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                ) : (
+                  <XCircle className="w-4 h-4 text-red-500" />
+                )}
               </div>
               <p className="text-[10px] text-gray-400">{b.tier} tier • {b.commission_rate}% commission</p>
             </div>
@@ -77,6 +81,18 @@ export default function BarberManager({ barbers, onCreate, onUpdate }) {
               </Button>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(b)}>
                 <Pencil className="w-3.5 h-3.5" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50" 
+                onClick={() => {
+                  if (window.confirm(`Delete ${b.name}? This cannot be undone.`)) {
+                    onDelete(b.id);
+                  }
+                }}
+              >
+                <Trash2 className="w-3.5 h-3.5" />
               </Button>
             </div>
           </div>
