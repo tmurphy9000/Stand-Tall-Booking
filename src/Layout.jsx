@@ -7,9 +7,11 @@ import { base44 } from "@/api/base44Client";
 import NotificationBell from "./components/notifications/NotificationBell";
 
 import { usePermissions } from "./components/permissions/usePermissions";
+import { Users } from "lucide-react";
 
 const tabs = [
   { name: "Calendar", icon: Calendar, page: "Calendar" },
+  { name: "Schedule", icon: Users, page: "StaffSchedule" },
   { name: "Inventory", icon: Package, page: "Inventory" },
   { name: "Reports", icon: BarChart3, page: "Reports", requiresFullAccess: true },
   { name: "Cash", icon: Banknote, page: "CashTracker" },
@@ -19,7 +21,7 @@ const tabs = [
 export default function Layout({ children, currentPageName }) {
   const showTabs = !["ClientBooking", "ClientPortal", "ClientHistory", "ClientDetails", "ClientList"].includes(currentPageName);
   const [user, setUser] = useState(null);
-  const { hasFullAccess } = usePermissions();
+  const { hasFullAccess, currentBarber } = usePermissions();
 
   useEffect(() => {
     base44.auth.me().then(setUser).catch(() => setUser(null));
@@ -50,7 +52,11 @@ export default function Layout({ children, currentPageName }) {
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0A] border-t border-white/10 safe-area-bottom">
             <div className="flex items-center justify-around px-2 py-1">
               {tabs
-                .filter(tab => !tab.requiresFullAccess || hasFullAccess)
+                .filter(tab => {
+                  if (tab.requiresFullAccess && !hasFullAccess) return false;
+                  if (tab.page === "StaffSchedule" && !currentBarber && !hasFullAccess) return false;
+                  return true;
+                })
                 .map((tab) => {
                   const isActive = currentPageName === tab.page;
                   return (

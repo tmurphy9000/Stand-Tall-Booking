@@ -30,6 +30,20 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
     queryFn: () => base44.entities.Client.list(),
   });
 
+  const { data: timeOffRequests = [] } = useQuery({
+    queryKey: ["timeOffRequests"],
+    queryFn: () => base44.entities.TimeOffRequest.filter({ status: "approved" }),
+  });
+
+  const isBarberAvailable = (barberId, date) => {
+    if (!barberId || !date) return true;
+    return !timeOffRequests.some(req => 
+      req.barber_id === barberId && 
+      date >= req.start_date && 
+      date <= req.end_date
+    );
+  };
+
   useEffect(() => {
     if (prefill) {
       setForm(prev => ({ ...prev, ...prefill }));
@@ -128,9 +142,14 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
             <Select value={form.barber_id} onValueChange={v => set("barber_id", v)}>
               <SelectTrigger><SelectValue placeholder="Select barber" /></SelectTrigger>
               <SelectContent>
-                {barbers.filter(b => b.is_active !== false).map(b => (
-                  <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-                ))}
+                {barbers.filter(b => b.is_active !== false).map(b => {
+                  const available = isBarberAvailable(b.id, form.date);
+                  return (
+                    <SelectItem key={b.id} value={b.id} disabled={!available}>
+                      {b.name} {!available && "(On time off)"}
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>

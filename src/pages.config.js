@@ -57,6 +57,7 @@ import ClientHistory from './pages/ClientHistory';
 import ClientBooking from './pages/ClientBooking';
 import ClientDetails from './pages/ClientDetails';
 import ClientList from './pages/ClientList';
+import StaffSchedule from './pages/StaffSchedule';
 import __Layout from './Layout.jsx';
 
 
@@ -71,6 +72,7 @@ export const PAGES = {
     "ClientBooking": ClientBooking,
     "ClientDetails": ClientDetails,
     "ClientList": ClientList,
+    "StaffSchedule": StaffSchedule,
 }
 
 export const pagesConfig = {
