@@ -85,3 +85,76 @@ export function RetentionChart({ data }) {
     </div>
   );
 }
+
+export function StaffPerformanceChart({ data }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 p-4">
+      <h3 className="text-sm font-semibold mb-4">Staff Performance</h3>
+      <ResponsiveContainer width="100%" height={250}>
+        <BarChart data={data} layout="vertical">
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <XAxis type="number" tick={{ fontSize: 10 }} />
+          <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={80} />
+          <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #f0f0f0", fontSize: 12 }} />
+          <Bar dataKey="serviceRevenue" stackId="a" fill={GOLD} name="Services" />
+          <Bar dataKey="productRevenue" stackId="a" fill="#64748B" name="Products" />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export function ClientLifetimeValueChart({ data }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 p-4">
+      <h3 className="text-sm font-semibold mb-4">Top Clients by Lifetime Value</h3>
+      <ResponsiveContainer width="100%" height={250}>
+        <BarChart data={data} layout="vertical">
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <XAxis type="number" tick={{ fontSize: 10 }} />
+          <YAxis dataKey="name" type="category" tick={{ fontSize: 10 }} width={80} />
+          <Tooltip 
+            contentStyle={{ borderRadius: 12, border: "1px solid #f0f0f0", fontSize: 12 }} 
+            formatter={(v, name) => name === "value" ? [`$${v.toFixed(2)}`, "Total Spent"] : [v, "Visits"]}
+          />
+          <Bar dataKey="value" fill={GOLD} radius={[0, 4, 4, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export function ServicePopularityChart({ data }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 p-4">
+      <h3 className="text-sm font-semibold mb-4">Most Popular Services</h3>
+      <ResponsiveContainer width="100%" height={250}>
+        <BarChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} angle={-45} textAnchor="end" height={80} />
+          <YAxis tick={{ fontSize: 10 }} />
+          <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #f0f0f0", fontSize: 12 }} />
+          <Bar dataKey="count" fill={GOLD} radius={[4, 4, 0, 0]} name="Bookings" />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+export function NoShowRatesChart({ data }) {
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 p-4">
+      <h3 className="text-sm font-semibold mb-4">No-Show & Cancellation Rates</h3>
+      <ResponsiveContainer width="100%" height={250}>
+        <BarChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+          <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+          <YAxis tick={{ fontSize: 10 }} unit="%" />
+          <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #f0f0f0", fontSize: 12 }} />
+          <Bar dataKey="noShowRate" fill="#EF4444" radius={[4, 4, 0, 0]} name="No-Show %" />
+          <Bar dataKey="cancelRate" fill="#F59E0B" radius={[4, 4, 0, 0]} name="Cancel %" />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
