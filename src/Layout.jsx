@@ -42,6 +42,26 @@ export default function Layout({ children, currentPageName }) {
             />
           </Link>
 
+          {/* User/Sign In Section */}
+          <div className="px-2 py-3 border-b border-white/10">
+            {user ? (
+              <div className="flex flex-col items-center gap-1">
+                <div className="w-10 h-10 rounded-full bg-[#B0BFA4] flex items-center justify-center text-white font-bold text-sm">
+                  {user.full_name?.charAt(0) || 'U'}
+                </div>
+                <span className="text-[9px] text-[#FAFAF8]/80 text-center leading-tight">{user.full_name}</span>
+              </div>
+            ) : (
+              <Button 
+                size="sm" 
+                className="w-full h-8 text-xs bg-[#B0BFA4] hover:bg-[#8B9A7E]"
+                onClick={() => base44.auth.redirectToLogin()}
+              >
+                Sign In
+              </Button>
+            )}
+          </div>
+
           {/* Navigation Items */}
           <div className="flex-1 flex flex-col py-4">
             {tabs
