@@ -141,23 +141,13 @@ export default function SettingsPage() {
               onChange={e => saveSettings.mutate({ ...settings, shop_name: e.target.value })}
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs text-gray-500">Default Commission Rate %</Label>
-              <Input
-                type="number"
-                value={settings.default_commission_rate || 50}
-                onChange={e => saveSettings.mutate({ ...settings, default_commission_rate: parseFloat(e.target.value) || 50 })}
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-gray-500">Default Tax Rate %</Label>
-              <Input
-                type="number"
-                value={settings.default_tax_rate || 7.5}
-                onChange={e => saveSettings.mutate({ ...settings, default_tax_rate: parseFloat(e.target.value) || 7.5 })}
-              />
-            </div>
+          <div>
+            <Label className="text-xs text-gray-500">Default Tax Rate %</Label>
+            <Input
+              type="number"
+              value={settings.default_tax_rate || 7.5}
+              onChange={e => saveSettings.mutate({ ...settings, default_tax_rate: parseFloat(e.target.value) || 7.5 })}
+            />
           </div>
 
           <div>
