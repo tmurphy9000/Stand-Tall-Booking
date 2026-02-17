@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
-import { Calendar, Package, BarChart3, Banknote, Settings, Scissors, DollarSign } from "lucide-react";
+import { Calendar, Package, BarChart3, Banknote, Settings, Scissors, DollarSign, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { base44 } from "@/api/base44Client";
 import NotificationBell from "./components/notifications/NotificationBell";
@@ -23,6 +23,7 @@ const tabs = [
 export default function Layout({ children, currentPageName }) {
   const showTabs = !["ClientBooking", "ClientPortal", "ClientHistory", "ClientDetails", "ClientList"].includes(currentPageName);
   const [user, setUser] = useState(null);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { hasFullAccess, currentBarber } = usePermissions();
 
   useEffect(() => {
@@ -33,7 +34,10 @@ export default function Layout({ children, currentPageName }) {
     <div className="min-h-screen bg-[#FAFAF8] flex">
       {/* Left Sidebar Navigation */}
       {showTabs && (
-        <nav className="fixed left-0 top-0 bottom-0 z-50 w-20 bg-[#0A0A0A] border-r border-white/10 flex flex-col">
+        <nav className={cn(
+          "fixed left-0 top-0 bottom-0 z-50 bg-[#0A0A0A] border-r border-white/10 flex flex-col transition-all duration-300",
+          sidebarCollapsed ? "w-0 -translate-x-full" : "w-20"
+        )}>
           {/* Logo */}
           <Link to={createPageUrl("Calendar")} className="flex flex-col items-center py-4 border-b border-white/10">
             <img 
@@ -103,8 +107,24 @@ export default function Layout({ children, currentPageName }) {
         </nav>
       )}
 
+      {/* Collapse Toggle Button */}
+      {showTabs && (
+        <button
+          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+          className={cn(
+            "fixed top-1/2 -translate-y-1/2 z-50 bg-[#0A0A0A] text-white p-2 rounded-r-lg border border-l-0 border-white/10 hover:bg-[#1A1A1A] transition-all duration-300",
+            sidebarCollapsed ? "left-0" : "left-20"
+          )}
+        >
+          {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        </button>
+      )}
+
       {/* Main Content Area */}
-      <div className={cn("flex-1 flex flex-col", showTabs && "ml-20")}>
+      <div className={cn(
+        "flex-1 flex flex-col transition-all duration-300",
+        showTabs && (sidebarCollapsed ? "ml-0" : "ml-20")
+      )}>
         <main className="flex-1 overflow-auto">
           {children}
         </main>

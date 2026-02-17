@@ -5,7 +5,7 @@ import { format, addDays, startOfWeek } from "date-fns";
 import { cn } from "@/lib/utils";
 import ColorLegend from "./ColorLegend";
 
-export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, setViewMode, onNewBooking, barberGroupIndex, setBarberGroupIndex, totalBarberGroups, zoomLevel, setZoomLevel }) {
+export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, setViewMode, onNewBooking, barberGroupIndex, setBarberGroupIndex, totalBarberGroups, zoomLevel, setZoomLevel, columnWidth, setColumnWidth }) {
   const goNext = () => {
     setCurrentDate(prev => addDays(prev, viewMode === "day" ? 1 : 7));
   };
@@ -71,6 +71,20 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
         </div>
 
         <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-gray-500">Width:</span>
+            <input
+              type="range"
+              min="80"
+              max="200"
+              step="10"
+              value={columnWidth}
+              onChange={(e) => setColumnWidth(Number(e.target.value))}
+              className="w-24 h-1 accent-[#8B9A7E]"
+            />
+            <span className="text-[10px] text-gray-500 min-w-[30px]">{columnWidth}px</span>
+          </div>
+
           <div className="flex items-center gap-1">
             <Button
               variant="outline"

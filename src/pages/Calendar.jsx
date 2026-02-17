@@ -18,6 +18,7 @@ export default function CalendarPage() {
   const [viewMode, setViewMode] = useState("day");
   const [barberGroupIndex, setBarberGroupIndex] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
+  const [columnWidth, setColumnWidth] = useState(140);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [bookingPrefill, setBookingPrefill] = useState(null);
   const [contextMenu, setContextMenu] = useState({ booking: null, position: { x: 0, y: 0 } });
