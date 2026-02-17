@@ -43,6 +43,11 @@ export default function SettingsPage() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["barbers"] }),
   });
 
+  const deleteBarber = useMutation({
+    mutationFn: (id) => base44.entities.Barber.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["barbers"] }),
+  });
+
   const createService = useMutation({
     mutationFn: (data) => base44.entities.Service.create(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["services"] }),
@@ -108,6 +113,7 @@ export default function SettingsPage() {
             barbers={barbers}
             onCreate={(data) => createBarber.mutate(data)}
             onUpdate={(id, data) => updateBarber.mutate({ id, data })}
+            onDelete={(id) => deleteBarber.mutate(id)}
           />
         </TabsContent>
 
