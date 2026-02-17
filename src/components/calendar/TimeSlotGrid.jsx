@@ -44,7 +44,7 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
   const height = durationSlots * slotHeight - 2;
 
   const statusColors = {
-    scheduled: "bg-green-100 border-green-500 text-green-800",
+    scheduled: "bg-purple-100 border-purple-500 text-purple-800",
     confirmed: "bg-green-100 border-green-500 text-green-800",
     checked_in: "bg-yellow-100 border-yellow-500 text-yellow-800",
     completed: "bg-gray-200 border-gray-400 text-gray-600",

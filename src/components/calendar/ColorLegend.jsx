@@ -5,7 +5,7 @@ import { Info } from "lucide-react";
 
 export default function ColorLegend() {
   const statuses = [
-    { label: "Unconfirmed", color: "bg-green-100 border-green-500", text: "text-green-800" },
+    { label: "Unconfirmed", color: "bg-purple-100 border-purple-500", text: "text-purple-800" },
     { label: "Confirmed", color: "bg-green-100 border-green-500", text: "text-green-800" },
     { label: "Arrived", color: "bg-yellow-100 border-yellow-500", text: "text-yellow-800" },
     { label: "Completed", color: "bg-gray-200 border-gray-400", text: "text-gray-600" },
