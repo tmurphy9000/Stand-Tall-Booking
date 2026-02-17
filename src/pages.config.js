@@ -48,18 +48,18 @@
  * The mainPage value must match a key in the PAGES object exactly.
  */
 import Calendar from './pages/Calendar';
+import CashTracker from './pages/CashTracker';
 import Inventory from './pages/Inventory';
 import Reports from './pages/Reports';
-import CashTracker from './pages/CashTracker';
 import Settings from './pages/Settings';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "Calendar": Calendar,
+    "CashTracker": CashTracker,
     "Inventory": Inventory,
     "Reports": Reports,
-    "CashTracker": CashTracker,
     "Settings": Settings,
 }
 
