@@ -23,12 +23,12 @@ export default function BarberManager({ barbers, onCreate, onUpdate, onDelete })
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
     name: "", email: "", phone: "", service_commission_rate: 50, product_commission_rate: 10,
-    tier: "bronze", is_active: true, photo_url: "",
+    tier: "tier_1", is_active: true, photo_url: "",
   });
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", email: "", phone: "", service_commission_rate: 50, product_commission_rate: 10, tier: "bronze", is_active: true, photo_url: "" });
+    setForm({ name: "", email: "", phone: "", service_commission_rate: 50, product_commission_rate: 10, tier: "tier_1", is_active: true, photo_url: "" });
     setShowForm(true);
   };
 
@@ -81,7 +81,7 @@ export default function BarberManager({ barbers, onCreate, onUpdate, onDelete })
                   <XCircle className="w-4 h-4 text-red-500" />
                 )}
               </div>
-              <p className="text-[10px] text-gray-400">{b.tier} tier • Services: {b.service_commission_rate || 50}% • Products: {b.product_commission_rate || 10}%</p>
+              <p className="text-[10px] text-gray-400">{b.tier?.replace('tier_', 'Tier ') || 'Tier 1'} • Services: {b.service_commission_rate || 50}% • Products: {b.product_commission_rate || 10}%</p>
             </div>
             <div className="flex gap-1">
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowHours(b)}>
@@ -158,9 +158,9 @@ export default function BarberManager({ barbers, onCreate, onUpdate, onDelete })
               <Select value={form.tier} onValueChange={v => set("tier", v)}>
                 <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {["bronze", "silver", "gold", "platinum"].map(t => (
-                    <SelectItem key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1)}</SelectItem>
-                  ))}
+                  <SelectItem value="tier_1">Tier 1</SelectItem>
+                  <SelectItem value="tier_2">Tier 2</SelectItem>
+                  <SelectItem value="tier_3">Tier 3</SelectItem>
                 </SelectContent>
               </Select>
             </div>
