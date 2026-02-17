@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --gold: #C9A94E;
+  --gold-dark: #A07D2B;
+  --gold-light: #E8D9A0;
+  --black: #0A0A0A;
+  --off-white: #FAFAF8;
+  --warm-gray: #F5F3EE;
+}
+
+@layer base {
+  :root {
+    --background: 40 20% 98%;
+    --foreground: 0 0% 4%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 4%;
+    --primary: 43 50% 54%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 15% 95%;
+    --secondary-foreground: 0 0% 10%;
+    --muted: 40 10% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 43 50% 54%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 40 10% 90%;
+    --input: 40 10% 90%;
+    --ring: 43 50% 54%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #C9A94E40;
+  border-radius: 4px;
+}
+
+/* Gold gradient text */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #C9A94E, #E8D9A0, #A07D2B);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Touch optimization */
+@media (pointer: coarse) {
+  button, a, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Calendar slot height */
+.calendar-slot {
+  height: 20px;
+  min-height: 20px;
+}
+
+/* Booking card in calendar */
+.booking-card {
+  transition: all 0.15s ease;
+  cursor: grab;
+}
+.booking-card:active {
+  cursor: grabbing;
+  transform: scale(1.02);
+  box-shadow: 0 8px 25px rgba(201, 169, 78, 0.3);
+}
