@@ -112,20 +112,33 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
         {/* Barber header columns */}
         <div className="sticky top-0 z-20 bg-[#FAFAF8] flex border-b border-gray-100">
           <div className="w-14 flex-shrink-0" />
-          {barbers.map((barber) => (
-            <div key={barber.id} className="flex-1 px-2 py-2 text-center border-l border-gray-50" style={{ minWidth: `${slotWidth}px` }}>
-              <div className="flex flex-col items-center gap-1">
-                {barber.photo_url ? (
-                  <img src={barber.photo_url} alt={barber.name} className="w-7 h-7 rounded-full object-cover ring-2 ring-[#8B9A7E]/30" />
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-[#8B9A7E] flex items-center justify-center text-[#FAFAF8] text-[10px] font-bold">
-                    {barber.name?.charAt(0)}
+          {barbers.map((barber) => {
+            const barberAppointmentCount = bookings.filter(
+              b => b.barber_id === barber.id && 
+              b.date === dateStr && 
+              b.status !== "cancelled"
+            ).length;
+            
+            return (
+              <div key={barber.id} className="flex-1 px-2 py-2 text-center border-l border-gray-50" style={{ minWidth: `${slotWidth}px` }}>
+                <div className="flex flex-col items-center gap-1">
+                  {barber.photo_url ? (
+                    <img src={barber.photo_url} alt={barber.name} className="w-7 h-7 rounded-full object-cover ring-2 ring-[#8B9A7E]/30" />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-[#8B9A7E] flex items-center justify-center text-[#FAFAF8] text-[10px] font-bold">
+                      {barber.name?.charAt(0)}
+                    </div>
+                  )}
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] font-medium text-gray-700 truncate max-w-full">{barber.name}</span>
+                    <span className="text-[9px] font-bold text-[#8B9A7E] bg-[#8B9A7E]/10 px-1.5 py-0.5 rounded-full">
+                      {barberAppointmentCount}
+                    </span>
                   </div>
-                )}
-                <span className="text-[10px] font-medium text-gray-700 truncate max-w-full">{barber.name}</span>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Time grid */}
