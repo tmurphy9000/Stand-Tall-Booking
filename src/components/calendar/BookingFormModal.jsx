@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, addMinutes, parse } from "date-fns";
+import { base44 } from "@/api/base44Client";
+import { useQuery } from "@tanstack/react-query";
 
 export default function BookingFormModal({ open, onClose, onSave, barbers, services, prefill }) {
   const [form, setForm] = useState({
@@ -33,6 +35,24 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
       setForm(prev => ({ ...prev, ...prefill }));
     }
   }, [prefill]);
+
+  const handleClientSelect = (clientId) => {
+    const client = clients.find(c => c.id === clientId);
+    if (client) {
+      setForm(prev => ({
+        ...prev,
+        client_id: clientId,
+        client_name: client.name,
+        client_email: client.email,
+        client_phone: client.phone || "",
+      }));
+    } else {
+      setForm(prev => ({
+        ...prev,
+        client_id: "",
+      }));
+    }
+  };
 
   const selectedService = services.find(s => s.id === form.service_id);
   const selectedBarber = barbers.find(b => b.id === form.barber_id);
@@ -72,6 +92,21 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          <div>
+            <Label className="text-xs text-gray-500">Select Existing Client (Optional)</Label>
+            <Select value={form.client_id} onValueChange={handleClientSelect}>
+              <SelectTrigger><SelectValue placeholder="New client or select existing" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value={null}>New Client</SelectItem>
+                {clients.map(client => (
+                  <SelectItem key={client.id} value={client.id}>
+                    {client.name} ({client.email})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div>
             <Label className="text-xs text-gray-500">Client Name *</Label>
             <Input value={form.client_name} onChange={e => set("client_name", e.target.value)} placeholder="Client name" />

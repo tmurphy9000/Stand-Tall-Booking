@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle, XCircle, UserCheck, Trash2 } from "lucide-react";
+import { CheckCircle, XCircle, UserCheck, Trash2, User } from "lucide-react";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "../../utils";
 
 export default function BookingContextMenu({ booking, position, onClose, onAction }) {
   const [showCancel, setShowCancel] = useState(false);
@@ -36,6 +38,16 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
             <p className="text-xs font-semibold text-gray-900">{booking.client_name}</p>
             <p className="text-[10px] text-gray-400">{booking.service_name} • {booking.start_time}</p>
           </div>
+          {booking.client_id && (
+            <Link
+              to={`${createPageUrl("ClientDetails")}?id=${booking.client_id}`}
+              onClick={onClose}
+              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 transition-colors border-b border-gray-50"
+            >
+              <User className="w-4 h-4 text-[#C9A94E]" />
+              <span className="text-sm">View Client</span>
+            </Link>
+          )}
           {actions.map((a) => (
             <button
               key={a.label}
