@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle, XCircle, UserCheck, Trash2, User } from "lucide-react";
+import { CheckCircle, XCircle, UserCheck, Trash2, User, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../../utils";
+import NoShowDialog from "./NoShowDialog";
 
 export default function BookingContextMenu({ booking, position, onClose, onAction }) {
   const [showCancel, setShowCancel] = useState(false);
+  const [showNoShow, setShowNoShow] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
 
   if (!booking) return null;
@@ -19,17 +21,23 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
     onClose();
   };
 
+  const handleNoShowConfirm = async (bookingId, options) => {
+    await onAction("no_show", bookingId, options);
+    setShowNoShow(false);
+  };
+
   const actions = [
     { label: "Confirm", icon: CheckCircle, color: "text-blue-600", action: () => { onAction("confirm", booking.id); onClose(); } },
     { label: "Mark Arrived", icon: UserCheck, color: "text-green-600", action: () => { onAction("checked_in", booking.id); onClose(); } },
     { label: "Complete", icon: CheckCircle, color: "text-gray-600", action: () => { onAction("completed", booking.id); onClose(); } },
+    { label: "Mark as No-Show", icon: AlertCircle, color: "text-orange-500", action: () => setShowNoShow(true) },
     { label: "Cancel", icon: XCircle, color: "text-red-500", action: () => setShowCancel(true) },
   ];
 
   return (
     <>
       {/* Context dropdown */}
-      {!showCancel && (
+      {!showCancel && !showNoShow && (
         <div
           className="fixed z-50 bg-white rounded-xl shadow-xl border border-gray-100 py-1 min-w-[180px]"
           style={{ top: position.y, left: position.x }}
@@ -62,7 +70,7 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
       )}
 
       {/* Click outside overlay */}
-      {!showCancel && (
+      {!showCancel && !showNoShow && (
         <div className="fixed inset-0 z-40" onClick={onClose} />
       )}
 
@@ -89,6 +97,14 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* No-Show dialog */}
+      <NoShowDialog
+        open={showNoShow}
+        booking={booking}
+        onClose={() => { setShowNoShow(false); onClose(); }}
+        onConfirm={handleNoShowConfirm}
+      />
     </>
   );
 }
