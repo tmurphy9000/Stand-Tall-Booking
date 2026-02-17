@@ -6,7 +6,9 @@ import CalendarHeader from "../components/calendar/CalendarHeader";
 import TimeSlotGrid from "../components/calendar/TimeSlotGrid";
 import BookingFormModal from "../components/calendar/BookingFormModal";
 import BookingContextMenu from "../components/calendar/BookingContextMenu";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import BarberAssistant from "../components/assistant/BarberAssistant";
 
 const BARBERS_PER_GROUP = 5;
 
@@ -20,6 +22,7 @@ export default function CalendarPage() {
   const [contextMenu, setContextMenu] = useState({ booking: null, position: { x: 0, y: 0 } });
   const [initialPinchDistance, setInitialPinchDistance] = useState(null);
   const [initialZoomLevel, setInitialZoomLevel] = useState(1);
+  const [showAssistant, setShowAssistant] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -221,6 +224,20 @@ export default function CalendarPage() {
         onClose={() => setContextMenu({ booking: null, position: { x: 0, y: 0 } })}
         onAction={handleContextAction}
       />
+
+      <BarberAssistant
+        open={showAssistant}
+        onClose={() => setShowAssistant(false)}
+      />
+
+      {/* AI Assistant FAB */}
+      <Button
+        size="icon"
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg bg-gradient-to-br from-[#8B9A7E] to-[#6B7A5E] hover:shadow-xl transition-all z-50"
+        onClick={() => setShowAssistant(true)}
+      >
+        <Sparkles className="w-6 h-6 text-white" />
+      </Button>
     </div>
   );
 }

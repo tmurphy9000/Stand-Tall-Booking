@@ -55,10 +55,10 @@ import ClientHistory from './pages/ClientHistory';
 import ClientList from './pages/ClientList';
 import ClientPortal from './pages/ClientPortal';
 import Inventory from './pages/Inventory';
+import Payroll from './pages/Payroll';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import StaffSchedule from './pages/StaffSchedule';
-import Payroll from './pages/Payroll';
 import __Layout from './Layout.jsx';
 
 
@@ -71,10 +71,10 @@ export const PAGES = {
     "ClientList": ClientList,
     "ClientPortal": ClientPortal,
     "Inventory": Inventory,
+    "Payroll": Payroll,
     "Reports": Reports,
     "Settings": Settings,
     "StaffSchedule": StaffSchedule,
-    "Payroll": Payroll,
 }
 
 export const pagesConfig = {
