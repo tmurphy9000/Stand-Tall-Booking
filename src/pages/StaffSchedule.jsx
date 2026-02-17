@@ -100,7 +100,7 @@ export default function StaffSchedule() {
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold">Staff Schedule</h1>
         {currentBarber && (
-          <Button onClick={() => setShowRequestForm(true)} className="bg-[#C9A94E] hover:bg-[#A07D2B] h-9">
+          <Button onClick={() => setShowRequestForm(true)} className="bg-[#8B9A7E] hover:bg-[#6B7A5E] text-[#FAFAF8] h-9">
             <Plus className="w-4 h-4 mr-2" /> Request Time Off
           </Button>
         )}
@@ -280,7 +280,7 @@ export default function StaffSchedule() {
             <Button
               onClick={handleSubmitRequest}
               disabled={createRequest.isPending}
-              className="bg-[#C9A94E] hover:bg-[#A07D2B]"
+              className="bg-[#8B9A7E] hover:bg-[#6B7A5E] text-[#FAFAF8]"
             >
               {createRequest.isPending ? "Submitting..." : "Submit Request"}
             </Button>

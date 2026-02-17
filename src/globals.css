@@ -3,9 +3,9 @@
 @tailwind utilities;
 
 :root {
-  --gold: #C9A94E;
-  --gold-dark: #A07D2B;
-  --gold-light: #E8D9A0;
+  --sage: #8B9A7E;
+  --sage-dark: #6B7A5E;
+  --sage-light: #B0BFA4;
   --black: #0A0A0A;
   --off-white: #FAFAF8;
   --warm-gray: #F5F3EE;
@@ -19,19 +19,19 @@
     --card-foreground: 0 0% 4%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 4%;
-    --primary: 43 50% 54%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 95 18% 56%;
+    --primary-foreground: 40 20% 98%;
     --secondary: 40 15% 95%;
     --secondary-foreground: 0 0% 10%;
     --muted: 40 10% 96%;
     --muted-foreground: 0 0% 45%;
-    --accent: 43 50% 54%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 95 18% 56%;
+    --accent-foreground: 40 20% 98%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 40 10% 90%;
     --input: 40 10% 90%;
-    --ring: 43 50% 54%;
+    --ring: 95 18% 56%;
     --radius: 0.75rem;
   }
 }
@@ -57,13 +57,13 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #C9A94E40;
+  background: #8B9A7E40;
   border-radius: 4px;
 }
 
-/* Gold gradient text */
-.text-gold-gradient {
-  background: linear-gradient(135deg, #C9A94E, #E8D9A0, #A07D2B);
+/* Sage gradient text */
+.text-sage-gradient {
+  background: linear-gradient(135deg, #8B9A7E, #B0BFA4, #6B7A5E);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
@@ -90,5 +90,5 @@
 .booking-card:active {
   cursor: grabbing;
   transform: scale(1.02);
-  box-shadow: 0 8px 25px rgba(201, 169, 78, 0.3);
+  box-shadow: 0 8px 25px rgba(139, 154, 126, 0.3);
 }

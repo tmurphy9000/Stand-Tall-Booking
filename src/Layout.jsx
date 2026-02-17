@@ -34,10 +34,11 @@ export default function Layout({ children, currentPageName }) {
         <nav className="fixed left-0 top-0 bottom-0 z-50 w-20 bg-[#0A0A0A] border-r border-white/10 flex flex-col">
           {/* Logo */}
           <Link to={createPageUrl("Calendar")} className="flex flex-col items-center py-4 border-b border-white/10">
-            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#C9A94E] to-[#A07D2B] flex items-center justify-center">
-              <Scissors className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-[10px] text-white/70 mt-1 tracking-wide">STAND</span>
+            <img 
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6993eba91209ee0a1089f355/fd9cfe023_6f5fd5cc-8fc9-4041-9d87-c24e77a3bc58.png"
+              alt="Stand Tall Barbershop"
+              className="w-12 h-12 rounded-lg"
+            />
           </Link>
 
           {/* Navigation Items */}
@@ -57,14 +58,14 @@ export default function Layout({ children, currentPageName }) {
                     className={cn(
                       "flex flex-col items-center gap-1 py-3 px-2 transition-all relative",
                       isActive
-                        ? "text-[#C9A94E]"
-                        : "text-white/50 hover:text-white/80"
+                        ? "text-[#8B9A7E]"
+                        : "text-[#FAFAF8]/60 hover:text-[#FAFAF8]/90"
                     )}
                   >
                     {isActive && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#C9A94E] rounded-r" />
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#8B9A7E] rounded-r" />
                     )}
-                    <tab.icon className={cn("w-6 h-6", isActive && "drop-shadow-[0_0_8px_rgba(201,169,78,0.5)]")} />
+                    <tab.icon className={cn("w-6 h-6", isActive && "drop-shadow-[0_0_8px_rgba(139,154,126,0.5)]")} />
                     <span className="text-[9px] font-medium text-center leading-tight">{tab.name}</span>
                   </Link>
                 );
