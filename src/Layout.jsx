@@ -28,59 +28,64 @@ export default function Layout({ children, currentPageName }) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#FAFAF8] flex flex-col">
-      {/* Top bar */}
-      <header className="sticky top-0 z-50 bg-[#0A0A0A] text-white px-4 py-3 flex items-center justify-between safe-area-top">
-        <Link to={createPageUrl("Calendar")} className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#C9A94E] to-[#A07D2B] flex items-center justify-center">
-            <Scissors className="w-4 h-4 text-white" />
-          </div>
-          <span className="font-semibold text-sm tracking-wide">STAND TALL</span>
-        </Link>
-        {user && (
-          <NotificationBell userEmail={user.email} userType="staff" />
-        )}
-      </header>
-
-      {/* Main content */}
-      <main className={cn("flex-1 overflow-auto", showTabs && "pb-20")}>
-        {children}
-      </main>
-
-      {/* Bottom navigation */}
+    <div className="min-h-screen bg-[#FAFAF8] flex">
+      {/* Left Sidebar Navigation */}
       {showTabs && (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0A] border-t border-white/10 safe-area-bottom">
-            <div className="flex items-center justify-around px-2 py-1">
-              {tabs
-                .filter(tab => {
-                  if (tab.requiresFullAccess && !hasFullAccess) return false;
-                  if (tab.page === "StaffSchedule" && !currentBarber && !hasFullAccess) return false;
-                  return true;
-                })
-                .map((tab) => {
-                  const isActive = currentPageName === tab.page;
-                  return (
-                    <Link
-                      key={tab.page}
-                      to={createPageUrl(tab.page)}
-                      className={cn(
-                        "flex flex-col items-center gap-0.5 py-2 px-3 rounded-lg transition-all min-w-[56px]",
-                        isActive
-                          ? "text-[#C9A94E]"
-                          : "text-white/50 hover:text-white/80"
-                      )}
-                    >
-                      <tab.icon className={cn("w-5 h-5", isActive && "drop-shadow-[0_0_6px_rgba(201,169,78,0.5)]")} />
-                      <span className="text-[10px] font-medium">{tab.name}</span>
-                      {isActive && (
-                        <div className="w-1 h-1 rounded-full bg-[#C9A94E] mt-0.5" />
-                      )}
-                    </Link>
-                  );
-                })}
+        <nav className="fixed left-0 top-0 bottom-0 z-50 w-20 bg-[#0A0A0A] border-r border-white/10 flex flex-col">
+          {/* Logo */}
+          <Link to={createPageUrl("Calendar")} className="flex flex-col items-center py-4 border-b border-white/10">
+            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#C9A94E] to-[#A07D2B] flex items-center justify-center">
+              <Scissors className="w-5 h-5 text-white" />
             </div>
-          </nav>
+            <span className="text-[10px] text-white/70 mt-1 tracking-wide">STAND</span>
+          </Link>
+
+          {/* Navigation Items */}
+          <div className="flex-1 flex flex-col py-4">
+            {tabs
+              .filter(tab => {
+                if (tab.requiresFullAccess && !hasFullAccess) return false;
+                if (tab.page === "StaffSchedule" && !currentBarber && !hasFullAccess) return false;
+                return true;
+              })
+              .map((tab) => {
+                const isActive = currentPageName === tab.page;
+                return (
+                  <Link
+                    key={tab.page}
+                    to={createPageUrl(tab.page)}
+                    className={cn(
+                      "flex flex-col items-center gap-1 py-3 px-2 transition-all relative",
+                      isActive
+                        ? "text-[#C9A94E]"
+                        : "text-white/50 hover:text-white/80"
+                    )}
+                  >
+                    {isActive && (
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#C9A94E] rounded-r" />
+                    )}
+                    <tab.icon className={cn("w-6 h-6", isActive && "drop-shadow-[0_0_8px_rgba(201,169,78,0.5)]")} />
+                    <span className="text-[9px] font-medium text-center leading-tight">{tab.name}</span>
+                  </Link>
+                );
+              })}
+          </div>
+
+          {/* Notification Bell at Bottom */}
+          {user && (
+            <div className="py-3 border-t border-white/10 flex justify-center">
+              <NotificationBell userEmail={user.email} userType="staff" />
+            </div>
+          )}
+        </nav>
       )}
+
+      {/* Main Content Area */}
+      <div className={cn("flex-1 flex flex-col", showTabs && "ml-20")}>
+        <main className="flex-1 overflow-auto">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }
