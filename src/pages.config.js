@@ -49,12 +49,14 @@
  */
 import Calendar from './pages/Calendar';
 import Inventory from './pages/Inventory';
+import Reports from './pages/Reports';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
     "Calendar": Calendar,
     "Inventory": Inventory,
+    "Reports": Reports,
 }
 
 export const pagesConfig = {
