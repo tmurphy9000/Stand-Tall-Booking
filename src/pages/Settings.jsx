@@ -5,17 +5,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Loader2, Store, Users, Scissors, Clock, Shield } from "lucide-react";
+import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign } from "lucide-react";
 import BarberManager from "../components/settings/BarberManager";
 import ServiceManager from "../components/settings/ServiceManager";
 import ShopHoursEditor from "../components/settings/ShopHoursEditor";
 import PermissionsManager from "../components/settings/PermissionsManager";
 import AdminPasswordManager from "../components/settings/AdminPasswordManager";
+import InviteBarberForm from "../components/settings/InviteBarberForm";
+import PayrollManager from "../components/settings/PayrollManager";
 import { usePermissions } from "../components/permissions/usePermissions";
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
-  const { isAdmin } = usePermissions();
+  const { isAdmin, hasFullAccess } = usePermissions();
+  const [showInviteForm, setShowInviteForm] = useState(false);
 
   const { data: barbers = [], isLoading: barbersLoading } = useQuery({
     queryKey: ["barbers"],
@@ -85,10 +88,21 @@ export default function SettingsPage() {
 
   return (
     <div className="p-4">
-      <h1 className="text-lg font-bold mb-4">Settings</h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-lg font-bold">Settings</h1>
+        {hasFullAccess && (
+          <Button 
+            size="sm" 
+            className="h-8 text-xs bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white gap-1"
+            onClick={() => setShowInviteForm(true)}
+          >
+            <Mail className="w-3 h-3" /> Invite Barber
+          </Button>
+        )}
+      </div>
 
       <Tabs defaultValue="barbers" className="space-y-4">
-        <TabsList className="grid grid-cols-5 w-full bg-gray-100 h-9">
+        <TabsList className="grid grid-cols-6 w-full bg-gray-100 h-9">
           <TabsTrigger value="barbers" className="text-xs gap-1 data-[state=active]:bg-white">
             <Users className="w-3 h-3" /> Barbers
           </TabsTrigger>
@@ -101,6 +115,11 @@ export default function SettingsPage() {
           <TabsTrigger value="shop" className="text-xs gap-1 data-[state=active]:bg-white">
             <Store className="w-3 h-3" /> Shop
           </TabsTrigger>
+          {hasFullAccess && (
+            <TabsTrigger value="payroll" className="text-xs gap-1 data-[state=active]:bg-white">
+              <DollarSign className="w-3 h-3" /> Payroll
+            </TabsTrigger>
+          )}
           {isAdmin && (
             <TabsTrigger value="permissions" className="text-xs gap-1 data-[state=active]:bg-white">
               <Shield className="w-3 h-3" /> Access
@@ -174,6 +193,12 @@ export default function SettingsPage() {
           </div>
         </TabsContent>
 
+        {hasFullAccess && (
+          <TabsContent value="payroll">
+            <PayrollManager />
+          </TabsContent>
+        )}
+
         {isAdmin && (
           <TabsContent value="permissions">
             <div className="space-y-4">
@@ -183,6 +208,12 @@ export default function SettingsPage() {
           </TabsContent>
         )}
       </Tabs>
+
+      <InviteBarberForm 
+        open={showInviteForm} 
+        onClose={() => setShowInviteForm(false)}
+        onSuccess={() => queryClient.invalidateQueries({ queryKey: ["barberSensitiveInfo"] })}
+      />
     </div>
   );
 }
