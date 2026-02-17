@@ -18,6 +18,8 @@ export default function CalendarPage() {
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [bookingPrefill, setBookingPrefill] = useState(null);
   const [contextMenu, setContextMenu] = useState({ booking: null, position: { x: 0, y: 0 } });
+  const [initialPinchDistance, setInitialPinchDistance] = useState(null);
+  const [initialZoomLevel, setInitialZoomLevel] = useState(1);
 
   const queryClient = useQueryClient();
 
@@ -113,8 +115,41 @@ export default function CalendarPage() {
 
   const isLoading = barbersLoading || bookingsLoading;
 
+  const getTouchDistance = (touches) => {
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+
+  const handleTouchStart = (e) => {
+    if (e.touches.length === 2) {
+      const distance = getTouchDistance(e.touches);
+      setInitialPinchDistance(distance);
+      setInitialZoomLevel(zoomLevel);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.touches.length === 2 && initialPinchDistance) {
+      e.preventDefault();
+      const currentDistance = getTouchDistance(e.touches);
+      const scale = currentDistance / initialPinchDistance;
+      const newZoom = Math.max(0.5, Math.min(3, initialZoomLevel * scale));
+      setZoomLevel(newZoom);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setInitialPinchDistance(null);
+  };
+
   return (
-    <div className="flex flex-col h-[calc(100vh-120px)]">
+    <div 
+      className="flex flex-col h-[calc(100vh-120px)]"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       <CalendarHeader
         currentDate={currentDate}
         setCurrentDate={setCurrentDate}
