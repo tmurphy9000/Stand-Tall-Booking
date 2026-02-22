@@ -15,6 +15,7 @@ const tabs = [
   { name: "Clients", icon: Users, page: "ClientList" },
   { name: "Inventory", icon: Package, page: "Inventory" },
   { name: "Reports", icon: BarChart3, page: "Reports", requiresFullAccess: true },
+  { name: "Admin", icon: BarChart3, page: "AdminReporting", requiresFullAccess: true },
   { name: "Payroll", icon: DollarSign, page: "Payroll", requiresFullAccess: true },
   { name: "Cash", icon: Banknote, page: "CashTracker" },
 ];
