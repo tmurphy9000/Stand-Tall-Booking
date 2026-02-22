@@ -11,6 +11,7 @@ import BarberManager from "../components/settings/BarberManager";
 import ServiceManager from "../components/settings/ServiceManager";
 import ShopHoursEditor from "../components/settings/ShopHoursEditor";
 import PermissionsManager from "../components/settings/PermissionsManager";
+import RolePermissionsManager from "../components/settings/RolePermissionsManager";
 import AdminPasswordManager from "../components/settings/AdminPasswordManager";
 import InviteBarberForm from "../components/settings/InviteBarberForm";
 import PayrollManager from "../components/settings/PayrollManager";
