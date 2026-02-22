@@ -276,6 +276,71 @@ export default function ReportsPage() {
     toast.success("Report exported to CSV");
   };
 
+  // Service provider view - only show their own commissions
+  if (!hasFullAccess && currentBarber) {
+    const barberData = staffPerformance.find(s => s.name === currentBarber.name) || {
+      serviceRevenue: 0,
+      productRevenue: 0,
+      commission: 0,
+      serviceCount: 0
+    };
+
+    // Calculate tips (cash inflows for this barber)
+    const barberTips = cashTx
+      .filter(tx => tx.type === "inflow" && tx.barber_id === currentBarber.id && tx.date >= cutoff)
+      .reduce((sum, tx) => sum + (tx.amount || 0), 0);
+
+    const totalEarnings = barberData.commission + barberTips;
+
+    return (
+      <div className="p-6 max-w-md mx-auto">
+        <h1 className="text-2xl font-bold text-[#0A0A0A] mb-6">My Commissions</h1>
+        
+        <div className="space-y-4">
+          <Card className="border-[#8B9A7E]/20">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Service Commission</span>
+                <span className="text-xl font-bold text-[#8B9A7E]">${barberData.commission.toFixed(2)}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-[#8B9A7E]/20">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Product Commission</span>
+                <span className="text-xl font-bold text-[#8B9A7E]">${barberData.productRevenue.toFixed(2)}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-[#8B9A7E]/20">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Tips</span>
+                <span className="text-xl font-bold text-[#8B9A7E]">${barberTips.toFixed(2)}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border-2 border-[#8B9A7E] bg-[#8B9A7E]/5">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-[#0A0A0A]">Total Earnings</span>
+                <span className="text-2xl font-bold text-[#8B9A7E]">${totalEarnings.toFixed(2)}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <p className="text-xs text-gray-500 text-center mt-6">
+            Last {dateRange} days • Updated daily
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (!hasFullAccess) {
     return (
       <div className="p-6">
