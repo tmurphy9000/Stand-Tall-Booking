@@ -231,13 +231,18 @@ export default function SettingsPage() {
         )}
 
         {isAdmin && (
-          <TabsContent value="permissions">
-            <div className="space-y-4">
-              <PermissionsManager />
-              <AdminPasswordManager settings={settings} />
-            </div>
-          </TabsContent>
-        )}
+           <>
+             <TabsContent value="permissions">
+               <div className="space-y-4">
+                 <PermissionsManager />
+                 <AdminPasswordManager settings={settings} />
+               </div>
+             </TabsContent>
+             <TabsContent value="role-permissions">
+               <RolePermissionsManager />
+             </TabsContent>
+           </>
+         )}
       </Tabs>
 
       <InviteBarberForm 
