@@ -113,7 +113,7 @@ export default function Layout({ children, currentPageName }) {
               {currentPageName === settingsTab.page && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#8B9A7E] rounded-r" />
               )}
-              <settingsTab.icon className={cn("w-6 h-6", currentPageName === settingsTab.page && "drop-shadow-[0_0_8px_rgba(139,154,126,0.5)]")} />
+              <Settings className={cn("w-6 h-6", currentPageName === settingsTab.page && "drop-shadow-[0_0_8px_rgba(139,154,126,0.5)]")} />
               <span className="text-[9px] font-medium text-center leading-tight">{settingsTab.name}</span>
             </Link>
 
