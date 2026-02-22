@@ -17,8 +17,9 @@ const tabs = [
   { name: "Reports", icon: BarChart3, page: "Reports", requiresFullAccess: true },
   { name: "Payroll", icon: DollarSign, page: "Payroll", requiresFullAccess: true },
   { name: "Cash", icon: Banknote, page: "CashTracker" },
-  { name: "Settings", icon: Settings, page: "Settings" },
 ];
+
+const settingsTab = { name: "Settings", icon: Settings, page: "Settings" };
 
 export default function Layout({ children, currentPageName }) {
   const showTabs = !["ClientBooking", "ClientPortal", "ClientHistory", "ClientDetails", "ClientList"].includes(currentPageName);
@@ -98,12 +99,30 @@ export default function Layout({ children, currentPageName }) {
               })}
           </div>
 
-          {/* Notification Bell at Bottom */}
-          {user && (
-            <div className={cn("py-3 border-t border-white/10 flex justify-center", sidebarCollapsed && "opacity-0")}>
-              <NotificationBell userEmail={user.email} userType="staff" />
-            </div>
-          )}
+          {/* Settings and Notification Bell at Bottom */}
+          <div className={cn("mt-auto border-t border-white/10", sidebarCollapsed && "opacity-0")}>
+            <Link
+              to={createPageUrl(settingsTab.page)}
+              className={cn(
+                "flex flex-col items-center gap-1 py-3 px-2 transition-all relative",
+                currentPageName === settingsTab.page
+                  ? "text-[#8B9A7E]"
+                  : "text-[#FAFAF8]/60 hover:text-[#FAFAF8]/90"
+              )}
+            >
+              {currentPageName === settingsTab.page && (
+                <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#8B9A7E] rounded-r" />
+              )}
+              <settingsTab.icon className={cn("w-6 h-6", currentPageName === settingsTab.page && "drop-shadow-[0_0_8px_rgba(139,154,126,0.5)]")} />
+              <span className="text-[9px] font-medium text-center leading-tight">{settingsTab.name}</span>
+            </Link>
+
+            {user && (
+              <div className="py-3 border-t border-white/10 flex justify-center">
+                <NotificationBell userEmail={user.email} userType="staff" />
+              </div>
+            )}
+          </div>
         </nav>
       )}
 
