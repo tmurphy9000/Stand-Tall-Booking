@@ -12,7 +12,7 @@ import { usePermissions } from "./components/permissions/usePermissions";
 const tabs = [
   { name: "Calendar", icon: Calendar, page: "Calendar" },
   { name: "Schedule", icon: Users, page: "StaffSchedule" },
-  { name: "Clients", icon: Users, page: "ClientList", requiresFullAccess: true },
+  { name: "Clients", icon: Users, page: "ClientList" },
   { name: "Inventory", icon: Package, page: "Inventory" },
   { name: "Reports", icon: BarChart3, page: "Reports", requiresFullAccess: true },
   { name: "Payroll", icon: DollarSign, page: "Payroll", requiresFullAccess: true },

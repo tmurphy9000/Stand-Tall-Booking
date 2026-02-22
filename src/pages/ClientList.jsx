@@ -23,24 +23,14 @@ export default function ClientList() {
     queryFn: () => base44.entities.Review.list(),
   });
 
-  if (!hasFullAccess) {
-    return (
-      <div className="p-6">
-        <Card className="max-w-md mx-auto mt-12">
-          <CardContent className="p-8 text-center">
-            <p className="text-gray-600">You don't have permission to access client lists.</p>
-            <p className="text-sm text-gray-400 mt-2">Contact an owner or manager for access.</p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const filteredClients = clients.filter(c =>
-    c.name?.toLowerCase().includes(search.toLowerCase()) ||
-    c.email?.toLowerCase().includes(search.toLowerCase()) ||
-    c.phone?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredClients = clients.filter(c => {
+    const searchLower = search.toLowerCase();
+    const nameMatch = c.name?.toLowerCase().includes(searchLower);
+    if (!hasFullAccess) return nameMatch;
+    return nameMatch ||
+      c.email?.toLowerCase().includes(searchLower) ||
+      c.phone?.toLowerCase().includes(searchLower);
+  });
 
   const getClientRating = (clientId) => {
     const clientReviews = reviews.filter(r => r.client_id === clientId);
@@ -61,7 +51,7 @@ export default function ClientList() {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
-              placeholder="Search clients by name, email, or phone..."
+              placeholder={hasFullAccess ? "Search clients by name, email, or phone..." : "Search clients by name..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
@@ -87,20 +77,22 @@ export default function ClientList() {
                         )}
                         <div>
                           <p className="font-semibold">{client.name}</p>
-                          <div className="flex items-center gap-3 text-xs text-gray-500">
-                            {client.email && (
-                              <span className="flex items-center gap-1">
-                                <Mail className="w-3 h-3" />
-                                {client.email}
-                              </span>
-                            )}
-                            {client.phone && (
-                              <span className="flex items-center gap-1">
-                                <Phone className="w-3 h-3" />
-                                {client.phone}
-                              </span>
-                            )}
-                          </div>
+                          {hasFullAccess && (
+                            <div className="flex items-center gap-3 text-xs text-gray-500">
+                              {client.email && (
+                                <span className="flex items-center gap-1">
+                                  <Mail className="w-3 h-3" />
+                                  {client.email}
+                                </span>
+                              )}
+                              {client.phone && (
+                                <span className="flex items-center gap-1">
+                                  <Phone className="w-3 h-3" />
+                                  {client.phone}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-4 text-sm">
