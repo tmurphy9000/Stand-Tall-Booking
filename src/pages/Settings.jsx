@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign } from "lucide-react";
+import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff } from "lucide-react";
 import BarberManager from "../components/settings/BarberManager";
 import ServiceManager from "../components/settings/ServiceManager";
 import ShopHoursEditor from "../components/settings/ShopHoursEditor";
@@ -14,6 +14,7 @@ import PermissionsManager from "../components/settings/PermissionsManager";
 import AdminPasswordManager from "../components/settings/AdminPasswordManager";
 import InviteBarberForm from "../components/settings/InviteBarberForm";
 import PayrollManager from "../components/settings/PayrollManager";
+import CallOffManager from "../components/settings/CallOffManager";
 import { usePermissions } from "../components/permissions/usePermissions";
 
 export default function SettingsPage() {
@@ -103,7 +104,7 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="barbers" className="space-y-4">
-        <TabsList className="grid grid-cols-6 w-full bg-gray-100 h-9">
+        <TabsList className="grid grid-cols-7 w-full bg-gray-100 h-9">
           <TabsTrigger value="barbers" className="text-xs gap-1 data-[state=active]:bg-white">
             <Users className="w-3 h-3" /> Barbers
           </TabsTrigger>
@@ -117,9 +118,14 @@ export default function SettingsPage() {
             <Store className="w-3 h-3" /> Shop
           </TabsTrigger>
           {hasFullAccess && (
-            <TabsTrigger value="payroll" className="text-xs gap-1 data-[state=active]:bg-white">
-              <DollarSign className="w-3 h-3" /> Payroll
-            </TabsTrigger>
+            <>
+              <TabsTrigger value="calloff" className="text-xs gap-1 data-[state=active]:bg-white">
+                <PhoneOff className="w-3 h-3" /> Call-Off
+              </TabsTrigger>
+              <TabsTrigger value="payroll" className="text-xs gap-1 data-[state=active]:bg-white">
+                <DollarSign className="w-3 h-3" /> Payroll
+              </TabsTrigger>
+            </>
           )}
           {isAdmin && (
             <TabsTrigger value="permissions" className="text-xs gap-1 data-[state=active]:bg-white">
@@ -208,9 +214,14 @@ export default function SettingsPage() {
         </TabsContent>
 
         {hasFullAccess && (
-          <TabsContent value="payroll">
-            <PayrollManager />
-          </TabsContent>
+          <>
+            <TabsContent value="calloff">
+              <CallOffManager />
+            </TabsContent>
+            <TabsContent value="payroll">
+              <PayrollManager />
+            </TabsContent>
+          </>
         )}
 
         {isAdmin && (
