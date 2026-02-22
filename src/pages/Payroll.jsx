@@ -3,14 +3,16 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, DollarSign, Calendar } from "lucide-react";
+import { Loader2, DollarSign, Calendar, Plus } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
+import AddBarberDialog from "../components/payroll/AddBarberDialog";
 
 export default function PayrollPage() {
   const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const { data: barbers = [], isLoading: barbersLoading } = useQuery({
     queryKey: ["barbers"],
