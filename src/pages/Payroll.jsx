@@ -97,10 +97,13 @@ export default function PayrollPage() {
               />
             </div>
           </div>
-        </div>
-      </div>
+          </div>
+          </div>
+          </div>
 
-      {/* Summary Card */}
+          <AddBarberDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+
+          {/* Summary Card */}
       <Card className="mb-6 bg-gradient-to-br from-[#8B9A7E]/10 to-[#B0BFA4]/10 border-[#8B9A7E]/20">
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium text-gray-600">Total Commissions Due</CardTitle>
