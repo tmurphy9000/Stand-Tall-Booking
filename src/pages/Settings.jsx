@@ -129,10 +129,15 @@ export default function SettingsPage() {
             </>
           )}
           {isAdmin && (
-            <TabsTrigger value="permissions" className="text-xs gap-1 data-[state=active]:bg-white">
-              <Shield className="w-3 h-3" /> Access
-            </TabsTrigger>
-          )}
+             <>
+               <TabsTrigger value="permissions" className="text-xs gap-1 data-[state=active]:bg-white">
+                 <Shield className="w-3 h-3" /> Staff Access
+               </TabsTrigger>
+               <TabsTrigger value="role-permissions" className="text-xs gap-1 data-[state=active]:bg-white">
+                 <Shield className="w-3 h-3" /> Role Permissions
+               </TabsTrigger>
+             </>
+           )}
         </TabsList>
 
         <TabsContent value="barbers">
