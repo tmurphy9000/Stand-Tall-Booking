@@ -15,7 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 export default function ReportsPage() {
   const [dateRange, setDateRange] = useState("30");
   const [barberFilter, setBarberFilter] = useState("all");
-  const { hasFullAccess } = usePermissions();
+  const { hasFullAccess, currentBarber } = usePermissions();
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["bookings-all"],
