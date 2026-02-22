@@ -66,16 +66,15 @@ export default function PayrollPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
-         <h1 className="text-2xl font-bold text-[#0A0A0A]">Payroll</h1>
-         <div className="flex items-center gap-4">
-           <Button
-             onClick={() => setDialogOpen(true)}
-             className="bg-[#8B9A7E] hover:bg-[#6B7A5E]"
-           >
-             <Plus className="w-4 h-4 mr-2" />
-             Add Barber
-           </Button>
-         <div className="flex items-center gap-3">
+        <h1 className="text-2xl font-bold text-[#0A0A0A]">Payroll</h1>
+        <div className="flex items-center gap-4">
+          <Button
+            onClick={() => setDialogOpen(true)}
+            className="bg-[#8B9A7E] hover:bg-[#6B7A5E]"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            Add Barber
+          </Button>
           <Calendar className="w-5 h-5 text-[#8B9A7E]" />
           <div className="flex items-center gap-2">
             <div>
@@ -97,11 +96,10 @@ export default function PayrollPage() {
               />
             </div>
           </div>
-          </div>
-          </div>
-          </div>
+        </div>
+      </div>
 
-          <AddBarberDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <AddBarberDialog open={dialogOpen} onOpenChange={setDialogOpen} />
 
           {/* Summary Card */}
       <Card className="mb-6 bg-gradient-to-br from-[#8B9A7E]/10 to-[#B0BFA4]/10 border-[#8B9A7E]/20">
