@@ -69,7 +69,7 @@ export default function Layout({ children, currentPageName }) {
           </div>
 
           {/* Navigation Items */}
-          <div className={cn("flex-1 flex flex-col py-4", sidebarCollapsed && "opacity-0")}>
+          <div className={cn("flex-1 flex flex-col py-2 gap-1", sidebarCollapsed && "opacity-0")}>
             {tabs
               .filter(tab => {
                 if (tab.requiresFullAccess && !hasFullAccess) return false;
@@ -83,16 +83,16 @@ export default function Layout({ children, currentPageName }) {
                     key={tab.page}
                     to={createPageUrl(tab.page)}
                     className={cn(
-                      "flex flex-col items-center gap-1 py-3 px-2 transition-all relative",
+                      "flex flex-col items-center gap-1 py-2 px-2 transition-all relative",
                       isActive
                         ? "text-[#8B9A7E]"
                         : "text-[#FAFAF8]/60 hover:text-[#FAFAF8]/90"
                     )}
                   >
                     {isActive && (
-                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#8B9A7E] rounded-r" />
+                      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-7 bg-[#8B9A7E] rounded-r" />
                     )}
-                    <tab.icon className={cn("w-6 h-6", isActive && "drop-shadow-[0_0_8px_rgba(139,154,126,0.5)]")} />
+                    <tab.icon className={cn("w-5 h-5", isActive && "drop-shadow-[0_0_8px_rgba(139,154,126,0.5)]")} />
                     <span className="text-[9px] font-medium text-center leading-tight">{tab.name}</span>
                   </Link>
                 );
