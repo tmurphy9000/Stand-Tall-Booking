@@ -146,11 +146,11 @@ export default function BarberManager({ barbers, onCreate, onUpdate, onDelete })
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-gray-500">Service Commission %</Label>
-                <Input type="number" value={form.service_commission_rate} onChange={e => set("service_commission_rate", parseFloat(e.target.value) || 0)} />
+                <Input type="number" value={form.service_commission_rate} onChange={e => set("service_commission_rate", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)} />
               </div>
               <div>
                 <Label className="text-xs text-gray-500">Product Commission %</Label>
-                <Input type="number" value={form.product_commission_rate} onChange={e => set("product_commission_rate", parseFloat(e.target.value) || 0)} />
+                <Input type="number" value={form.product_commission_rate} onChange={e => set("product_commission_rate", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)} />
               </div>
             </div>
             <div>
