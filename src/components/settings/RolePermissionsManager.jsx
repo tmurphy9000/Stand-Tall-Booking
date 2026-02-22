@@ -78,7 +78,7 @@ export default function RolePermissionsManager() {
     }
   };
 
-  const roles = ["service_provider", "manager", "owner"];
+  const roles = ["manager", "owner"];
 
   return (
     <div className="space-y-4">
