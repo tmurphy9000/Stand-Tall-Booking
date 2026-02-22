@@ -26,6 +26,16 @@ const PERMISSIONS = [
 
 export default function RolePermissionsManager() {
   const queryClient = useQueryClient();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    base44.auth.me().then(setUser).catch(() => setUser(null));
+  }, []);
+
+  // Only show for admin, owner, or manager
+  if (user && !["admin", "owner", "manager"].includes(user.role)) {
+    return null;
+  }
 
   const { data: rolePermissions = [] } = useQuery({
     queryKey: ["role-permissions"],
