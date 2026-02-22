@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
-import { Calendar, Package, BarChart3, Banknote, Settings, Scissors, DollarSign, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, Package, BarChart3, Banknote, Settings, Scissors, DollarSign, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { base44 } from "@/api/base44Client";
 import NotificationBell from "./components/notifications/NotificationBell";
 import { Button } from "@/components/ui/button";
 
 import { usePermissions } from "./components/permissions/usePermissions";
-import { Users } from "lucide-react";
 
 const tabs = [
   { name: "Calendar", icon: Calendar, page: "Calendar" },
   { name: "Schedule", icon: Users, page: "StaffSchedule" },
+  { name: "Clients", icon: Users, page: "ClientList", requiresFullAccess: true },
   { name: "Inventory", icon: Package, page: "Inventory" },
   { name: "Reports", icon: BarChart3, page: "Reports", requiresFullAccess: true },
   { name: "Payroll", icon: DollarSign, page: "Payroll", requiresFullAccess: true },
