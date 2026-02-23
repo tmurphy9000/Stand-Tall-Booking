@@ -276,7 +276,7 @@ function CheckoutContent({
   if (!booking) return null;
 
   return (
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Checkout - {booking.client_name}</DialogTitle>
         </DialogHeader>
@@ -482,7 +482,6 @@ function CheckoutContent({
             </Button>
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+    </DialogContent>
   );
 }
