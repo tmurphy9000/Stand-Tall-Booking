@@ -191,6 +191,11 @@ export default function BarberManager({ barbers, onCreate, onUpdate, onDelete })
                 onUpdate(showHours.id, { hours: h });
                 setShowHours({ ...showHours, hours: h });
               }}
+              bookingsBlocked={showHours.bookings_blocked || false}
+              onBlockBookingsChange={(blocked) => {
+                onUpdate(showHours.id, { bookings_blocked: blocked });
+                setShowHours({ ...showHours, bookings_blocked: blocked });
+              }}
             />
           )}
         </DialogContent>
