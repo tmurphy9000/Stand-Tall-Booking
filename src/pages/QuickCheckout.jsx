@@ -14,12 +14,10 @@ const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 export default function QuickCheckoutPage() {
-  return stripePromise ? (
+  return (
     <Elements stripe={stripePromise}>
       <QuickCheckoutContent />
     </Elements>
-  ) : (
-    <QuickCheckoutContent />
   );
 }
 
