@@ -27,10 +27,11 @@ export default function ServiceManager({ services, onCreate, onUpdate, onDelete 
   };
 
   const save = () => {
+    const saveData = { ...form, price: form.price === "" ? 0 : form.price };
     if (editing) {
-      onUpdate(editing.id, form);
+      onUpdate(editing.id, saveData);
     } else {
-      onCreate(form);
+      onCreate(saveData);
     }
     setShowForm(false);
   };
@@ -89,7 +90,7 @@ export default function ServiceManager({ services, onCreate, onUpdate, onDelete 
               </div>
               <div>
                 <Label className="text-xs text-gray-500">Price ($)</Label>
-                <Input type="number" value={form.price} onChange={e => set("price", parseFloat(e.target.value) || 0)} />
+                <Input type="number" value={form.price} onChange={e => set("price", e.target.value === "" ? "" : parseFloat(e.target.value))} />
               </div>
             </div>
             <div>
