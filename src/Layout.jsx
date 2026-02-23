@@ -38,11 +38,11 @@ export default function Layout({ children, currentPageName }) {
       {/* Left Sidebar Navigation */}
       {showTabs && (
         <nav className={cn(
-          "fixed left-0 top-0 bottom-0 z-50 bg-[#0A0A0A] border-r border-white/10 flex flex-col transition-all duration-300 overflow-hidden",
+          "fixed left-0 top-0 bottom-0 z-50 bg-[#0A0A0A] border-r border-white/10 flex flex-col transition-all duration-300",
           sidebarCollapsed ? "w-0 -translate-x-full" : "w-20"
         )}>
           {/* Logo */}
-          <Link to={createPageUrl("Calendar")} className={cn("flex flex-col items-center py-4 border-b border-white/10", sidebarCollapsed && "opacity-0")}>
+          <Link to={createPageUrl("Calendar")} className={cn("flex flex-col items-center py-4 border-b border-white/10 flex-shrink-0", sidebarCollapsed && "opacity-0")}>
             <img 
               src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6993eba91209ee0a1089f355/fd9cfe023_6f5fd5cc-8fc9-4041-9d87-c24e77a3bc58.png"
               alt="Stand Tall Barbershop"
@@ -51,7 +51,7 @@ export default function Layout({ children, currentPageName }) {
           </Link>
 
           {/* User/Sign In Section */}
-          <div className={cn("px-2 py-3 border-b border-white/10", sidebarCollapsed && "opacity-0")}>
+          <div className={cn("px-2 py-3 border-b border-white/10 flex-shrink-0", sidebarCollapsed && "opacity-0")}>
             {user ? (
               <div className="flex flex-col items-center gap-1">
                 <div className="w-10 h-10 rounded-full bg-[#B0BFA4] flex items-center justify-center text-white font-bold text-sm">
@@ -71,7 +71,7 @@ export default function Layout({ children, currentPageName }) {
           </div>
 
           {/* Navigation Items */}
-          <div className={cn("flex-1 flex flex-col py-2 gap-1", sidebarCollapsed && "opacity-0")}>
+          <div className={cn("flex-1 flex flex-col py-2 gap-1 overflow-y-auto", sidebarCollapsed && "opacity-0")}>
             {tabs
               .filter(tab => {
                 if (tab.page === "StaffSchedule" && !currentBarber && !hasFullAccess) return false;
@@ -119,7 +119,7 @@ export default function Layout({ children, currentPageName }) {
           </div>
 
           {/* Settings and Notification Bell at Bottom */}
-          <div className={cn("mt-auto border-t border-white/10", sidebarCollapsed && "opacity-0")}>
+          <div className={cn("border-t border-white/10 flex-shrink-0", sidebarCollapsed && "opacity-0")}>
             {currentBarber?.permission_level === "service_provider" ? (
               <button
                 onClick={() => toast.error("Access Denied", {
