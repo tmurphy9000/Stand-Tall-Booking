@@ -58,7 +58,7 @@ export default function WithdrawalForm({ open, onClose, onSave, barbers }) {
           </div>
           <div>
             <Label className="text-xs text-gray-500">Amount ($)</Label>
-            <Input type="number" value={form.amount} onChange={e => set("amount", parseFloat(e.target.value) || 0)} />
+            <Input type="number" value={form.amount} onChange={e => set("amount", e.target.value === "" ? "" : parseFloat(e.target.value))} />
           </div>
           <div>
             <Label className="text-xs text-gray-500">Note</Label>
@@ -75,7 +75,7 @@ export default function WithdrawalForm({ open, onClose, onSave, barbers }) {
           <Button
             onClick={() => onSave({
               type: "withdrawal",
-              amount: form.amount,
+              amount: form.amount === "" ? 0 : form.amount,
               barber_id: form.barber_id,
               barber_name: form.barber_name,
               note: form.note,
