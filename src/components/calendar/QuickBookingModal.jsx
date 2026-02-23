@@ -16,6 +16,7 @@ export default function QuickBookingModal({ open, onClose, onSave, barbers, serv
   const handleServiceSelect = (service) => {
     const selectedBarber = barbers.find(b => b.id === prefill.barber_id);
     const serviceDuration = selectedBarber?.service_durations?.[service.id] || service.duration || 30;
+    const servicePrice = selectedBarber?.service_prices?.[service.id] ?? service.price;
     const endTime = format(addMinutes(parse(prefill.start_time, "HH:mm", new Date()), serviceDuration), "HH:mm");
 
     onSave({
@@ -31,8 +32,8 @@ export default function QuickBookingModal({ open, onClose, onSave, barbers, serv
       start_time: prefill.start_time,
       end_time: endTime,
       duration: serviceDuration,
-      price: service.price,
-      final_price: service.price,
+      price: servicePrice,
+      final_price: servicePrice,
       status: "scheduled",
       notes: bookingType === "walk-in" ? "Walk-in appointment" : "Call-in appointment",
     });
@@ -78,20 +79,31 @@ export default function QuickBookingModal({ open, onClose, onSave, barbers, serv
 
         {step === "service" && (
           <div className="py-4 space-y-2 max-h-96 overflow-y-auto">
-            {services.filter(s => s.is_active !== false).map(service => (
-              <Button
-                key={service.id}
-                onClick={() => handleServiceSelect(service)}
-                className="w-full h-auto py-4 bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 justify-between"
-                variant="outline"
-              >
-                <div className="flex flex-col items-start">
-                  <span className="font-semibold">{service.name}</span>
-                  <span className="text-xs text-gray-500">{service.duration} min</span>
-                </div>
-                <span className="text-lg font-bold text-[#8B9A7E]">${service.price}</span>
-              </Button>
-            ))}
+            {services.filter(s => s.is_active !== false).map(service => {
+              const selectedBarber = barbers.find(b => b.id === prefill.barber_id);
+              const customDuration = selectedBarber?.service_durations?.[service.id];
+              const customPrice = selectedBarber?.service_prices?.[service.id];
+              const displayDuration = customDuration || service.duration;
+              const displayPrice = customPrice ?? service.price;
+              
+              return (
+                <Button
+                  key={service.id}
+                  onClick={() => handleServiceSelect(service)}
+                  className="w-full h-auto py-4 bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 justify-between"
+                  variant="outline"
+                >
+                  <div className="flex flex-col items-start">
+                    <span className="font-semibold">{service.name}</span>
+                    <span className="text-xs text-gray-500">
+                      {displayDuration} min
+                      {(customDuration || customPrice !== undefined) && <span className="text-[#8B9A7E] ml-1">(custom)</span>}
+                    </span>
+                  </div>
+                  <span className="text-lg font-bold text-[#8B9A7E]">${displayPrice}</span>
+                </Button>
+              );
+            })}
           </div>
         )}
       </DialogContent>
