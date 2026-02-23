@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Clock, DollarSign, Save } from "lucide-react";
 
 export default function BarberServiceDurations({ barber, services, onSave, onClose }) {
+  const [availableServices, setAvailableServices] = useState(barber.available_services || []);
   const [durations, setDurations] = useState(barber.service_durations || {});
   const [prices, setPrices] = useState(barber.service_prices || {});
 
