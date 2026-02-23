@@ -21,8 +21,12 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
     start_time: "09:00",
     notes: "",
   });
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [duplicateClient, setDuplicateClient] = useState(null);
+  const [showMergeDialog, setShowMergeDialog] = useState(false);
 
-  const { data: clients = [] } = useQuery({
+  const { data: clients = [], refetch: refetchClients } = useQuery({
     queryKey: ["clients"],
     queryFn: () => base44.entities.Client.list(),
   });
@@ -47,23 +51,82 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
     }
   }, [prefill]);
 
-  const handleClientSelect = (clientId) => {
-    const client = clients.find(c => c.id === clientId);
-    if (client) {
-      setForm(prev => ({
-        ...prev,
-        client_id: clientId,
-        client_name: client.name,
-        client_email: client.email,
-        client_phone: client.phone || "",
-      }));
-    } else {
-      setForm(prev => ({
-        ...prev,
-        client_id: "",
-      }));
+  const handleClientSelect = (client) => {
+    setForm(prev => ({
+      ...prev,
+      client_id: client.id,
+      client_name: client.name,
+      client_email: client.email,
+      client_phone: client.phone || "",
+    }));
+    setSearchTerm(client.name);
+    setShowDropdown(false);
+  };
+
+  const handleNameChange = (value) => {
+    setSearchTerm(value);
+    set("client_name", value);
+    setShowDropdown(value.length > 0);
+    
+    // Check for duplicates when phone or email is entered
+    if (form.client_phone || form.client_email) {
+      checkForDuplicates(value, form.client_phone, form.client_email);
     }
   };
+
+  const handleContactChange = (field, value) => {
+    set(field, value);
+    if (form.client_name) {
+      checkForDuplicates(form.client_name, field === "client_phone" ? value : form.client_phone, field === "client_email" ? value : form.client_email);
+    }
+  };
+
+  const checkForDuplicates = (name, phone, email) => {
+    const duplicate = clients.find(c => 
+      c.id !== form.client_id && 
+      ((phone && c.phone === phone) || (email && c.email === email))
+    );
+    if (duplicate) {
+      setDuplicateClient(duplicate);
+      setShowMergeDialog(true);
+    }
+  };
+
+  const handleMergeAccounts = async () => {
+    if (!duplicateClient) return;
+    
+    try {
+      // Keep the newer account (current form), delete the older one
+      await base44.entities.Client.delete(duplicateClient.id);
+      
+      // If the current form doesn't have a client_id, create new client with merged data
+      if (!form.client_id) {
+        const mergedClient = await base44.entities.Client.create({
+          name: form.client_name,
+          email: form.client_email || duplicateClient.email,
+          phone: form.client_phone || duplicateClient.phone,
+          staff_notes: duplicateClient.staff_notes || "",
+          preferred_barber_ids: duplicateClient.preferred_barber_ids || [],
+          preferred_service_ids: duplicateClient.preferred_service_ids || [],
+          total_visits: duplicateClient.total_visits || 0,
+          total_spent: duplicateClient.total_spent || 0,
+        });
+        setForm(prev => ({ ...prev, client_id: mergedClient.id }));
+      }
+      
+      await refetchClients();
+      setShowMergeDialog(false);
+      setDuplicateClient(null);
+    } catch (error) {
+      console.error("Error merging accounts:", error);
+    }
+  };
+
+  const filteredClients = clients.filter(c =>
+    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    c.phone?.includes(searchTerm)
+  ).slice(0, 5);
 
   const selectedService = services.find(s => s.id === form.service_id);
   const selectedBarber = barbers.find(b => b.id === form.barber_id);
@@ -99,34 +162,38 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <div>
-            <Label className="text-xs text-gray-500">Select Existing Client (Optional)</Label>
-            <Select value={form.client_id} onValueChange={handleClientSelect}>
-              <SelectTrigger><SelectValue placeholder="New client or select existing" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value={null}>New Client</SelectItem>
-                {clients.map(client => (
-                  <SelectItem key={client.id} value={client.id}>
-                    {client.name} ({client.email})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
+          <div className="relative">
             <Label className="text-xs text-gray-500">Client Name *</Label>
-            <Input value={form.client_name} onChange={e => set("client_name", e.target.value)} placeholder="Client name" />
+            <Input 
+              value={searchTerm} 
+              onChange={e => handleNameChange(e.target.value)} 
+              onFocus={() => setShowDropdown(searchTerm.length > 0)}
+              placeholder="Start typing client name..." 
+            />
+            {showDropdown && filteredClients.length > 0 && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+                {filteredClients.map(client => (
+                  <button
+                    key={client.id}
+                    onClick={() => handleClientSelect(client)}
+                    className="w-full px-3 py-2 text-left hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                  >
+                    <div className="font-medium text-sm">{client.name}</div>
+                    <div className="text-xs text-gray-500">{client.phone} • {client.email}</div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs text-gray-500">Phone</Label>
-              <Input value={form.client_phone} onChange={e => set("client_phone", e.target.value)} placeholder="(555) 123-4567" />
+              <Input value={form.client_phone} onChange={e => handleContactChange("client_phone", e.target.value)} placeholder="(555) 123-4567" />
             </div>
             <div>
               <Label className="text-xs text-gray-500">Email</Label>
-              <Input value={form.client_email} onChange={e => set("client_email", e.target.value)} placeholder="email@example.com" />
+              <Input value={form.client_email} onChange={e => handleContactChange("client_email", e.target.value)} placeholder="email@example.com" />
             </div>
           </div>
 
@@ -203,6 +270,33 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Merge Accounts Dialog */}
+      <Dialog open={showMergeDialog} onOpenChange={setShowMergeDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-red-600">Duplicate Account Detected</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600 mb-4">
+              A client with the same phone or email already exists:
+            </p>
+            {duplicateClient && (
+              <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-1">
+                <div><strong>Name:</strong> {duplicateClient.name}</div>
+                <div><strong>Phone:</strong> {duplicateClient.phone}</div>
+                <div><strong>Email:</strong> {duplicateClient.email}</div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMergeDialog(false)}>Cancel</Button>
+            <Button onClick={handleMergeAccounts} className="bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white">
+              Merge Accounts
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }
