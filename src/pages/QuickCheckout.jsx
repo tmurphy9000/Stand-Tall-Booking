@@ -10,13 +10,16 @@ import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "");
+const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 export default function QuickCheckoutPage() {
-  return (
+  return stripePromise ? (
     <Elements stripe={stripePromise}>
       <QuickCheckoutContent />
     </Elements>
+  ) : (
+    <QuickCheckoutContent />
   );
 }
 
@@ -358,7 +361,7 @@ function QuickCheckoutContent() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="card">Card</SelectItem>
+                {stripePublishableKey && <SelectItem value="card">Card</SelectItem>}
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
