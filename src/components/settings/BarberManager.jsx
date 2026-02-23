@@ -76,9 +76,9 @@ export default function BarberManager({ barbers, onCreate, onUpdate, onDelete })
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium">{b.name}</p>
                 {b.is_active !== false ? (
-                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">Active</span>
                 ) : (
-                  <XCircle className="w-4 h-4 text-red-500" />
+                  <span className="text-[10px] px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-medium">Terminated</span>
                 )}
               </div>
               <p className="text-[10px] text-gray-400">{b.tier?.replace('tier_', 'Tier ') || 'Tier 1'} • Services: {b.service_commission_rate || 50}% • Products: {b.product_commission_rate || 10}%</p>
@@ -164,8 +164,11 @@ export default function BarberManager({ barbers, onCreate, onUpdate, onDelete })
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between">
-              <Label className="text-sm">Active</Label>
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+              <div>
+                <Label className="text-sm font-medium">Employment Status</Label>
+                <p className="text-xs text-gray-500">{form.is_active !== false ? "Active" : "Terminated"}</p>
+              </div>
               <Switch checked={form.is_active !== false} onCheckedChange={v => set("is_active", v)} />
             </div>
           </div>
