@@ -220,7 +220,13 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
             <Select value={form.service_id} onValueChange={v => set("service_id", v)}>
               <SelectTrigger><SelectValue placeholder="Select service" /></SelectTrigger>
               <SelectContent>
-                {services.filter(s => s.is_active !== false).map(s => {
+                {services.filter(s => {
+                  if (s.is_active === false) return false;
+                  if (!selectedBarber) return true;
+                  const availableServices = selectedBarber.available_services;
+                  if (!availableServices || availableServices.length === 0) return true;
+                  return availableServices.includes(s.id);
+                }).map(s => {
                   const customDuration = selectedBarber?.service_durations?.[s.id];
                   const customPrice = selectedBarber?.service_prices?.[s.id];
                   const displayDuration = customDuration || s.duration;

@@ -79,7 +79,14 @@ export default function QuickBookingModal({ open, onClose, onSave, barbers, serv
 
         {step === "service" && (
           <div className="py-4 space-y-2 max-h-96 overflow-y-auto">
-            {services.filter(s => s.is_active !== false).map(service => {
+            {services.filter(s => {
+              if (s.is_active === false) return false;
+              const selectedBarber = barbers.find(b => b.id === prefill.barber_id);
+              if (!selectedBarber) return true;
+              const availableServices = selectedBarber.available_services;
+              if (!availableServices || availableServices.length === 0) return true;
+              return availableServices.includes(s.id);
+            }).map(service => {
               const selectedBarber = barbers.find(b => b.id === prefill.barber_id);
               const customDuration = selectedBarber?.service_durations?.[service.id];
               const customPrice = selectedBarber?.service_prices?.[service.id];
