@@ -20,8 +20,6 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
     date: format(new Date(), "yyyy-MM-dd"),
     start_time: "09:00",
     notes: "",
-    discount_type: "none",
-    discount_value: 0,
   });
 
   const { data: clients = [] } = useQuery({
@@ -75,12 +73,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
     ? format(addMinutes(parse(form.start_time, "HH:mm", new Date()), serviceDuration), "HH:mm")
     : "";
 
-  const finalPrice = selectedService ? (() => {
-    let price = selectedService.price;
-    if (form.discount_type === "percentage") price -= price * (form.discount_value / 100);
-    if (form.discount_type === "fixed") price -= form.discount_value;
-    return Math.max(0, price);
-  })() : 0;
+  const finalPrice = selectedService ? selectedService.price : 0;
 
   const handleSave = () => {
     if (!form.client_name || !form.barber_id || !form.service_id) return;
@@ -189,28 +182,6 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
               </div>
             </div>
           )}
-
-          <div>
-            <Label className="text-xs text-gray-500">Discount</Label>
-            <div className="flex gap-2">
-              <Select value={form.discount_type} onValueChange={v => set("discount_type", v)}>
-                <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
-                  <SelectItem value="percentage">% Off</SelectItem>
-                  <SelectItem value="fixed">$ Off</SelectItem>
-                </SelectContent>
-              </Select>
-              {form.discount_type !== "none" && (
-                <Input
-                  type="number"
-                  value={form.discount_value}
-                  onChange={e => set("discount_value", parseFloat(e.target.value) || 0)}
-                  className="w-24"
-                />
-              )}
-            </div>
-          </div>
 
           {selectedService && (
             <div className="bg-[#0A0A0A] text-white rounded-lg p-3 flex justify-between items-center">
