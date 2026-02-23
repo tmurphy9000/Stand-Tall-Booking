@@ -29,7 +29,7 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
   const actions = [
     { label: "Confirm", icon: CheckCircle, color: "text-blue-600", action: () => { onAction("confirm", booking.id); onClose(); }, show: booking.status === "scheduled" },
     { label: "Mark Arrived", icon: UserCheck, color: "text-green-600", action: () => { onAction("checked_in", booking.id); onClose(); }, show: booking.status === "confirmed" || booking.status === "scheduled" },
-    { label: "Checkout", icon: CheckCircle, color: "text-[#8B9A7E]", action: () => { onAction("checkout", booking.id); }, show: booking.status === "checked_in" },
+    { label: "Checkout", icon: CheckCircle, color: "text-[#8B9A7E]", action: () => { onAction("checkout", booking.id); onClose(); }, show: booking.status !== "cancelled" && booking.status !== "completed" && booking.status !== "no_show" },
     { label: "Mark as No-Show", icon: AlertCircle, color: "text-orange-500", action: () => setShowNoShow(true), show: booking.status === "scheduled" || booking.status === "confirmed" },
     { label: "Cancel", icon: XCircle, color: "text-red-500", action: () => setShowCancel(true), show: booking.status !== "cancelled" && booking.status !== "completed" },
   ].filter(a => a.show);
