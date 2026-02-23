@@ -5,6 +5,7 @@ import { format, addDays, startOfWeek } from "date-fns";
 import CalendarHeader from "../components/calendar/CalendarHeader";
 import TimeSlotGrid from "../components/calendar/TimeSlotGrid";
 import BookingFormModal from "../components/calendar/BookingFormModal";
+import QuickBookingModal from "../components/calendar/QuickBookingModal";
 import BookingContextMenu from "../components/calendar/BookingContextMenu";
 import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ export default function CalendarPage() {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [columnWidth, setColumnWidth] = useState(80);
   const [showBookingForm, setShowBookingForm] = useState(false);
+  const [showQuickBooking, setShowQuickBooking] = useState(false);
   const [bookingPrefill, setBookingPrefill] = useState(null);
   const [contextMenu, setContextMenu] = useState({ booking: null, position: { x: 0, y: 0 } });
   const [slotMenu, setSlotMenu] = useState({ barber: null, time: null, date: null, position: { x: 0, y: 0 } });
