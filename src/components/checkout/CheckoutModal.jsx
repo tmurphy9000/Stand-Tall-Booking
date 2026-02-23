@@ -4,10 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Plus, DollarSign } from "lucide-react";
+import { X, Plus, DollarSign, CreditCard } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "");
 
 export default function CheckoutModal({ open, onClose, booking, onComplete }) {
   const [items, setItems] = useState([]);
@@ -118,7 +122,7 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
   
   const total = subtotal + taxAmount - discountAmount + (tip || 0);
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (paymentIntentId = null) => {
     try {
       // Update primary booking
       await base44.entities.Booking.update(booking.id, {
@@ -181,6 +185,97 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
+      <Elements stripe={stripePromise}>
+        <CheckoutContent
+          booking={booking}
+          onClose={onClose}
+          onComplete={onComplete}
+          handleCheckout={handleCheckout}
+          items={items}
+          setItems={setItems}
+          discount={discount}
+          setDiscount={setDiscount}
+          tip={tip}
+          setTip={setTip}
+          paymentMethod={paymentMethod}
+          setPaymentMethod={setPaymentMethod}
+          additionalBookings={additionalBookings}
+          setAdditionalBookings={setAdditionalBookings}
+          addProduct={addProduct}
+          addService={addService}
+          addBookingToTransaction={addBookingToTransaction}
+          removeItem={removeItem}
+          subtotal={subtotal}
+          taxAmount={taxAmount}
+          discountAmount={discountAmount}
+          total={total}
+          services={services}
+          products={products}
+          barbers={barbers}
+          bookings={bookings}
+        />
+      </Elements>
+    </Dialog>
+  );
+}
+
+function CheckoutContent({ 
+  booking, onClose, onComplete, handleCheckout, items, setItems, 
+  discount, setDiscount, tip, setTip, paymentMethod, setPaymentMethod,
+  additionalBookings, setAdditionalBookings, addProduct, addService, 
+  addBookingToTransaction, removeItem, subtotal, taxAmount, discountAmount, 
+  total, services, products, barbers, bookings 
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [processing, setProcessing] = useState(false);
+
+  const availableBookings = bookings?.filter(b => 
+    b.status === "checked_in" && 
+    b.id !== booking?.id &&
+    !additionalBookings.includes(b.id)
+  ) || [];
+
+  const handleSubmit = async () => {
+    if (paymentMethod === "card") {
+      if (!stripe || !elements) {
+        toast.error("Stripe not loaded");
+        return;
+      }
+
+      setProcessing(true);
+      try {
+        const { data: { clientSecret } } = await base44.functions.invoke("createStripePayment", {
+          amount: Math.round(total * 100),
+          description: `Checkout: ${booking.client_name}`,
+          metadata: { booking_id: booking.id }
+        });
+
+        const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+          payment_method: {
+            card: elements.getElement(CardElement),
+          },
+        });
+
+        if (error) {
+          toast.error(error.message);
+          setProcessing(false);
+          return;
+        }
+
+        await handleCheckout(paymentIntent.id);
+      } catch (error) {
+        toast.error("Payment failed: " + error.message);
+        setProcessing(false);
+      }
+    } else {
+      await handleCheckout();
+    }
+  };
+
+  if (!booking) return null;
+
+  return (
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Checkout - {booking.client_name}</DialogTitle>
@@ -328,6 +423,24 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
             </Select>
           </div>
 
+          {/* Stripe Card Element */}
+          {paymentMethod === "card" && (
+            <div className="border border-gray-200 rounded-md p-3">
+              <Label className="text-xs mb-2 block">Card Details</Label>
+              <CardElement
+                options={{
+                  style: {
+                    base: {
+                      fontSize: '14px',
+                      color: '#424770',
+                      '::placeholder': { color: '#aab7c4' },
+                    },
+                  },
+                }}
+              />
+            </div>
+          )}
+
           {/* Summary */}
           <div className="bg-[#8B9A7E]/10 p-3 rounded-lg space-y-1">
             <div className="flex justify-between text-sm">
@@ -360,12 +473,12 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
 
           {/* Actions */}
           <div className="flex gap-2">
-            <Button variant="outline" onClick={onClose} className="flex-1">
+            <Button variant="outline" onClick={onClose} className="flex-1" disabled={processing}>
               Cancel
             </Button>
-            <Button onClick={handleCheckout} className="flex-1 bg-[#8B9A7E] hover:bg-[#6B7A5E]">
-              <DollarSign className="w-4 h-4 mr-2" />
-              Complete Checkout
+            <Button onClick={handleSubmit} className="flex-1 bg-[#8B9A7E] hover:bg-[#6B7A5E]" disabled={processing}>
+              {paymentMethod === "card" ? <CreditCard className="w-4 h-4 mr-2" /> : <DollarSign className="w-4 h-4 mr-2" />}
+              {processing ? "Processing..." : "Complete Checkout"}
             </Button>
           </div>
         </div>
