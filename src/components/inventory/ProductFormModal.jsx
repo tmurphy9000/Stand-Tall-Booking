@@ -50,15 +50,15 @@ export default function ProductFormModal({ open, onClose, onSave, product }) {
           <div className="grid grid-cols-3 gap-3">
             <div>
               <Label className="text-xs text-gray-500">Cost</Label>
-              <Input type="number" value={form.cost_per_unit} onChange={e => set("cost_per_unit", e.target.value === "" ? 0 : parseFloat(e.target.value))} />
+              <Input type="number" value={form.cost_per_unit} onChange={e => set("cost_per_unit", e.target.value === "" ? "" : parseFloat(e.target.value))} />
             </div>
             <div>
               <Label className="text-xs text-gray-500">Retail Price *</Label>
-              <Input type="number" value={form.retail_price} onChange={e => set("retail_price", e.target.value === "" ? 0 : parseFloat(e.target.value))} />
+              <Input type="number" value={form.retail_price} onChange={e => set("retail_price", e.target.value === "" ? "" : parseFloat(e.target.value))} />
             </div>
             <div>
               <Label className="text-xs text-gray-500">Stock</Label>
-              <Input type="number" value={form.stock_quantity} onChange={e => set("stock_quantity", e.target.value === "" ? 0 : parseInt(e.target.value))} />
+              <Input type="number" value={form.stock_quantity} onChange={e => set("stock_quantity", e.target.value === "" ? "" : parseInt(e.target.value))} />
             </div>
           </div>
           <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
@@ -69,7 +69,7 @@ export default function ProductFormModal({ open, onClose, onSave, product }) {
                   <Input
                     type="number"
                     value={form.tax_rate}
-                    onChange={e => set("tax_rate", e.target.value === "" ? 0 : parseFloat(e.target.value))}
+                    onChange={e => set("tax_rate", e.target.value === "" ? "" : parseFloat(e.target.value))}
                     className="w-20 h-7 text-xs"
                     step="0.1"
                   />
@@ -82,7 +82,13 @@ export default function ProductFormModal({ open, onClose, onSave, product }) {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={() => onSave(form)} className="bg-[#C9A94E] hover:bg-[#A07D2B] text-white">
+          <Button onClick={() => onSave({
+            ...form,
+            cost_per_unit: form.cost_per_unit === "" ? 0 : form.cost_per_unit,
+            retail_price: form.retail_price === "" ? 0 : form.retail_price,
+            stock_quantity: form.stock_quantity === "" ? 0 : form.stock_quantity,
+            tax_rate: form.tax_rate === "" ? 0 : form.tax_rate
+          })} className="bg-[#C9A94E] hover:bg-[#A07D2B] text-white">
             {product ? "Update" : "Add Product"}
           </Button>
         </DialogFooter>
