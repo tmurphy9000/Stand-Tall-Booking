@@ -2,7 +2,8 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Copy } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { Copy, Ban } from "lucide-react";
 
 const DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 const TIMES = [];
@@ -14,7 +15,7 @@ for (let h = 6; h <= 22; h++) {
   }
 }
 
-export default function BarberHoursEditor({ hours = {}, onChange }) {
+export default function BarberHoursEditor({ hours = {}, onChange, bookingsBlocked, onBlockBookingsChange }) {
   const [copyFrom, setCopyFrom] = useState(null);
 
   const updateDay = (day, field, value) => {
@@ -41,7 +42,21 @@ export default function BarberHoursEditor({ hours = {}, onChange }) {
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
+      <div className="flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+        <div className="flex items-center gap-3">
+          <Ban className="w-5 h-5 text-red-600" />
+          <div>
+            <Label className="font-medium text-red-900">Block All Bookings</Label>
+            <p className="text-xs text-red-700">Prevent new bookings (for termination or extended leave)</p>
+          </div>
+        </div>
+        <Switch
+          checked={bookingsBlocked}
+          onCheckedChange={onBlockBookingsChange}
+        />
+      </div>
+
       <div className="flex gap-2 mb-2">
         <Button variant="outline" size="sm" className="text-xs h-7" onClick={applyWeekdays}>
           Copy Mon → Weekdays
