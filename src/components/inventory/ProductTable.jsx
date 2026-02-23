@@ -2,9 +2,9 @@ import React from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, AlertTriangle } from "lucide-react";
+import { Pencil, Trash2, AlertTriangle, Plus, Minus } from "lucide-react";
 
-export default function ProductTable({ products, onEdit, onDelete }) {
+export default function ProductTable({ products, onEdit, onDelete, onAdjustInventory }) {
   return (
     <div className="overflow-x-auto bg-white rounded-xl border border-gray-100">
       <Table>
@@ -17,7 +17,7 @@ export default function ProductTable({ products, onEdit, onDelete }) {
             <TableHead className="text-xs text-right">Stock</TableHead>
             <TableHead className="text-xs text-right">Profit/Unit</TableHead>
             <TableHead className="text-xs">Tax</TableHead>
-            <TableHead className="text-xs w-20"></TableHead>
+            <TableHead className="text-xs w-32">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -57,6 +57,12 @@ export default function ProductTable({ products, onEdit, onDelete }) {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-green-600" onClick={() => onAdjustInventory(p, 'add')} title="Add Inventory">
+                      <Plus className="w-3 h-3" />
+                    </Button>
+                    <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-red-600" onClick={() => onAdjustInventory(p, 'subtract')} title="Subtract Inventory">
+                      <Minus className="w-3 h-3" />
+                    </Button>
                     <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => onEdit(p)}>
                       <Pencil className="w-3 h-3" />
                     </Button>

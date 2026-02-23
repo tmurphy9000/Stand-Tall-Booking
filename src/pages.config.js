@@ -50,6 +50,7 @@
 import AdminReporting from './pages/AdminReporting';
 import Calendar from './pages/Calendar';
 import CashTracker from './pages/CashTracker';
+import Checkout from './pages/Checkout';
 import ClientBooking from './pages/ClientBooking';
 import ClientDetails from './pages/ClientDetails';
 import ClientHistory from './pages/ClientHistory';
@@ -57,12 +58,11 @@ import ClientList from './pages/ClientList';
 import ClientPortal from './pages/ClientPortal';
 import Inventory from './pages/Inventory';
 import Payroll from './pages/Payroll';
+import QuickCheckout from './pages/QuickCheckout';
 import Reports from './pages/Reports';
+import RunPayroll from './pages/RunPayroll';
 import Settings from './pages/Settings';
 import StaffSchedule from './pages/StaffSchedule';
-import RunPayroll from './pages/RunPayroll';
-import Checkout from './pages/Checkout';
-import QuickCheckout from './pages/QuickCheckout';
 import __Layout from './Layout.jsx';
 
 
@@ -70,6 +70,7 @@ export const PAGES = {
     "AdminReporting": AdminReporting,
     "Calendar": Calendar,
     "CashTracker": CashTracker,
+    "Checkout": Checkout,
     "ClientBooking": ClientBooking,
     "ClientDetails": ClientDetails,
     "ClientHistory": ClientHistory,
@@ -77,12 +78,11 @@ export const PAGES = {
     "ClientPortal": ClientPortal,
     "Inventory": Inventory,
     "Payroll": Payroll,
+    "QuickCheckout": QuickCheckout,
     "Reports": Reports,
+    "RunPayroll": RunPayroll,
     "Settings": Settings,
     "StaffSchedule": StaffSchedule,
-    "RunPayroll": RunPayroll,
-    "Checkout": Checkout,
-    "QuickCheckout": QuickCheckout,
 }
 
 export const pagesConfig = {

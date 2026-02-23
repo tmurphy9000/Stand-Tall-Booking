@@ -6,12 +6,15 @@ import { Input } from "@/components/ui/input";
 import { Plus, Upload, Search, Loader2 } from "lucide-react";
 import ProductTable from "../components/inventory/ProductTable";
 import ProductFormModal from "../components/inventory/ProductFormModal";
+import InventoryAdjustmentDialog from "../components/inventory/InventoryAdjustmentDialog";
+import { toast } from "sonner";
 
 export default function InventoryPage() {
   const [search, setSearch] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editProduct, setEditProduct] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [adjustProduct, setAdjustProduct] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: products = [], isLoading } = useQuery({
@@ -32,6 +35,33 @@ export default function InventoryPage() {
   const deleteProduct = useMutation({
     mutationFn: (id) => base44.entities.Product.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["products"] }),
+  });
+
+  const adjustInventory = useMutation({
+    mutationFn: async ({ productId, type, quantity, reason, notes }) => {
+      const product = products.find(p => p.id === productId);
+      const currentStock = product.stock_quantity || 0;
+      const newStock = type === "add" ? currentStock + quantity : currentStock - quantity;
+      
+      await base44.entities.Product.update(productId, { stock_quantity: Math.max(0, newStock) });
+      
+      const user = await base44.auth.me();
+      await base44.entities.InventoryAdjustment.create({
+        product_id: productId,
+        product_name: product.name,
+        adjustment_type: type,
+        quantity,
+        reason,
+        notes,
+        date: new Date().toISOString().split('T')[0],
+        adjusted_by: user?.email || "unknown"
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      setAdjustProduct(null);
+      toast.success("Inventory adjusted successfully");
+    },
   });
 
   const handleCSVImport = async (e) => {
@@ -69,6 +99,17 @@ export default function InventoryPage() {
     } else {
       createProduct.mutate(data);
     }
+  };
+
+  const handleAdjustInventory = (product) => {
+    setAdjustProduct(product);
+  };
+
+  const handleSaveAdjustment = (data) => {
+    adjustInventory.mutate({
+      productId: adjustProduct.id,
+      ...data
+    });
   };
 
   const filtered = products.filter(p =>
@@ -133,6 +174,7 @@ export default function InventoryPage() {
           products={filtered}
           onEdit={(p) => { setEditProduct(p); setShowForm(true); }}
           onDelete={(id) => deleteProduct.mutate(id)}
+          onAdjustInventory={handleAdjustInventory}
         />
       )}
 
@@ -141,6 +183,13 @@ export default function InventoryPage() {
         onClose={() => { setShowForm(false); setEditProduct(null); }}
         onSave={handleSave}
         product={editProduct}
+      />
+
+      <InventoryAdjustmentDialog
+        open={!!adjustProduct}
+        onClose={() => setAdjustProduct(null)}
+        product={adjustProduct}
+        onSave={handleSaveAdjustment}
       />
     </div>
   );
