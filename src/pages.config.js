@@ -47,6 +47,7 @@
  *
  * The mainPage value must match a key in the PAGES object exactly.
  */
+import AdminReporting from './pages/AdminReporting';
 import Calendar from './pages/Calendar';
 import CashTracker from './pages/CashTracker';
 import ClientBooking from './pages/ClientBooking';
@@ -59,11 +60,11 @@ import Payroll from './pages/Payroll';
 import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import StaffSchedule from './pages/StaffSchedule';
-import AdminReporting from './pages/AdminReporting';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
+    "AdminReporting": AdminReporting,
     "Calendar": Calendar,
     "CashTracker": CashTracker,
     "ClientBooking": ClientBooking,
@@ -76,7 +77,6 @@ export const PAGES = {
     "Reports": Reports,
     "Settings": Settings,
     "StaffSchedule": StaffSchedule,
-    "AdminReporting": AdminReporting,
 }
 
 export const pagesConfig = {
