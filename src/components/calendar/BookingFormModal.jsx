@@ -20,7 +20,6 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
     date: format(new Date(), "yyyy-MM-dd"),
     start_time: "09:00",
     notes: "",
-    payment_method: "cash",
     discount_type: "none",
     discount_value: 0,
   });
@@ -219,18 +218,6 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
               <span className="text-lg font-bold text-[#B0BFA4]">${finalPrice.toFixed(2)}</span>
             </div>
           )}
-
-          <div>
-            <Label className="text-xs text-gray-500">Payment Method</Label>
-            <Select value={form.payment_method} onValueChange={v => set("payment_method", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="card">Card</SelectItem>
-                <SelectItem value="other">Other</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
 
           <div>
             <Label className="text-xs text-gray-500">Notes</Label>
