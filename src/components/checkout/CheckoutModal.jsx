@@ -11,7 +11,8 @@ import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || "");
+const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
 
 export default function CheckoutModal({ open, onClose, booking, onComplete }) {
   const [items, setItems] = useState([]);
@@ -185,7 +186,38 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <Elements stripe={stripePromise}>
+      {stripePromise ? (
+        <Elements stripe={stripePromise}>
+          <CheckoutContent
+          booking={booking}
+          onClose={onClose}
+          onComplete={onComplete}
+          handleCheckout={handleCheckout}
+          items={items}
+          setItems={setItems}
+          discount={discount}
+          setDiscount={setDiscount}
+          tip={tip}
+          setTip={setTip}
+          paymentMethod={paymentMethod}
+          setPaymentMethod={setPaymentMethod}
+          additionalBookings={additionalBookings}
+          setAdditionalBookings={setAdditionalBookings}
+          addProduct={addProduct}
+          addService={addService}
+          addBookingToTransaction={addBookingToTransaction}
+          removeItem={removeItem}
+          subtotal={subtotal}
+          taxAmount={taxAmount}
+          discountAmount={discountAmount}
+          total={total}
+          services={services}
+          products={products}
+          barbers={barbers}
+          bookings={bookings}
+        />
+        </Elements>
+      ) : (
         <CheckoutContent
           booking={booking}
           onClose={onClose}
@@ -214,7 +246,7 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
           barbers={barbers}
           bookings={bookings}
         />
-      </Elements>
+      )}
     </Dialog>
   );
 }
@@ -417,7 +449,7 @@ function CheckoutContent({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="card">Card</SelectItem>
+                {stripePublishableKey && <SelectItem value="card">Card</SelectItem>}
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
