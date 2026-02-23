@@ -359,7 +359,7 @@ function QuickCheckoutContent() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="cash">Cash</SelectItem>
-                {stripePublishableKey && <SelectItem value="card">Card</SelectItem>}
+                <SelectItem value="card">Card</SelectItem>
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
