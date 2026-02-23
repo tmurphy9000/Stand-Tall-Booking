@@ -124,8 +124,9 @@ export default function Layout({ children, currentPageName }) {
                 <NotificationBell userEmail={user.email} userType="staff" />
               </div>
             )}
-          </div>
-        </nav>
+              </div>
+            )}
+            </nav>
       )}
 
       {/* Collapse Toggle Button */}
