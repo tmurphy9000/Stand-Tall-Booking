@@ -54,7 +54,7 @@ export default function ServiceManager({ services, onCreate, onUpdate, onDelete 
           <div key={s.id} className="bg-gray-50 rounded-lg px-3 py-2 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">{s.name}</p>
-              <p className="text-[10px] text-gray-400">{s.duration}min • ${s.price} • {s.commission_value}% commission</p>
+              <p className="text-[10px] text-gray-400">{s.duration}min • ${s.price}</p>
             </div>
             <div className="flex gap-1">
               <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(s)}>
@@ -96,23 +96,6 @@ export default function ServiceManager({ services, onCreate, onUpdate, onDelete 
             <div>
               <Label className="text-xs text-gray-500">Category</Label>
               <Input value={form.category} onChange={e => set("category", e.target.value)} placeholder="e.g. Haircut, Beard" />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs text-gray-500">Commission Type</Label>
-                <Select value={form.commission_type} onValueChange={v => set("commission_type", v)}>
-                  <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="percentage">Percentage</SelectItem>
-                    <SelectItem value="flat">Flat Rate</SelectItem>
-                    <SelectItem value="tiered">Tiered</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs text-gray-500">Commission Value</Label>
-                <Input type="number" value={form.commission_value} onChange={e => set("commission_value", parseFloat(e.target.value) || 0)} />
-              </div>
             </div>
           </div>
           <DialogFooter>
