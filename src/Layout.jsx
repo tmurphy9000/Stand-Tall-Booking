@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
-import { Calendar, Package, BarChart3, Banknote, Settings, Scissors, DollarSign, ChevronLeft, ChevronRight, Users } from "lucide-react";
+import { Calendar, Package, BarChart3, Banknote, Settings, Scissors, DollarSign, ChevronLeft, ChevronRight, Users, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { base44 } from "@/api/base44Client";
 import NotificationBell from "./components/notifications/NotificationBell";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 import { usePermissions } from "./components/permissions/usePermissions";
 
@@ -101,31 +102,42 @@ export default function Layout({ children, currentPageName }) {
           </div>
 
           {/* Settings and Notification Bell at Bottom */}
-          {currentBarber?.permission_level !== "service_provider" && (
-           <div className={cn("mt-auto border-t border-white/10", sidebarCollapsed && "opacity-0")}>
-             <Link
-               to={createPageUrl(settingsTab.page)}
-               className={cn(
-                 "flex flex-col items-center gap-1 py-2 px-2 transition-all relative",
-                 currentPageName === settingsTab.page
-                   ? "text-[#8B9A7E]"
-                   : "text-[#FAFAF8]/60 hover:text-[#FAFAF8]/90"
-               )}
-             >
-               {currentPageName === settingsTab.page && (
-                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-7 bg-[#8B9A7E] rounded-r" />
-               )}
-               <Settings className={cn("w-5 h-5", currentPageName === settingsTab.page && "drop-shadow-[0_0_8px_rgba(139,154,126,0.5)]")} />
-               <span className="text-[9px] font-medium text-center leading-tight">{settingsTab.name}</span>
-             </Link>
+          <div className={cn("mt-auto border-t border-white/10", sidebarCollapsed && "opacity-0")}>
+            {currentBarber?.permission_level === "service_provider" ? (
+              <button
+                onClick={() => toast.error("Access Denied", {
+                  description: "You don't have permission to access settings",
+                  icon: <Lock className="w-4 h-4" />
+                })}
+                className="flex flex-col items-center gap-1 py-2 px-2 transition-all relative text-[#FAFAF8]/60 hover:text-[#FAFAF8]/90 w-full"
+              >
+                <Lock className="w-5 h-5" />
+                <span className="text-[9px] font-medium text-center leading-tight">{settingsTab.name}</span>
+              </button>
+            ) : (
+              <Link
+                to={createPageUrl(settingsTab.page)}
+                className={cn(
+                  "flex flex-col items-center gap-1 py-2 px-2 transition-all relative",
+                  currentPageName === settingsTab.page
+                    ? "text-[#8B9A7E]"
+                    : "text-[#FAFAF8]/60 hover:text-[#FAFAF8]/90"
+                )}
+              >
+                {currentPageName === settingsTab.page && (
+                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-7 bg-[#8B9A7E] rounded-r" />
+                )}
+                <Settings className={cn("w-5 h-5", currentPageName === settingsTab.page && "drop-shadow-[0_0_8px_rgba(139,154,126,0.5)]")} />
+                <span className="text-[9px] font-medium text-center leading-tight">{settingsTab.name}</span>
+              </Link>
+            )}
 
-             {user && (
-               <div className="py-2 border-t border-white/10 flex justify-center">
-                 <NotificationBell userEmail={user.email} userType="staff" />
-               </div>
-             )}
-           </div>
-          )}
+            {user && (
+              <div className="py-2 border-t border-white/10 flex justify-center">
+                <NotificationBell userEmail={user.email} userType="staff" />
+              </div>
+            )}
+          </div>
           </nav>
       )}
 
