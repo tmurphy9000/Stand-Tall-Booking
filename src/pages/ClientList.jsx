@@ -1,17 +1,21 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, User, Phone, Mail, Star } from "lucide-react";
+import { Search, User, Phone, Mail, Star, Plus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { usePermissions } from "../components/permissions/usePermissions";
+import AddClientDialog from "../components/client/AddClientDialog";
+import { toast } from "sonner";
 
 export default function ClientList() {
   const [search, setSearch] = useState("");
+  const [showAddDialog, setShowAddDialog] = useState(false);
   const { hasFullAccess } = usePermissions();
+  const queryClient = useQueryClient();
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
@@ -21,6 +25,15 @@ export default function ClientList() {
   const { data: reviews = [] } = useQuery({
     queryKey: ["reviews"],
     queryFn: () => base44.entities.Review.list(),
+  });
+
+  const createClient = useMutation({
+    mutationFn: (data) => base44.entities.Client.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      setShowAddDialog(false);
+      toast.success("Client added successfully");
+    },
   });
 
   const filteredClients = clients.filter(c => {
@@ -42,9 +55,19 @@ export default function ClientList() {
   return (
     <div className="p-6">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold mb-2">Clients</h1>
-          <p className="text-gray-600 text-sm">Manage and view all clients</p>
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold mb-2">Clients</h1>
+            <p className="text-gray-600 text-sm">Manage and view all clients</p>
+          </div>
+          <Button
+            onClick={() => setShowAddDialog(true)}
+            className="bg-[#8B9A7E] hover:bg-[#6B7A5E] gap-2"
+            size="sm"
+          >
+            <Plus className="w-4 h-4" />
+            Add Client
+          </Button>
         </div>
 
         <div className="mb-6">
@@ -127,6 +150,12 @@ export default function ClientList() {
           </Card>
         )}
       </div>
+
+      <AddClientDialog
+        open={showAddDialog}
+        onClose={() => setShowAddDialog(false)}
+        onSave={(data) => createClient.mutate(data)}
+      />
     </div>
   );
 }
