@@ -73,6 +73,7 @@ export default function CalendarPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       setShowBookingForm(false);
+      setShowQuickBooking(false);
     },
   });
 
@@ -260,6 +261,15 @@ export default function CalendarPage() {
         </div>
       )}
 
+      <QuickBookingModal
+        open={showQuickBooking}
+        onClose={() => setShowQuickBooking(false)}
+        onSave={(data) => createBooking.mutate(data)}
+        barbers={activeBarbers}
+        services={services}
+        prefill={bookingPrefill}
+      />
+
       <BookingFormModal
         open={showBookingForm}
         onClose={() => setShowBookingForm(false)}
@@ -303,12 +313,22 @@ export default function CalendarPage() {
             <button
               onClick={() => {
                 setBookingPrefill({ barber_id: slotMenu.barber.id, start_time: slotMenu.time, date: slotMenu.date });
+                setShowQuickBooking(true);
+                setSlotMenu({ barber: null, time: null, date: null, position: { x: 0, y: 0 } });
+              }}
+              className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 rounded flex items-center gap-2"
+            >
+              <span>📅</span> Walk-in / Call-in
+            </button>
+            <button
+              onClick={() => {
+                setBookingPrefill({ barber_id: slotMenu.barber.id, start_time: slotMenu.time, date: slotMenu.date });
                 setShowBookingForm(true);
                 setSlotMenu({ barber: null, time: null, date: null, position: { x: 0, y: 0 } });
               }}
               className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 rounded flex items-center gap-2"
             >
-              <span>📅</span> Create Appointment
+              <span>👤</span> Regular Appointment
             </button>
             <button
               onClick={() => {
