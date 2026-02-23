@@ -61,6 +61,7 @@ import Reports from './pages/Reports';
 import Settings from './pages/Settings';
 import StaffSchedule from './pages/StaffSchedule';
 import RunPayroll from './pages/RunPayroll';
+import Checkout from './pages/Checkout';
 import QuickCheckout from './pages/QuickCheckout';
 import __Layout from './Layout.jsx';
 
@@ -80,6 +81,7 @@ export const PAGES = {
     "Settings": Settings,
     "StaffSchedule": StaffSchedule,
     "RunPayroll": RunPayroll,
+    "Checkout": Checkout,
     "QuickCheckout": QuickCheckout,
 }
 

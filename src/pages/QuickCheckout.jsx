@@ -113,11 +113,6 @@ function QuickCheckoutContent() {
   const total = subtotal + taxAmount - discountAmount + (tip || 0);
 
   const handleCheckout = async () => {
-    if (!clientName.trim()) {
-      toast.error("Please enter client name");
-      return;
-    }
-
     if (items.length === 0) {
       toast.error("Please add at least one item");
       return;
@@ -229,11 +224,11 @@ function QuickCheckoutContent() {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
           {/* Client Name */}
           <div>
-            <Label>Client Name</Label>
+            <Label>Client Name (Optional)</Label>
             <Input
               value={clientName}
               onChange={(e) => setClientName(e.target.value)}
-              placeholder="Enter client name"
+              placeholder="Enter client name (optional)"
             />
           </div>
 
