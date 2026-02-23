@@ -131,12 +131,13 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
   const selectedService = services.find(s => s.id === form.service_id);
   const selectedBarber = barbers.find(b => b.id === form.barber_id);
   const serviceDuration = selectedBarber?.service_durations?.[form.service_id] || selectedService?.duration || 30;
+  const servicePrice = selectedBarber?.service_prices?.[form.service_id] ?? selectedService?.price ?? 0;
 
   const endTime = selectedService
     ? format(addMinutes(parse(form.start_time, "HH:mm", new Date()), serviceDuration), "HH:mm")
     : "";
 
-  const finalPrice = selectedService ? selectedService.price : 0;
+  const finalPrice = servicePrice;
 
   const handleSave = () => {
     if (!form.client_name || !form.barber_id || !form.service_id) return;
@@ -145,7 +146,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
       barber_name: selectedBarber?.name || "",
       service_name: selectedService?.name || "",
       duration: serviceDuration,
-      price: selectedService?.price || 0,
+      price: servicePrice,
       end_time: endTime,
       final_price: finalPrice,
       status: "scheduled",
@@ -219,9 +220,17 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
             <Select value={form.service_id} onValueChange={v => set("service_id", v)}>
               <SelectTrigger><SelectValue placeholder="Select service" /></SelectTrigger>
               <SelectContent>
-                {services.filter(s => s.is_active !== false).map(s => (
-                  <SelectItem key={s.id} value={s.id}>{s.name} — ${s.price} ({s.duration}min)</SelectItem>
-                ))}
+                {services.filter(s => s.is_active !== false).map(s => {
+                  const customDuration = selectedBarber?.service_durations?.[s.id];
+                  const customPrice = selectedBarber?.service_prices?.[s.id];
+                  const displayDuration = customDuration || s.duration;
+                  const displayPrice = customPrice ?? s.price;
+                  return (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name} — ${displayPrice} ({displayDuration}min)
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
           </div>
@@ -242,6 +251,10 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
               <div className="flex justify-between">
                 <span className="text-gray-500">Duration</span>
                 <span>{serviceDuration} min {selectedBarber?.service_durations?.[form.service_id] && <span className="text-[10px] text-[#8B9A7E]">(custom)</span>}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Price</span>
+                <span>${servicePrice.toFixed(2)} {selectedBarber?.service_prices?.[form.service_id] !== undefined && <span className="text-[10px] text-[#8B9A7E]">(custom)</span>}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">End Time</span>
