@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Pencil, Trash2, DollarSign, Eye, EyeOff } from "lucide-react";
+import { Pencil, Trash2, DollarSign, Eye, EyeOff, PlayCircle } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissions } from "../permissions/usePermissions";
 import AccessDenied from "./AccessDenied";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "../../utils";
 
 export default function PayrollManager() {
   const queryClient = useQueryClient();
@@ -93,6 +95,11 @@ export default function PayrollManager() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold">Payroll & Sensitive Information</h3>
+        <Link to={createPageUrl("RunPayroll")}>
+          <Button size="sm" className="h-8 text-xs bg-[#8B9A7E] hover:bg-[#6B7A5E] text-white gap-1">
+            <PlayCircle className="w-3 h-3" /> Run Payroll
+          </Button>
+        </Link>
       </div>
 
       <div className="space-y-3">
