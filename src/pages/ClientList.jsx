@@ -56,9 +56,16 @@ export default function ClientList() {
     <div className="p-6">
       <div className="max-w-6xl mx-auto">
         <div className="mb-6 flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-bold mb-2">Clients</h1>
-            <p className="text-gray-600 text-sm">Manage and view all clients</p>
+          <div className="flex items-start gap-3">
+            <Link to={createPageUrl("Calendar")}>
+              <Button variant="ghost" size="icon" className="mt-1">
+                <ArrowLeft className="w-5 h-5" />
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold mb-2">Clients</h1>
+              <p className="text-gray-600 text-sm">Manage and view all clients</p>
+            </div>
           </div>
           <Button
             onClick={() => setShowAddDialog(true)}
