@@ -190,6 +190,19 @@ export default function ReportsPage() {
       .slice(0, 8);
   }, [filtered]);
 
+  // Visit type breakdown per barber
+  const visitTypeData = useMemo(() => {
+    const map = {};
+    filtered.forEach(b => {
+      if (!b.barber_name) return;
+      if (!map[b.barber_name]) map[b.barber_name] = { name: b.barber_name, NR: 0, NNR: 0, RR: 0, RNR: 0, total: 0 };
+      const vt = b.visit_type || "NR";
+      map[b.barber_name][vt] = (map[b.barber_name][vt] || 0) + 1;
+      map[b.barber_name].total += 1;
+    });
+    return Object.values(map).sort((a, b) => b.total - a.total);
+  }, [filtered]);
+
   // No-show and cancellation rates
   const noShowRates = useMemo(() => {
     const map = {};
@@ -431,6 +444,8 @@ export default function ReportsPage() {
               <ServicePopularityChart data={servicePopularity} />
               <NoShowRatesChart data={noShowRates} />
             </div>
+
+            <VisitTypeChart data={visitTypeData} />
           </div>
         </>
       )}
