@@ -202,6 +202,54 @@ export default function PayrollManager() {
         )}
       </div>
 
+      {/* Gusto Import Section */}
+      {sensitiveInfo.length > 0 && (
+        <div className="mt-6 border-t pt-4">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h3 className="text-sm font-semibold">Gusto Import</h3>
+              <p className="text-xs text-gray-500">Barbers ready to be imported into Gusto once linked</p>
+            </div>
+            <Button
+              size="sm"
+              disabled
+              className="h-8 text-xs bg-[#F5A623] hover:bg-[#e09620] text-white gap-1 opacity-60 cursor-not-allowed"
+            >
+              <Upload className="w-3 h-3" /> Connect Gusto
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            {sensitiveInfo.map(info => {
+              const barber = barbers.find(b => b.id === info.barber_id || b.email === info.barber_id);
+              const isComplete = info.full_legal_name && info.ssn && info.bank_name && info.account_number && info.routing_number;
+              return (
+                <div key={info.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
+                  <div className="flex items-center gap-2">
+                    {isComplete ? (
+                      <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-yellow-500 shrink-0" />
+                    )}
+                    <div>
+                      <p className="text-xs font-medium">{info.full_legal_name || barber?.name || "Unknown"}</p>
+                      <p className="text-[10px] text-gray-400">{isComplete ? "Ready to import" : "Missing payroll details"}</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2 text-[10px]">
+                    {info.bank_name && <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Bank ✓</span>}
+                    {info.ssn && <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded">SSN ✓</span>}
+                    {!info.bank_name && <span className="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">No Bank</span>}
+                    {!info.ssn && <span className="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">No SSN</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <p className="text-[10px] text-gray-400 mt-2 text-center">Connect Gusto to automatically import barber payroll profiles</p>
+        </div>
+      )}
+
       {/* Edit banking info dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="max-w-sm">
