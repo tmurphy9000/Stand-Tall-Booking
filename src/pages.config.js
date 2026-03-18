@@ -62,7 +62,6 @@ import Reports from './pages/Reports';
 import RunPayroll from './pages/RunPayroll';
 import Settings from './pages/Settings';
 import StaffSchedule from './pages/StaffSchedule';
-import Home from './pages/Home';
 import __Layout from './Layout.jsx';
 
 
@@ -70,7 +69,6 @@ export const PAGES = {
     "AdminReporting": AdminReporting,
     "Calendar": Calendar,
     "CashTracker": CashTracker,
-    "Checkout": Checkout,
     "ClientBooking": ClientBooking,
     "ClientDetails": ClientDetails,
     "ClientHistory": ClientHistory,
