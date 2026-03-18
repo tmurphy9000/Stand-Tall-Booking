@@ -7,7 +7,7 @@ import TimeSlotGrid from "../components/calendar/TimeSlotGrid";
 import BookingFormModal from "../components/calendar/BookingFormModal";
 import QuickBookingModal from "../components/calendar/QuickBookingModal";
 import BookingContextMenu from "../components/calendar/BookingContextMenu";
-import { Loader2, Sparkles, RefreshCw } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BarberAssistant from "../components/assistant/BarberAssistant";
 import LeaderboardCard from "../components/calendar/LeaderboardCard";
@@ -20,7 +20,6 @@ export default function CalendarPage() {
   const [viewMode, setViewMode] = useState("day");
   const [barberGroupIndex, setBarberGroupIndex] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(1);
-  const [columnWidth, setColumnWidth] = useState(80);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [showQuickBooking, setShowQuickBooking] = useState(false);
   const [bookingPrefill, setBookingPrefill] = useState(null);
