@@ -105,9 +105,8 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="barbers" className="space-y-4">
-        <TabsList className="grid grid-cols-7 w-full bg-gray-100 h-8">
+        <TabsList className="grid grid-cols-6 w-full bg-gray-100 h-8">
           <TabsTrigger value="barbers" className="text-[10px] px-1 data-[state=active]:bg-white">Barbers</TabsTrigger>
-          <TabsTrigger value="services" className="text-[10px] px-1 data-[state=active]:bg-white">Services</TabsTrigger>
           <TabsTrigger value="hours" className="text-[10px] px-1 data-[state=active]:bg-white">Hours</TabsTrigger>
           <TabsTrigger value="shop" className="text-[10px] px-1 data-[state=active]:bg-white">Shop</TabsTrigger>
           {hasFullAccess && (
