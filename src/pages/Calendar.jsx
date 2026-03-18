@@ -268,6 +268,7 @@ export default function CalendarPage() {
         barbers={activeBarbers}
         services={services}
         prefill={bookingPrefill}
+        bookings={bookings}
       />
 
       <BookingFormModal
@@ -277,6 +278,7 @@ export default function CalendarPage() {
         barbers={activeBarbers}
         services={services}
         prefill={bookingPrefill}
+        bookings={bookings}
       />
 
       <BookingContextMenu
