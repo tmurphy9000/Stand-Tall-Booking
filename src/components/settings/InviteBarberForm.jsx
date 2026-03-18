@@ -97,6 +97,32 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
               </SelectContent>
             </Select>
           </div>
+
+          <div className="pt-2 border-t">
+            <p className="text-xs font-medium text-gray-600 mb-3">Payroll Information (Optional)</p>
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs text-gray-500">Driver's License Number</Label>
+                <Input value={form.drivers_license_number} onChange={e => set("drivers_license_number", e.target.value)} placeholder="D1234567" />
+              </div>
+              <div>
+                <Label className="text-xs text-gray-500">Social Security Number</Label>
+                <Input type="password" value={form.ssn} onChange={e => set("ssn", e.target.value)} placeholder="XXX-XX-XXXX" maxLength={11} />
+              </div>
+              <div>
+                <Label className="text-xs text-gray-500">Bank Name</Label>
+                <Input value={form.bank_name} onChange={e => set("bank_name", e.target.value)} placeholder="Chase, Wells Fargo..." />
+              </div>
+              <div>
+                <Label className="text-xs text-gray-500">Account Number</Label>
+                <Input type="password" value={form.account_number} onChange={e => set("account_number", e.target.value)} placeholder="Account number" />
+              </div>
+              <div>
+                <Label className="text-xs text-gray-500">Routing Number</Label>
+                <Input value={form.routing_number} onChange={e => set("routing_number", e.target.value)} placeholder="9-digit routing number" maxLength={9} />
+              </div>
+            </div>
+          </div>
         </div>
 
         <DialogFooter>
