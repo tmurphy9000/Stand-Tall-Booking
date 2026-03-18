@@ -165,6 +165,11 @@ export default function CalendarPage() {
 
   const isLoading = barbersLoading || bookingsLoading;
 
+  const handleRefresh = () => {
+    queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    queryClient.invalidateQueries({ queryKey: ["barbers"] });
+  };
+
   const getTouchDistance = (touches) => {
     const dx = touches[0].clientX - touches[1].clientX;
     const dy = touches[0].clientY - touches[1].clientY;
