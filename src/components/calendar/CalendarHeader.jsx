@@ -84,29 +84,16 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-gray-500">Height:</span>
-            <input
-              type="range"
-              min="50"
-              max="200"
-              step="5"
-              value={Math.round(zoomLevel * 100)}
-              onChange={(e) => setZoomLevel(Number(e.target.value) / 100)}
-              className="w-24 h-1 accent-[#8B9A7E]"
-            />
-            <span className="text-[10px] text-gray-500 min-w-[30px]">{Math.round(zoomLevel * 100)}%</span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 w-7 p-0"
-              onClick={onRefresh}
-              disabled={isRefreshing}
-              title="Refresh schedule"
-            >
-              <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            title="Refresh schedule"
+          >
+            <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
+          </Button>
 
           {totalBarberGroups > 1 && (
             <div className="flex items-center gap-1">
