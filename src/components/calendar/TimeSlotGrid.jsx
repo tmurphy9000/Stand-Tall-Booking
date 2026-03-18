@@ -3,7 +3,6 @@ import { format, parse, addMinutes, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 
 const BASE_SLOT_HEIGHT = 20;
-const BASE_SLOT_WIDTH = 390;
 const SLOT_MINUTES = 15;
 
 function generateTimeSlots(startHour = 8, endHour = 21) {
