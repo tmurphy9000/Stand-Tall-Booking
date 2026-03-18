@@ -142,6 +142,17 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
   const dateStr = format(date, "yyyy-MM-dd");
   const gridRef = useRef(null);
   const [dragOverSlot, setDragOverSlot] = useState(null);
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const isToday = isSameDay(date, now);
+  const currentTimeTop = isToday
+    ? ((now.getHours() - 7) * 60 + now.getMinutes()) / SLOT_MINUTES * slotHeight
+    : null;
 
   const getBookingsForBarberSlot = useCallback((barberId, time) => {
     return bookings.filter(b =>
