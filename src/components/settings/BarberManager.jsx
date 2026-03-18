@@ -88,8 +88,8 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowHours(b)}>
                 <Clock className="w-3.5 h-3.5" />
               </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowDurations(b)}>
-                <Timer className="w-3.5 h-3.5" />
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#8B9A7E]" title="Services & Durations" onClick={() => setShowDurations(b)}>
+                <Scissors className="w-3.5 h-3.5" />
               </Button>
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(b)}>
                 <Pencil className="w-3.5 h-3.5" />
