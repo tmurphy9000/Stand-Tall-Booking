@@ -42,7 +42,14 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
           <ColorLegend />
           
           <button
-            onClick={() => setShowInTodayOnly(prev => !prev)}
+            onClick={() => {
+              const next = !showInTodayOnly;
+              setShowInTodayOnly(next);
+              if (next) {
+                setCurrentDate(new Date());
+                setViewMode("day");
+              }
+            }}
             className={cn(
               "h-8 px-3 rounded-md text-xs font-medium border transition-all",
               showInTodayOnly
