@@ -41,6 +41,17 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
         <div className="flex items-center gap-2">
           <ColorLegend />
           
+          <button
+            onClick={() => setShowInTodayOnly(prev => !prev)}
+            className={cn(
+              "h-8 px-3 rounded-md text-xs font-medium border transition-all",
+              showInTodayOnly
+                ? "bg-[#8B9A7E] text-white border-[#8B9A7E]"
+                : "bg-white text-gray-500 border-gray-200 hover:border-[#8B9A7E] hover:text-[#8B9A7E]"
+            )}
+          >
+            In Today
+          </button>
           <Button
             onClick={onNewBooking}
             size="sm"
