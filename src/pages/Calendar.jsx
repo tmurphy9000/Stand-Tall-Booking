@@ -108,7 +108,16 @@ export default function CalendarPage() {
   };
 
   // Group barbers for display
-  const activeBarbers = barbers.filter(b => b.is_active !== false);
+  const dayName = format(currentDate, "EEEE").toLowerCase(); // e.g. "monday"
+  const activeBarbers = barbers.filter(b => {
+    if (b.is_active === false) return false;
+    if (showInTodayOnly) {
+      // Check if barber has hours set for this day and it's not closed
+      const dayHours = b.hours?.[dayName];
+      if (!dayHours || dayHours.closed) return false;
+    }
+    return true;
+  });
   const totalGroups = Math.max(1, Math.ceil(activeBarbers.length / BARBERS_PER_GROUP));
   const visibleBarbers = activeBarbers.slice(
     barberGroupIndex * BARBERS_PER_GROUP,
