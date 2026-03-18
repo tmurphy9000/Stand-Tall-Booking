@@ -118,12 +118,12 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
           <Button
             variant="outline"
             size="sm"
-            className="h-7 w-7 p-0"
+            className="h-9 w-9 p-0"
             onClick={onRefresh}
             disabled={isRefreshing}
             title="Refresh schedule"
           >
-            <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
+            <RefreshCw className={cn("w-4 h-4", isRefreshing && "animate-spin")} />
           </Button>
 
           {totalBarberGroups > 1 && (
