@@ -141,6 +141,52 @@ export function ServicePopularityChart({ data }) {
   );
 }
 
+export function VisitTypeChart({ data }) {
+  const VISIT_COLORS = { NR: "#8B9A7E", NNR: "#B0BFA4", RR: "#C9A94E", RNR: "#F59E0B" };
+  const labels = { NR: "New Request", NNR: "New Non-Request", RR: "Return Request", RNR: "Return Non-Request" };
+  return (
+    <div className="bg-white rounded-xl border border-gray-100 p-4">
+      <h3 className="text-sm font-semibold mb-1">Appointment Visit Types</h3>
+      <p className="text-[10px] text-gray-400 mb-4">NR = New Request · NNR = New Non-Request · RR = Return Request · RNR = Return Non-Request</p>
+      <div className="space-y-3">
+        {data.map(barber => (
+          <div key={barber.name}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium">{barber.name}</span>
+              <span className="text-[10px] text-gray-400">{barber.total} appts</span>
+            </div>
+            <div className="flex h-5 rounded-full overflow-hidden gap-0.5">
+              {["NR","NNR","RR","RNR"].map(type => {
+                const pct = barber.total > 0 ? (barber[type] / barber.total) * 100 : 0;
+                if (pct === 0) return null;
+                return (
+                  <div
+                    key={type}
+                    style={{ width: `${pct}%`, backgroundColor: VISIT_COLORS[type] }}
+                    title={`${labels[type]}: ${barber[type]} (${Math.round(pct)}%)`}
+                    className="transition-all"
+                  />
+                );
+              })}
+            </div>
+            <div className="flex gap-3 mt-1 flex-wrap">
+              {["NR","NNR","RR","RNR"].map(type => {
+                const pct = barber.total > 0 ? Math.round((barber[type] / barber.total) * 100) : 0;
+                return (
+                  <span key={type} className="text-[9px] text-gray-500 flex items-center gap-0.5">
+                    <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: VISIT_COLORS[type] }} />
+                    {type}: {barber[type]} ({pct}%)
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function NoShowRatesChart({ data }) {
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-4">

@@ -5,7 +5,7 @@ import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, parseISO 
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, TrendingUp, Users, DollarSign, Repeat } from "lucide-react";
-import { RevenueChart, ServiceBreakdownChart, BarberPerformanceChart, RetentionChart, StaffPerformanceChart, ClientLifetimeValueChart, ServicePopularityChart, NoShowRatesChart } from "../components/reports/ReportCharts";
+import { RevenueChart, ServiceBreakdownChart, BarberPerformanceChart, RetentionChart, StaffPerformanceChart, ClientLifetimeValueChart, ServicePopularityChart, NoShowRatesChart, VisitTypeChart } from "../components/reports/ReportCharts";
 import { Button } from "@/components/ui/button";
 import { Download, FileText } from "lucide-react";
 import { toast } from "sonner";
