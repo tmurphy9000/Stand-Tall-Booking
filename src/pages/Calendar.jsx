@@ -231,6 +231,8 @@ export default function CalendarPage() {
         setColumnWidth={setColumnWidth}
         onRefresh={handleRefresh}
         isRefreshing={bookingsLoading}
+        showInTodayOnly={showInTodayOnly}
+        setShowInTodayOnly={setShowInTodayOnly}
       />
 
       {isLoading ? (
