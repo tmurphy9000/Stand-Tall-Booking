@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { UserX, Phone } from "lucide-react";
 import { format, addMinutes, parse } from "date-fns";
 
-export default function QuickBookingModal({ open, onClose, onSave, barbers, services, prefill }) {
+export default function QuickBookingModal({ open, onClose, onSave, barbers, services, prefill, bookings = [] }) {
   const [step, setStep] = useState("type"); // "type" or "service"
   const [bookingType, setBookingType] = useState(null); // "walk-in" or "call-in"
 

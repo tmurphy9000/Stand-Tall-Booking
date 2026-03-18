@@ -9,7 +9,7 @@ import { format, addMinutes, parse } from "date-fns";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 
-export default function BookingFormModal({ open, onClose, onSave, barbers, services, prefill }) {
+export default function BookingFormModal({ open, onClose, onSave, barbers, services, prefill, bookings = [] }) {
   const [form, setForm] = useState({
     client_name: "",
     client_phone: "",
