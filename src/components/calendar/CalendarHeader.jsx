@@ -8,6 +8,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar";
 
 export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, setViewMode, onNewBooking, barberGroupIndex, setBarberGroupIndex, totalBarberGroups, zoomLevel, setZoomLevel, columnWidth, setColumnWidth, onRefresh, isRefreshing, showInTodayOnly, setShowInTodayOnly }) {
+  const [calOpen, setCalOpen] = useState(false);
+
   const goNext = () => {
     setCurrentDate(prev => addDays(prev, viewMode === "day" ? 1 : 7));
   };
@@ -33,12 +35,30 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
           </Button>
         </div>
 
-        <h2 className="text-xs font-semibold text-[#0A0A0A]">
-          {viewMode === "day"
-            ? format(currentDate, "EEEE, MMM d")
-            : `${format(weekStart, "MMM d")} - ${format(addDays(weekStart, 6), "MMM d, yyyy")}`
-          }
-        </h2>
+        <Popover open={calOpen} onOpenChange={setCalOpen}>
+          <PopoverTrigger asChild>
+            <button className="flex items-center gap-1 text-xs font-semibold text-[#0A0A0A] hover:text-[#8B9A7E] transition-colors">
+              <CalendarIcon className="w-3.5 h-3.5" />
+              {viewMode === "day"
+                ? format(currentDate, "EEEE, MMM d")
+                : `${format(weekStart, "MMM d")} - ${format(addDays(weekStart, 6), "MMM d, yyyy")}`
+              }
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0 z-50" align="center">
+            <Calendar
+              mode="single"
+              selected={currentDate}
+              onSelect={(date) => {
+                if (date) {
+                  setCurrentDate(date);
+                  setCalOpen(false);
+                }
+              }}
+              initialFocus
+            />
+          </PopoverContent>
+        </Popover>
 
         <div className="flex items-center gap-2">
           <ColorLegend />
