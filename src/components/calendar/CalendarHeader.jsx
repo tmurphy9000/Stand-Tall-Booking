@@ -81,16 +81,6 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
               </button>
             ))}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={onRefresh}
-            disabled={isRefreshing}
-            title="Refresh schedule"
-          >
-            <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
-          </Button>
         </div>
 
         <div className="flex items-center gap-3">
@@ -106,6 +96,16 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
               className="w-24 h-1 accent-[#8B9A7E]"
             />
             <span className="text-[10px] text-gray-500 min-w-[30px]">{columnWidth}px</span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 w-7 p-0"
+              onClick={onRefresh}
+              disabled={isRefreshing}
+              title="Refresh schedule"
+            >
+              <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
+            </Button>
           </div>
 
           <div className="flex items-center gap-1">
