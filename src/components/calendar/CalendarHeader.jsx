@@ -53,7 +53,7 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
       </div>
 
       <div className="flex items-center justify-between px-4 pb-2">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <div className="flex gap-1">
             {["day", "week"].map((mode) => (
               <button
@@ -89,7 +89,7 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
               type="range"
               min="80"
               max="200"
-              step="10"
+              step="1"
               value={columnWidth}
               onChange={(e) => setColumnWidth(Number(e.target.value))}
               className="w-24 h-1 accent-[#8B9A7E]"
