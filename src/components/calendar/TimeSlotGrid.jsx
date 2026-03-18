@@ -114,7 +114,12 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
         />
       )}
       
-      <p className="text-[10px] font-semibold truncate leading-tight">{booking.client_name}</p>
+      <div className="flex items-start justify-between gap-0.5">
+        <p className="text-[10px] font-semibold truncate leading-tight flex-1">{booking.client_name}</p>
+        {booking.visit_type && (
+          <span className="text-[8px] font-bold opacity-70 flex-shrink-0 leading-tight mt-0.5">{booking.visit_type}</span>
+        )}
+      </div>
       <p className="text-[9px] truncate opacity-75">{booking.service_name}</p>
       <p className="text-[9px] opacity-60">{booking.start_time} - {booking.end_time}</p>
       
