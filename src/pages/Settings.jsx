@@ -157,41 +157,7 @@ export default function SettingsPage() {
             />
           </div>
 
-          <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-lg">
-            <div>
-              <Label className="text-sm font-medium">Enable Tier Commissions</Label>
-              <p className="text-xs text-gray-500">Turn on/off tier-based commission reporting</p>
-            </div>
-            <Switch
-              checked={settings.enable_tier_commissions !== false}
-              onCheckedChange={v => saveSettings.mutate({ ...settings, enable_tier_commissions: v })}
-            />
-          </div>
 
-          {settings.enable_tier_commissions !== false && (
-            <div>
-              <Label className="text-xs text-gray-500 mb-2 block">Commission Tier Thresholds ($)</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {["silver", "gold", "platinum"].map(tier => (
-                  <div key={tier}>
-                    <Label className="text-[10px] capitalize text-gray-400">{tier}</Label>
-                    <Input
-                      type="number"
-                      value={settings.tier_thresholds?.[tier] || 0}
-                      onChange={e => saveSettings.mutate({
-                        ...settings,
-                        tier_thresholds: {
-                          ...(settings.tier_thresholds || {}),
-                          [tier]: parseFloat(e.target.value) || 0,
-                        },
-                      })}
-                      className="h-8 text-xs"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
         </TabsContent>
 
         {hasFullAccess && (
