@@ -1,6 +1,6 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Plus, ZoomIn, ZoomOut } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, ZoomIn, ZoomOut, RefreshCw } from "lucide-react";
 import { format, addDays, startOfWeek } from "date-fns";
 import { cn } from "@/lib/utils";
 import ColorLegend from "./ColorLegend";

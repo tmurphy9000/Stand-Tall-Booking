@@ -7,7 +7,7 @@ import TimeSlotGrid from "../components/calendar/TimeSlotGrid";
 import BookingFormModal from "../components/calendar/BookingFormModal";
 import QuickBookingModal from "../components/calendar/QuickBookingModal";
 import BookingContextMenu from "../components/calendar/BookingContextMenu";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BarberAssistant from "../components/assistant/BarberAssistant";
 import LeaderboardCard from "../components/calendar/LeaderboardCard";
