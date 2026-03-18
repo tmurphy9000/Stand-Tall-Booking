@@ -329,10 +329,11 @@ function QuickCheckoutContent() {
               <div>
                 <Label className="text-xs">Discount Value</Label>
                 <Input
-                  type="number"
-                  className="h-9 text-sm"
-                  value={discount.value}
-                  onChange={(e) => setDiscount({ ...discount, value: parseFloat(e.target.value) || 0 })}
+                 type="number"
+                 className="h-9 text-sm"
+                 value={discount.value === 0 ? "" : discount.value}
+                 onChange={(e) => setDiscount({ ...discount, value: e.target.value === "" ? 0 : parseFloat(e.target.value) || 0 })}
+                 placeholder="0"
                 />
               </div>
             )}
@@ -344,8 +345,8 @@ function QuickCheckoutContent() {
             <Input
               type="number"
               className="h-9 text-sm"
-              value={tip}
-              onChange={(e) => setTip(parseFloat(e.target.value) || 0)}
+              value={tip === 0 ? "" : tip}
+              onChange={(e) => setTip(e.target.value === "" ? 0 : parseFloat(e.target.value) || 0)}
               placeholder="0.00"
             />
           </div>
