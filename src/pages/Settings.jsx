@@ -123,18 +123,13 @@ export default function SettingsPage() {
         <TabsContent value="barbers">
           <BarberManager
             barbers={barbers}
+            services={services}
             onCreate={(data) => createBarber.mutate(data)}
             onUpdate={(id, data) => updateBarber.mutate({ id, data })}
             onDelete={(id) => deleteBarber.mutate(id)}
-          />
-        </TabsContent>
-
-        <TabsContent value="services">
-          <ServiceManager
-            services={services}
-            onCreate={(data) => createService.mutate(data)}
-            onUpdate={(id, data) => updateService.mutate({ id, data })}
-            onDelete={(id) => deleteService.mutate(id)}
+            onCreateService={(data) => createService.mutate(data)}
+            onUpdateService={(id, data) => updateService.mutate({ id, data })}
+            onDeleteService={(id) => deleteService.mutate(id)}
           />
         </TabsContent>
 
