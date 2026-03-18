@@ -14,6 +14,11 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
     full_name: "",
     email: "",
     role: "service_provider",
+    drivers_license_number: "",
+    ssn: "",
+    bank_name: "",
+    account_number: "",
+    routing_number: "",
   });
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
@@ -28,8 +33,19 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
     try {
       await base44.users.inviteUser(form.email, "user");
 
+      // Store payroll/sensitive info using email as temp barber_id until linked
+      await base44.entities.BarberSensitiveInfo.create({
+        barber_id: form.email,
+        full_legal_name: form.full_name,
+        drivers_license_number: form.drivers_license_number,
+        ssn: form.ssn,
+        bank_name: form.bank_name,
+        account_number: form.account_number,
+        routing_number: form.routing_number,
+      });
+
       toast.success(`Invitation sent to ${form.email}. They will receive an email to set their password.`);
-      setForm({ full_name: "", email: "", role: "service_provider" });
+      setForm({ full_name: "", email: "", role: "service_provider", drivers_license_number: "", ssn: "", bank_name: "", account_number: "", routing_number: "" });
       onSuccess?.();
       onClose();
     } catch (error) {
