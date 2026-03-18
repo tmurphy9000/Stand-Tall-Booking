@@ -134,7 +134,9 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
   );
 }
 
-export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlotClick, onBookingContext, onDrop, onBookingResize, zoomLevel = 1, columnWidth = 140 }) {
+const COLUMN_WIDTH = 140;
+
+export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlotClick, onBookingContext, onDrop, onBookingResize, zoomLevel = 1 }) {
   const slotHeight = BASE_SLOT_HEIGHT * zoomLevel;
   const timeSlots = generateTimeSlots(7, 22);
   const dayName = format(date, "EEEE").toLowerCase();
