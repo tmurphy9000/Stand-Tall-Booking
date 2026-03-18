@@ -221,7 +221,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
                     key={`${barber.id}-${slot.time}`}
                     className={cn(
                       "calendar-slot border-l border-b border-gray-50 relative",
-                      !bookable && "bg-gray-100/50",
+                      !bookable && "bg-gray-200/80",
                       bookable && "hover:bg-[#8B9A7E]/5 cursor-pointer",
                       slot.minute === 0 && "border-t border-gray-200/50",
                       isDragOver && bookable && "bg-[#8B9A7E]/10"
