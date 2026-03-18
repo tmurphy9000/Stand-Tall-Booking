@@ -23,12 +23,12 @@ export default function BarberManager({ barbers, onCreate, onUpdate, onDelete })
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
     name: "", email: "", phone: "", service_commission_rate: 50, product_commission_rate: 10,
-    tier: "tier_1", is_active: true, photo_url: "",
+    is_active: true, photo_url: "",
   });
 
   const openNew = () => {
     setEditing(null);
-    setForm({ name: "", email: "", phone: "", service_commission_rate: 50, product_commission_rate: 10, tier: "tier_1", is_active: true, photo_url: "" });
+    setForm({ name: "", email: "", phone: "", service_commission_rate: 50, product_commission_rate: 10, is_active: true, photo_url: "" });
     setShowForm(true);
   };
 
@@ -81,7 +81,7 @@ export default function BarberManager({ barbers, onCreate, onUpdate, onDelete })
                   <span className="text-[10px] px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-medium">Terminated</span>
                 )}
               </div>
-              <p className="text-[10px] text-gray-400">{b.tier?.replace('tier_', 'Tier ') || 'Tier 1'} • Services: {b.service_commission_rate || 50}% • Products: {b.product_commission_rate || 10}%</p>
+              <p className="text-[10px] text-gray-400">Services: {b.service_commission_rate || 50}% • Products: {b.product_commission_rate || 10}%</p>
             </div>
             <div className="flex gap-1">
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowHours(b)}>
@@ -152,17 +152,6 @@ export default function BarberManager({ barbers, onCreate, onUpdate, onDelete })
                 <Label className="text-xs text-gray-500">Product Commission %</Label>
                 <Input type="number" value={form.product_commission_rate} onChange={e => set("product_commission_rate", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)} />
               </div>
-            </div>
-            <div>
-              <Label className="text-xs text-gray-500">Tier</Label>
-              <Select value={form.tier} onValueChange={v => set("tier", v)}>
-                <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="tier_1">Tier 1</SelectItem>
-                  <SelectItem value="tier_2">Tier 2</SelectItem>
-                  <SelectItem value="tier_3">Tier 3</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
               <div>
