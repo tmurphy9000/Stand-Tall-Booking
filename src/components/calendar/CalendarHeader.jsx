@@ -85,17 +85,17 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
 
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-gray-500">Width:</span>
+            <span className="text-[10px] text-gray-500">Height:</span>
             <input
               type="range"
-              min="80"
+              min="50"
               max="200"
-              step="1"
-              value={columnWidth}
-              onChange={(e) => setColumnWidth(Number(e.target.value))}
+              step="5"
+              value={Math.round(zoomLevel * 100)}
+              onChange={(e) => setZoomLevel(Number(e.target.value) / 100)}
               className="w-24 h-1 accent-[#8B9A7E]"
             />
-            <span className="text-[10px] text-gray-500 min-w-[30px]">{columnWidth}px</span>
+            <span className="text-[10px] text-gray-500 min-w-[30px]">{Math.round(zoomLevel * 100)}%</span>
             <Button
               variant="outline"
               size="sm"
@@ -105,30 +105,6 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
               title="Refresh schedule"
             >
               <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
-            </Button>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 w-7 p-0"
-              disabled={zoomLevel <= 0.5}
-              onClick={() => setZoomLevel(prev => Math.max(0.5, prev - 0.25))}
-            >
-              <ZoomOut className="w-3.5 h-3.5" />
-            </Button>
-            <span className="text-[10px] text-gray-500 min-w-[45px] text-center">
-              {Math.round(zoomLevel * 100)}%
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-7 w-7 p-0"
-              disabled={zoomLevel >= 2}
-              onClick={() => setZoomLevel(prev => Math.min(2, prev + 0.25))}
-            >
-              <ZoomIn className="w-3.5 h-3.5" />
             </Button>
           </div>
 
