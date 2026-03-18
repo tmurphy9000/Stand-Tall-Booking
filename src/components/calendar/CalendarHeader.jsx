@@ -31,7 +31,7 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
           </Button>
         </div>
 
-        <h2 className="text-sm font-semibold text-[#0A0A0A]">
+        <h2 className="text-xs font-semibold text-[#0A0A0A]">
           {viewMode === "day"
             ? format(currentDate, "EEEE, MMM d")
             : `${format(weekStart, "MMM d")} - ${format(addDays(weekStart, 6), "MMM d, yyyy")}`
