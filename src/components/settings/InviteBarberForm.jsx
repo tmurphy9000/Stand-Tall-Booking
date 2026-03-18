@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 import { Mail, Loader2 } from "lucide-react";
@@ -10,35 +11,25 @@ import { Mail, Loader2 } from "lucide-react";
 export default function InviteBarberForm({ open, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
+    full_name: "",
     email: "",
-    full_legal_name: "",
-    drivers_license_number: "",
-    ssn: "",
+    role: "service_provider",
   });
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
   const handleSubmit = async () => {
-    if (!form.email || !form.full_legal_name || !form.drivers_license_number || !form.ssn) {
-      toast.error("All fields are required");
+    if (!form.email || !form.full_name) {
+      toast.error("Full name and email are required");
       return;
     }
 
     setLoading(true);
     try {
-      // First invite the user via email
       await base44.users.inviteUser(form.email, "user");
-      
-      // Store sensitive info temporarily - it will be linked to barber after account creation
-      await base44.entities.BarberSensitiveInfo.create({
-        barber_id: form.email, // Use email as temp ID until barber account is created
-        full_legal_name: form.full_legal_name,
-        drivers_license_number: form.drivers_license_number,
-        ssn: form.ssn,
-      });
 
-      toast.success(`Invitation sent to ${form.email}`);
-      setForm({ email: "", full_legal_name: "", drivers_license_number: "", ssn: "" });
+      toast.success(`Invitation sent to ${form.email}. They will receive an email to set their password.`);
+      setForm({ full_name: "", email: "", role: "service_provider" });
       onSuccess?.();
       onClose();
     } catch (error) {
@@ -53,46 +44,42 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Invite New Barber</DialogTitle>
+          <p className="text-sm text-gray-500 mt-1">
+            They'll receive an email to set their password and access the app.
+          </p>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div>
-            <Label className="text-xs text-gray-500">Email Address *</Label>
-            <Input 
+            <Label className="text-xs text-gray-500">Full Name *</Label>
+            <Input
+              value={form.full_name}
+              onChange={e => set("full_name", e.target.value)}
+              placeholder="John Doe"
+            />
+          </div>
+
+          <div>
+            <Label className="text-xs text-gray-500">Email (Login Username) *</Label>
+            <Input
               type="email"
-              value={form.email} 
+              value={form.email}
               onChange={e => set("email", e.target.value)}
-              placeholder="barber@example.com" 
+              placeholder="barber@example.com"
             />
           </div>
 
           <div>
-            <Label className="text-xs text-gray-500">Full Legal Name *</Label>
-            <Input 
-              value={form.full_legal_name} 
-              onChange={e => set("full_legal_name", e.target.value)}
-              placeholder="John Michael Doe" 
-            />
-          </div>
-
-          <div>
-            <Label className="text-xs text-gray-500">Driver's License Number *</Label>
-            <Input 
-              value={form.drivers_license_number} 
-              onChange={e => set("drivers_license_number", e.target.value)}
-              placeholder="D1234567" 
-            />
-          </div>
-
-          <div>
-            <Label className="text-xs text-gray-500">Social Security Number *</Label>
-            <Input 
-              type="password"
-              value={form.ssn} 
-              onChange={e => set("ssn", e.target.value)}
-              placeholder="XXX-XX-XXXX" 
-              maxLength={11}
-            />
+            <Label className="text-xs text-gray-500">Role</Label>
+            <Select value={form.role} onValueChange={v => set("role", v)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="service_provider">Service Provider (Barber)</SelectItem>
+                <SelectItem value="manager">Manager</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -100,8 +87,8 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
           <Button variant="outline" onClick={onClose} disabled={loading}>
             Cancel
           </Button>
-          <Button 
-            onClick={handleSubmit} 
+          <Button
+            onClick={handleSubmit}
             disabled={loading}
             className="bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white"
           >
