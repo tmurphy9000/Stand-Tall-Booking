@@ -105,32 +105,32 @@ export default function SettingsPage() {
       </div>
 
       <Tabs defaultValue="barbers" className="space-y-4">
-        <TabsList className="grid grid-cols-7 w-full bg-gray-100 h-9">
-          <TabsTrigger value="barbers" className="text-xs gap-1 data-[state=active]:bg-white">
-            <Users className="w-3 h-3" /> Barbers
+        <TabsList className="grid grid-cols-7 w-full bg-gray-100 h-8">
+          <TabsTrigger value="barbers" className="text-[10px] gap-0.5 px-1 data-[state=active]:bg-white">
+            <Users className="w-2.5 h-2.5 shrink-0" /> Barbers
           </TabsTrigger>
-          <TabsTrigger value="services" className="text-xs gap-1 data-[state=active]:bg-white">
-            <Scissors className="w-3 h-3" /> Services
+          <TabsTrigger value="services" className="text-[10px] gap-0.5 px-1 data-[state=active]:bg-white">
+            <Scissors className="w-2.5 h-2.5 shrink-0" /> Services
           </TabsTrigger>
-          <TabsTrigger value="hours" className="text-xs gap-1 data-[state=active]:bg-white">
-            <Clock className="w-3 h-3" /> Hours
+          <TabsTrigger value="hours" className="text-[10px] gap-0.5 px-1 data-[state=active]:bg-white">
+            <Clock className="w-2.5 h-2.5 shrink-0" /> Hours
           </TabsTrigger>
-          <TabsTrigger value="shop" className="text-xs gap-1 data-[state=active]:bg-white">
-            <Store className="w-3 h-3" /> Shop
+          <TabsTrigger value="shop" className="text-[10px] gap-0.5 px-1 data-[state=active]:bg-white">
+            <Store className="w-2.5 h-2.5 shrink-0" /> Shop
           </TabsTrigger>
           {hasFullAccess && (
             <>
-              <TabsTrigger value="calloff" className="text-xs gap-1 data-[state=active]:bg-white">
-                <PhoneOff className="w-3 h-3" /> Call-Off
+              <TabsTrigger value="calloff" className="text-[10px] gap-0.5 px-1 data-[state=active]:bg-white">
+                <PhoneOff className="w-2.5 h-2.5 shrink-0" /> Call-Off
               </TabsTrigger>
-              <TabsTrigger value="payroll" className="text-xs gap-1 data-[state=active]:bg-white">
-                <DollarSign className="w-3 h-3" /> Payroll
+              <TabsTrigger value="payroll" className="text-[10px] gap-0.5 px-1 data-[state=active]:bg-white">
+                <DollarSign className="w-2.5 h-2.5 shrink-0" /> Payroll
               </TabsTrigger>
             </>
           )}
           {isAdmin && (
-             <TabsTrigger value="permissions" className="text-xs gap-1 data-[state=active]:bg-white">
-               <Shield className="w-3 h-3" /> Access
+             <TabsTrigger value="permissions" className="text-[10px] gap-0.5 px-1 data-[state=active]:bg-white">
+               <Shield className="w-2.5 h-2.5 shrink-0" /> Access
              </TabsTrigger>
            )}
         </TabsList>
