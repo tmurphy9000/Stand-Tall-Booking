@@ -185,7 +185,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
             ).length;
             
             return (
-              <div key={barber.id} className="px-2 py-2 text-center border-l border-gray-50" style={{ width: `${columnWidth}px`, minWidth: `${columnWidth}px` }}>
+              <div key={barber.id} className="px-2 py-2 text-center border-l border-gray-50" style={{ width: `${COLUMN_WIDTH}px`, minWidth: `${COLUMN_WIDTH}px` }}>
                 <div className="flex flex-col items-center gap-1">
                   {barber.photo_url ? (
                     <img src={barber.photo_url} alt={barber.name} className="w-7 h-7 rounded-full object-cover ring-2 ring-[#8B9A7E]/30" />
