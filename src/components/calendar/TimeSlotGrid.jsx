@@ -216,6 +216,21 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
           })}
         </div>
 
+        {/* Current time indicator */}
+        {currentTimeTop !== null && currentTimeTop > 0 && (
+          <div
+            className="absolute left-0 right-0 z-30 pointer-events-none"
+            style={{ top: `${currentTimeTop + 40}px` }} // 40px offset for sticky header
+          >
+            <div className="flex items-center">
+              <div className="w-14 flex-shrink-0 flex justify-end pr-1">
+                <div className="w-2 h-2 rounded-full bg-red-500" />
+              </div>
+              <div className="flex-1 h-[1.5px] bg-red-500" />
+            </div>
+          </div>
+        )}
+
         {/* Time grid */}
         {timeSlots.map((slot, i) => {
           return (
