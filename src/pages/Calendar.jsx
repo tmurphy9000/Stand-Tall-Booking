@@ -226,8 +226,6 @@ export default function CalendarPage() {
         totalBarberGroups={totalGroups}
         zoomLevel={zoomLevel}
         setZoomLevel={setZoomLevel}
-        columnWidth={columnWidth}
-        setColumnWidth={setColumnWidth}
         onRefresh={handleRefresh}
         isRefreshing={bookingsLoading}
         showInTodayOnly={showInTodayOnly}
@@ -249,7 +247,6 @@ export default function CalendarPage() {
           onDrop={handleDrop}
           onBookingResize={handleBookingResize}
           zoomLevel={zoomLevel}
-          columnWidth={columnWidth}
         />
       ) : (
         <div className="flex-1 overflow-x-auto">
