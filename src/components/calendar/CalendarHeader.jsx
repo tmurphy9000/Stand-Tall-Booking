@@ -5,7 +5,7 @@ import { format, addDays, startOfWeek } from "date-fns";
 import { cn } from "@/lib/utils";
 import ColorLegend from "./ColorLegend";
 
-export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, setViewMode, onNewBooking, barberGroupIndex, setBarberGroupIndex, totalBarberGroups, zoomLevel, setZoomLevel, columnWidth, setColumnWidth, onRefresh, isRefreshing }) {
+export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, setViewMode, onNewBooking, barberGroupIndex, setBarberGroupIndex, totalBarberGroups, zoomLevel, setZoomLevel, columnWidth, setColumnWidth, onRefresh, isRefreshing, showInTodayOnly, setShowInTodayOnly }) {
   const goNext = () => {
     setCurrentDate(prev => addDays(prev, viewMode === "day" ? 1 : 7));
   };
