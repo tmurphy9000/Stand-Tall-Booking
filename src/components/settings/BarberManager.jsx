@@ -82,6 +82,13 @@ export default function BarberManager({ barbers, onCreate, onUpdate, onDelete })
               </div>
               <p className="text-[10px] text-gray-400">Services: {b.service_commission_rate || 50}% • Products: {b.product_commission_rate || 10}%</p>
             </div>
+            <div className="flex flex-col items-center gap-0.5 mr-1">
+              <Switch
+                checked={b.online_bookable !== false}
+                onCheckedChange={v => onUpdate(b.id, { online_bookable: v })}
+              />
+              <span className="text-[9px] text-gray-400">Online</span>
+            </div>
             <div className="flex gap-1">
               <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowHours(b)}>
                 <Clock className="w-3.5 h-3.5" />
