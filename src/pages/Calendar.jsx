@@ -219,6 +219,8 @@ export default function CalendarPage() {
         setZoomLevel={setZoomLevel}
         columnWidth={columnWidth}
         setColumnWidth={setColumnWidth}
+        onRefresh={handleRefresh}
+        isRefreshing={bookingsLoading}
       />
 
       {isLoading ? (
