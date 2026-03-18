@@ -183,7 +183,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
 
   return (
     <div ref={gridRef} className="overflow-auto flex-1">
-      <div className="inline-block min-w-full">
+      <div className="inline-block min-w-full relative">
         {/* Barber header columns */}
         <div className="sticky top-0 z-20 bg-[#FAFAF8] flex border-b border-gray-100">
           <div className="w-14 flex-shrink-0" />
