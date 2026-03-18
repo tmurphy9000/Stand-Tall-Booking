@@ -19,6 +19,11 @@ export default function QuickBookingModal({ open, onClose, onSave, barbers, serv
     const servicePrice = selectedBarber?.service_prices?.[service.id] ?? service.price;
     const endTime = format(addMinutes(parse(prefill.start_time, "HH:mm", new Date()), serviceDuration), "HH:mm");
 
+    // Walk-in/call-in = non-request; check if they've been to this barber before
+    // Since we don't have a client_id here, we can't reliably track — mark as NNR (new non-request) by default
+    // They could be return if they've had prior bookings under same name — for quick booking we default NNR
+    const visit_type = "NNR";
+
     onSave({
       client_name: bookingType === "walk-in" ? "Walk-in" : "Call-in",
       client_phone: "",
@@ -36,6 +41,7 @@ export default function QuickBookingModal({ open, onClose, onSave, barbers, serv
       final_price: servicePrice,
       status: "scheduled",
       notes: bookingType === "walk-in" ? "Walk-in appointment" : "Call-in appointment",
+      visit_type,
     });
     
     handleClose();

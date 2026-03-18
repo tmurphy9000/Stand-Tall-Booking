@@ -141,6 +141,22 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
 
   const handleSave = () => {
     if (!form.client_name || !form.barber_id || !form.service_id) return;
+
+    // Determine visit type
+    const clientNameLower = form.client_name?.toLowerCase();
+    const isWalkOrCall = clientNameLower === "walk-in" || clientNameLower === "call-in";
+    const clientPastBookings = bookings.filter(b => 
+      b.status !== "cancelled" && b.barber_id === form.barber_id &&
+      (b.client_name?.toLowerCase() === clientNameLower || (form.client_id && b.client_id === form.client_id))
+    );
+    const isReturn = clientPastBookings.length > 0;
+    const isRequest = !isWalkOrCall; // booked via form = requested specific barber
+    let visit_type = "NR";
+    if (isReturn && isRequest) visit_type = "RR";
+    else if (isReturn && !isRequest) visit_type = "RNR";
+    else if (!isReturn && isRequest) visit_type = "NR";
+    else visit_type = "NNR";
+
     onSave({
       ...form,
       barber_name: selectedBarber?.name || "",
@@ -150,6 +166,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
       end_time: endTime,
       final_price: finalPrice,
       status: "scheduled",
+      visit_type,
     });
   };
 
