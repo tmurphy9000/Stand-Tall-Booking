@@ -83,6 +83,7 @@ export const PAGES = {
     "StaffSchedule": StaffSchedule,
 }
 
+
 export const pagesConfig = {
     mainPage: "Calendar",
     Pages: PAGES,
