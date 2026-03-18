@@ -50,7 +50,6 @@
 import AdminReporting from './pages/AdminReporting';
 import Calendar from './pages/Calendar';
 import CashTracker from './pages/CashTracker';
-import Checkout from './pages/Checkout';
 import ClientBooking from './pages/ClientBooking';
 import ClientDetails from './pages/ClientDetails';
 import ClientHistory from './pages/ClientHistory';
