@@ -45,6 +45,7 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
             onClick={() => {
               const next = !showInTodayOnly;
               setShowInTodayOnly(next);
+              setBarberGroupIndex(0);
               if (next) {
                 setCurrentDate(new Date());
                 setViewMode("day");
