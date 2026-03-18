@@ -30,6 +30,7 @@ export default function CalendarPage() {
   const [initialPinchDistance, setInitialPinchDistance] = useState(null);
   const [initialZoomLevel, setInitialZoomLevel] = useState(1);
   const [showAssistant, setShowAssistant] = useState(false);
+  const [showInTodayOnly, setShowInTodayOnly] = useState(false);
 
   const queryClient = useQueryClient();
 
