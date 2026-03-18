@@ -53,21 +53,33 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
       </div>
 
       <div className="flex items-center justify-between px-4 pb-2">
-        <div className="flex gap-1">
-          {["day", "week"].map((mode) => (
-            <button
-              key={mode}
-              onClick={() => setViewMode(mode)}
-              className={cn(
-                "px-3 py-1 rounded-full text-xs font-medium transition-all",
-                viewMode === mode
-                  ? "bg-[#0A0A0A] text-white"
-                  : "text-gray-500 hover:bg-gray-100"
-              )}
-            >
-              {mode.charAt(0).toUpperCase() + mode.slice(1)}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1">
+            {["day", "week"].map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={cn(
+                  "px-3 py-1 rounded-full text-xs font-medium transition-all",
+                  viewMode === mode
+                    ? "bg-[#0A0A0A] text-white"
+                    : "text-gray-500 hover:bg-gray-100"
+                )}
+              >
+                {mode.charAt(0).toUpperCase() + mode.slice(1)}
+              </button>
+            ))}
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-7 w-7 p-0"
+            onClick={onRefresh}
+            disabled={isRefreshing}
+            title="Refresh schedule"
+          >
+            <RefreshCw className={cn("w-3.5 h-3.5", isRefreshing && "animate-spin")} />
+          </Button>
         </div>
 
         <div className="flex items-center gap-3">
