@@ -81,7 +81,6 @@ export const PAGES = {
     "RunPayroll": RunPayroll,
     "Settings": Settings,
     "StaffSchedule": StaffSchedule,
-    "Home": Home,
 }
 
 export const pagesConfig = {
