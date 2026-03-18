@@ -5,20 +5,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Pencil, Clock, Camera, Trash2, CheckCircle, XCircle, Timer } from "lucide-react";
+import { Plus, Pencil, Clock, Camera, Trash2, CheckCircle, XCircle, Timer, Scissors } from "lucide-react";
 import BarberHoursEditor from "./BarberHoursEditor";
 import BarberServiceDurations from "./BarberServiceDurations";
-import { useQuery } from "@tanstack/react-query";
+import ServiceManager from "./ServiceManager";
 
-export default function BarberManager({ barbers, onCreate, onUpdate, onDelete }) {
+export default function BarberManager({ barbers, services = [], onCreate, onUpdate, onDelete, onCreateService, onUpdateService, onDeleteService }) {
   const [showForm, setShowForm] = useState(false);
   const [showHours, setShowHours] = useState(null);
   const [showDurations, setShowDurations] = useState(null);
-
-  const { data: services = [] } = useQuery({
-    queryKey: ["services"],
-    queryFn: () => base44.entities.Service.list(),
-  });
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
     name: "", email: "", phone: "", service_commission_rate: 50, product_commission_rate: 10,
