@@ -128,8 +128,9 @@ export default function CalendarPage() {
     // If no hours configured at all, show the barber (assume always working)
     if (!b.hours || Object.keys(b.hours).length === 0) return true;
     const dayHours = b.hours?.[dayName];
-    // Only hide if explicitly marked closed for this day
-    if (dayHours?.closed === true) return false;
+    // Hide if the day entry doesn't exist or is explicitly marked off/closed
+    if (!dayHours) return false;
+    if (dayHours.off === true || dayHours.closed === true) return false;
     return true;
   });
   const totalGroups = 1;
