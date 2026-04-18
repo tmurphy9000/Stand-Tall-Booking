@@ -111,16 +111,6 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
         ))}
       </div>
 
-      {/* Service Catalog */}
-      <div className="pt-4 border-t mt-4">
-        <ServiceManager
-          services={services}
-          onCreate={onCreateService}
-          onUpdate={onUpdateService}
-          onDelete={onDeleteService}
-        />
-      </div>
-
       {/* Barber form */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto">
