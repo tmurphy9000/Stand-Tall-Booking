@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff } from "lucide-react";
+import { cn } from "@/lib/utils";
 import BarberManager from "../components/settings/BarberManager";
 import ServiceManager from "../components/settings/ServiceManager";
 import ShopHoursEditor from "../components/settings/ShopHoursEditor";
@@ -22,6 +23,7 @@ export default function SettingsPage() {
   const queryClient = useQueryClient();
   const { isAdmin, hasFullAccess } = usePermissions();
   const [showInviteForm, setShowInviteForm] = useState(false);
+  const [activeTab, setActiveTab] = useState("barbers");
 
   const { data: barbers = [], isLoading: barbersLoading } = useQuery({
     queryKey: ["barbers"],
@@ -89,38 +91,53 @@ export default function SettingsPage() {
     );
   }
 
+  const navItems = [
+    { value: "barbers", label: "Barbers", icon: Users },
+    { value: "services", label: "Services", icon: Scissors },
+    { value: "hours", label: "Hours", icon: Clock },
+    { value: "shop", label: "Shop", icon: Store },
+    ...(hasFullAccess ? [
+      { value: "calloff", label: "Call-Off", icon: PhoneOff },
+      { value: "payroll", label: "Payroll", icon: DollarSign },
+    ] : []),
+    ...(isAdmin ? [{ value: "permissions", label: "Access", icon: Shield }] : []),
+  ];
+
   return (
-    <div className="p-4">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-lg font-bold">Settings</h1>
-        {hasFullAccess && (
-          <Button 
-            size="sm" 
-            className="h-8 text-xs bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white gap-1"
-            onClick={() => setShowInviteForm(true)}
+    <div className="flex h-screen">
+      {/* Vertical sidebar */}
+      <div className="w-36 flex-shrink-0 bg-[#0A0A0A] flex flex-col py-4 gap-1 px-2">
+        <p className="text-[10px] text-white/40 uppercase font-semibold px-2 mb-2 tracking-wider">Settings</p>
+        {navItems.map(({ value, label, icon: Icon }) => (
+          <button
+            key={value}
+            onClick={() => setActiveTab(value)}
+            className={cn(
+              "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left",
+              activeTab === value
+                ? "bg-[#8B9A7E] text-white"
+                : "text-white/60 hover:text-white hover:bg-white/10"
+            )}
           >
-            <Mail className="w-3 h-3" /> Invite Barber
-          </Button>
+            <Icon className="w-4 h-4 flex-shrink-0" />
+            {label}
+          </button>
+        ))}
+
+        {hasFullAccess && (
+          <button
+            onClick={() => setShowInviteForm(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left text-white/60 hover:text-white hover:bg-white/10 mt-auto"
+          >
+            <Mail className="w-4 h-4 flex-shrink-0" />
+            Invite Barber
+          </button>
         )}
       </div>
 
-      <Tabs defaultValue="barbers" className="space-y-4">
-        <TabsList className="grid grid-cols-6 w-full bg-gray-100 h-8">
-          <TabsTrigger value="barbers" className="text-[10px] px-1 data-[state=active]:bg-white">Barbers</TabsTrigger>
-          <TabsTrigger value="hours" className="text-[10px] px-1 data-[state=active]:bg-white">Hours</TabsTrigger>
-          <TabsTrigger value="shop" className="text-[10px] px-1 data-[state=active]:bg-white">Shop</TabsTrigger>
-          {hasFullAccess && (
-            <>
-              <TabsTrigger value="calloff" className="text-[10px] px-1 data-[state=active]:bg-white">Call-Off</TabsTrigger>
-              <TabsTrigger value="payroll" className="text-[10px] px-1 data-[state=active]:bg-white">Payroll</TabsTrigger>
-            </>
-          )}
-          {isAdmin && (
-             <TabsTrigger value="permissions" className="text-[10px] px-1 data-[state=active]:bg-white">Access</TabsTrigger>
-           )}
-        </TabsList>
-
-        <TabsContent value="barbers">
+      {/* Content area */}
+      <div className="flex-1 overflow-auto p-6">
+        {activeTab === "barbers" && (
           <BarberManager
             barbers={barbers}
             services={services}
@@ -131,59 +148,59 @@ export default function SettingsPage() {
             onUpdateService={(id, data) => updateService.mutate({ id, data })}
             onDeleteService={(id) => deleteService.mutate(id)}
           />
-        </TabsContent>
+        )}
 
-        <TabsContent value="hours">
+        {activeTab === "services" && (
+          <ServiceManager
+            services={services}
+            onCreate={(data) => createService.mutate(data)}
+            onUpdate={(id, data) => updateService.mutate({ id, data })}
+            onDelete={(id) => deleteService.mutate(id)}
+          />
+        )}
+
+        {activeTab === "hours" && (
           <ShopHoursEditor
             hours={settings.operating_hours || {}}
             onChange={(hours) => saveSettings.mutate({ ...settings, operating_hours: hours })}
           />
-        </TabsContent>
-
-        <TabsContent value="shop" className="space-y-4">
-          <div>
-            <Label className="text-xs text-gray-500">Shop Name</Label>
-            <Input
-              value={settings.shop_name || "Stand Tall Barbershop"}
-              onChange={e => saveSettings.mutate({ ...settings, shop_name: e.target.value })}
-            />
-          </div>
-          <div>
-            <Label className="text-xs text-gray-500">Default Tax Rate %</Label>
-            <Input
-              type="number"
-              value={settings.default_tax_rate || 7.5}
-              onChange={e => saveSettings.mutate({ ...settings, default_tax_rate: parseFloat(e.target.value) || 7.5 })}
-            />
-          </div>
-
-
-        </TabsContent>
-
-        {hasFullAccess && (
-          <>
-            <TabsContent value="calloff">
-              <CallOffManager />
-            </TabsContent>
-            <TabsContent value="payroll">
-              <PayrollManager />
-            </TabsContent>
-          </>
         )}
 
-        {isAdmin && (
-           <TabsContent value="permissions">
-             <div className="space-y-4">
-               <PermissionsManager />
-               <RolePermissionsManager />
-               <AdminPasswordManager settings={settings} />
-             </div>
-           </TabsContent>
-         )}
-      </Tabs>
+        {activeTab === "shop" && (
+          <div className="space-y-4 max-w-md">
+            <h2 className="text-sm font-semibold">Shop Settings</h2>
+            <div>
+              <Label className="text-xs text-gray-500">Shop Name</Label>
+              <Input
+                value={settings.shop_name || "Stand Tall Barbershop"}
+                onChange={e => saveSettings.mutate({ ...settings, shop_name: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500">Default Tax Rate %</Label>
+              <Input
+                type="number"
+                value={settings.default_tax_rate || 7.5}
+                onChange={e => saveSettings.mutate({ ...settings, default_tax_rate: parseFloat(e.target.value) || 7.5 })}
+              />
+            </div>
+          </div>
+        )}
 
-      <InviteBarberForm 
-        open={showInviteForm} 
+        {hasFullAccess && activeTab === "calloff" && <CallOffManager />}
+        {hasFullAccess && activeTab === "payroll" && <PayrollManager />}
+
+        {isAdmin && activeTab === "permissions" && (
+          <div className="space-y-4">
+            <PermissionsManager />
+            <RolePermissionsManager />
+            <AdminPasswordManager settings={settings} />
+          </div>
+        )}
+      </div>
+
+      <InviteBarberForm
+        open={showInviteForm}
         onClose={() => setShowInviteForm(false)}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ["barberSensitiveInfo"] })}
       />
