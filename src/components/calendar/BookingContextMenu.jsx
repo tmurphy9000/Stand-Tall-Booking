@@ -6,11 +6,15 @@ import { CheckCircle, XCircle, UserCheck, Trash2, User, AlertCircle } from "luci
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../../utils";
 import NoShowDialog from "./NoShowDialog";
+import { format } from "date-fns";
 
 export default function BookingContextMenu({ booking, position, onClose, onAction }) {
   const [showCancel, setShowCancel] = useState(false);
   const [showNoShow, setShowNoShow] = useState(false);
+  const [showDeleteBlock, setShowDeleteBlock] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+
+  const isBlock = booking?.client_name === "BLOCKED TIME";
 
   if (!booking) return null;
 
@@ -27,17 +31,18 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
   };
 
   const actions = [
-    { label: "Confirm", icon: CheckCircle, color: "text-blue-600", action: () => { onAction("confirm", booking.id); onClose(); }, show: booking.status === "scheduled" },
-    { label: "Mark Arrived", icon: UserCheck, color: "text-green-600", action: () => { onAction("checked_in", booking.id); onClose(); }, show: booking.status === "confirmed" || booking.status === "scheduled" },
-    { label: "Checkout", icon: CheckCircle, color: "text-[#8B9A7E]", action: () => { onAction("checkout", booking.id); onClose(); }, show: booking.status !== "cancelled" && booking.status !== "completed" && booking.status !== "no_show" },
-    { label: "Mark as No-Show", icon: AlertCircle, color: "text-orange-500", action: () => setShowNoShow(true), show: booking.status === "scheduled" || booking.status === "confirmed" },
-    { label: "Cancel", icon: XCircle, color: "text-red-500", action: () => setShowCancel(true), show: booking.status !== "cancelled" && booking.status !== "completed" },
+    { label: "Confirm", icon: CheckCircle, color: "text-blue-600", action: () => { onAction("confirm", booking.id); onClose(); }, show: !isBlock && booking.status === "scheduled" },
+    { label: "Mark Arrived", icon: UserCheck, color: "text-green-600", action: () => { onAction("checked_in", booking.id); onClose(); }, show: !isBlock && (booking.status === "confirmed" || booking.status === "scheduled") },
+    { label: "Checkout", icon: CheckCircle, color: "text-[#8B9A7E]", action: () => { onAction("checkout", booking.id); onClose(); }, show: !isBlock && booking.status !== "cancelled" && booking.status !== "completed" && booking.status !== "no_show" },
+    { label: "Mark as No-Show", icon: AlertCircle, color: "text-orange-500", action: () => setShowNoShow(true), show: !isBlock && (booking.status === "scheduled" || booking.status === "confirmed") },
+    { label: "Cancel", icon: XCircle, color: "text-red-500", action: () => setShowCancel(true), show: !isBlock && booking.status !== "cancelled" && booking.status !== "completed" },
+    { label: "Delete Block", icon: Trash2, color: "text-red-500", action: () => setShowDeleteBlock(true), show: isBlock },
   ].filter(a => a.show);
 
   return (
     <>
       {/* Context dropdown */}
-      {!showCancel && !showNoShow && (
+      {!showCancel && !showNoShow && !showDeleteBlock && (
         <div
           className="fixed z-50 bg-white rounded-xl shadow-xl border border-gray-100 py-1 min-w-[180px]"
           style={{ top: position.y, left: position.x }}
@@ -70,7 +75,7 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
       )}
 
       {/* Click outside overlay */}
-      {!showCancel && !showNoShow && (
+      {!showCancel && !showNoShow && !showDeleteBlock && (
         <div className="fixed inset-0 z-40" onClick={onClose} />
       )}
 
@@ -105,6 +110,53 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
         onClose={() => { setShowNoShow(false); onClose(); }}
         onConfirm={handleNoShowConfirm}
       />
+
+      {/* Delete Block dialog */}
+      <Dialog open={showDeleteBlock} onOpenChange={() => { setShowDeleteBlock(false); onClose(); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold">Delete Blocked Time</DialogTitle>
+          </DialogHeader>
+          <div className="py-2 space-y-1">
+            <p className="text-sm text-gray-600">
+              {booking?.barber_name} — {booking?.start_time}{booking?.end_time ? ` to ${booking.end_time}` : ""} on{" "}
+              {booking?.date ? format(new Date(booking.date + "T12:00:00"), "MMM d, yyyy") : ""}
+            </p>
+            {booking?.repeat_group_id && (
+              <p className="text-xs text-orange-600">This block is part of a recurring series.</p>
+            )}
+          </div>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            {booking?.repeat_group_id && (
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={() => {
+                  onAction("delete_block_all", booking.id, { repeat_group_id: booking.repeat_group_id });
+                  setShowDeleteBlock(false);
+                  onClose();
+                }}
+              >
+                Delete All Recurring Blocks
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              className="w-full border-red-300 text-red-600 hover:bg-red-50"
+              onClick={() => {
+                onAction("delete_block_one", booking.id);
+                setShowDeleteBlock(false);
+                onClose();
+              }}
+            >
+              Delete Just This Block
+            </Button>
+            <Button variant="ghost" className="w-full" onClick={() => { setShowDeleteBlock(false); onClose(); }}>
+              Keep Block
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

@@ -150,11 +150,30 @@ export default function CalendarPage() {
     setContextMenu({ booking, position: { x: Math.min(e.clientX, window.innerWidth - 200), y: Math.min(e.clientY, window.innerHeight - 250) } });
   };
 
-  const handleContextAction = (action, bookingId, extra) => {
+  const deleteBooking = useMutation({
+    mutationFn: (id) => base44.entities.Booking.delete(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bookings"] }),
+  });
+
+  const handleContextAction = async (action, bookingId, extra) => {
     if (action === "checkout") {
       const booking = bookings.find(b => b.id === bookingId);
       setCheckoutBooking(booking);
       setContextMenu({ booking: null, position: { x: 0, y: 0 } });
+      return;
+    }
+    if (action === "delete_block_one") {
+      deleteBooking.mutate(bookingId);
+      return;
+    }
+    if (action === "delete_block_all" && extra?.repeat_group_id) {
+      // Fetch all bookings in this group and delete them
+      const allBookings = await base44.entities.Booking.list("-date", 1000);
+      const groupBookings = allBookings.filter(b => b.repeat_group_id === extra.repeat_group_id);
+      for (const b of groupBookings) {
+        await base44.entities.Booking.delete(b.id);
+      }
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
       return;
     }
     const statusMap = { confirm: "confirmed", checked_in: "checked_in", completed: "completed", cancel: "cancelled" };

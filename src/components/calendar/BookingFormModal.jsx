@@ -193,8 +193,10 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
       else if (repeatFrequency === "monthly") current = addMonths(current, 1);
     }
 
+    // Generate a shared group ID for all recurring entries
+    const repeat_group_id = crypto.randomUUID();
     // Pass all occurrences as an array
-    onSave(dates.map(date => ({ ...baseBooking, date })));
+    onSave(dates.map(date => ({ ...baseBooking, date, repeat_group_id })));
   };
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
