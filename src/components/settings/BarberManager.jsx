@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Pencil, Clock, Camera, Trash2, CheckCircle, XCircle, Timer, Scissors } from "lucide-react";
 import BarberHoursEditor from "./BarberHoursEditor";
 import BarberServiceDurations from "./BarberServiceDurations";
@@ -153,6 +154,19 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
                 <Label className="text-xs text-gray-500">Product Commission %</Label>
                 <Input type="number" value={form.product_commission_rate} onChange={e => set("product_commission_rate", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)} />
               </div>
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500">Permission Classification</Label>
+              <Select value={form.permission_level || "service_provider"} onValueChange={v => set("permission_level", v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select permission level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="service_provider">Service Provider</SelectItem>
+                  <SelectItem value="manager">Manager</SelectItem>
+                  <SelectItem value="owner">Owner</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
               <div>
