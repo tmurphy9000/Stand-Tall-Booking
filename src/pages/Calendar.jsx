@@ -54,7 +54,7 @@ export default function CalendarPage() {
     return Array.from({ length: 7 }, (_, i) => format(addDays(start, i), "yyyy-MM-dd"));
   }, [currentDate, viewMode]);
 
-  const { data: bookings = [], isLoading: bookingsLoading } = useQuery({
+  const { data: bookings = [], isLoading: bookingsLoading, isFetching: bookingsFetching } = useQuery({
     queryKey: ["bookings", dateRange[0], dateRange[dateRange.length - 1]],
     queryFn: async () => {
       const all = await base44.entities.Booking.list("-date", 500);
@@ -109,8 +109,11 @@ export default function CalendarPage() {
   const dayName = format(currentDate, "EEEE").toLowerCase(); // e.g. "monday"
   const activeBarbers = barbers.filter(b => {
     if (b.is_active === false) return false;
+    // If no hours configured at all, show the barber (assume always working)
+    if (!b.hours || Object.keys(b.hours).length === 0) return true;
     const dayHours = b.hours?.[dayName];
-    if (!dayHours || dayHours.closed) return false;
+    // Only hide if explicitly marked closed for this day
+    if (dayHours?.closed === true) return false;
     return true;
   });
   const totalGroups = Math.max(1, Math.ceil(activeBarbers.length / BARBERS_PER_GROUP));
@@ -173,6 +176,7 @@ export default function CalendarPage() {
   const handleRefresh = () => {
     queryClient.invalidateQueries({ queryKey: ["bookings"] });
     queryClient.invalidateQueries({ queryKey: ["barbers"] });
+    queryClient.invalidateQueries({ queryKey: ["shopSettings"] });
   };
 
   const getTouchDistance = (touches) => {
@@ -223,7 +227,7 @@ export default function CalendarPage() {
         zoomLevel={zoomLevel}
         setZoomLevel={setZoomLevel}
         onRefresh={handleRefresh}
-        isRefreshing={bookingsLoading}
+        isRefreshing={bookingsFetching}
       />
 
       {isLoading ? (
