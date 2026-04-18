@@ -94,7 +94,7 @@ export default function SettingsPage() {
   const navItems = [
     { value: "barbers", label: "Barbers", icon: Users },
     { value: "services", label: "Services", icon: Scissors },
-    { value: "hours", label: "Hours", icon: Clock },
+    { value: "hours", label: "Shop Hours", icon: Clock },
     { value: "shop", label: "Shop", icon: Store },
     ...(hasFullAccess ? [
       { value: "calloff", label: "Call-Off", icon: PhoneOff },
