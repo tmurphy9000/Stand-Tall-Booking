@@ -71,10 +71,26 @@ export default function CalendarPage() {
     mutationFn: (data) => base44.entities.Booking.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
-      setShowBookingForm(false);
-      setShowQuickBooking(false);
     },
   });
+
+  const handleCreateBooking = async (data) => {
+    await base44.entities.Booking.create(data);
+    queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    setShowBookingForm(false);
+    setShowQuickBooking(false);
+  };
+
+  const handleCreateBookings = async (bookingsData) => {
+    // bookingsData may be one or many — always treat as array
+    const items = Array.isArray(bookingsData) ? bookingsData : [bookingsData];
+    for (const item of items) {
+      await base44.entities.Booking.create(item);
+    }
+    queryClient.invalidateQueries({ queryKey: ["bookings"] });
+    setShowBookingForm(false);
+    setShowQuickBooking(false);
+  };
 
   const updateBooking = useMutation({
     mutationFn: ({ id, data }) => base44.entities.Booking.update(id, data),
@@ -274,7 +290,7 @@ export default function CalendarPage() {
       <QuickBookingModal
         open={showQuickBooking}
         onClose={() => setShowQuickBooking(false)}
-        onSave={(data) => createBooking.mutate(data)}
+        onSave={(data) => handleCreateBookings(data)}
         barbers={activeBarbers}
         services={services}
         prefill={bookingPrefill}
@@ -284,7 +300,7 @@ export default function CalendarPage() {
       <BookingFormModal
         open={showBookingForm}
         onClose={() => setShowBookingForm(false)}
-        onSave={(data) => createBooking.mutate(data)}
+        onSave={(data) => handleCreateBookings(data)}
         barbers={activeBarbers}
         services={services}
         prefill={bookingPrefill}

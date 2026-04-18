@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format, addMinutes, parse } from "date-fns";
+import { format, addMinutes, parse, addDays, addWeeks, addMonths } from "date-fns";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 
@@ -25,6 +25,9 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
   const [showDropdown, setShowDropdown] = useState(false);
   const [duplicateClient, setDuplicateClient] = useState(null);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
+  const [repeatEnabled, setRepeatEnabled] = useState(false);
+  const [repeatFrequency, setRepeatFrequency] = useState("weekly");
+  const [repeatEndDate, setRepeatEndDate] = useState("");
 
   const { data: clients = [], refetch: refetchClients } = useQuery({
     queryKey: ["clients"],
@@ -139,35 +142,59 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
 
   const finalPrice = servicePrice;
 
+  const isBlockTime = form.client_name === "BLOCKED TIME";
+
   const handleSave = () => {
     if (!form.client_name || !form.barber_id || !form.service_id) return;
 
-    // Determine visit type
-    const clientNameLower = form.client_name?.toLowerCase();
-    const isWalkOrCall = clientNameLower === "walk-in" || clientNameLower === "call-in";
-    const clientPastBookings = bookings.filter(b => 
-      b.status !== "cancelled" && b.barber_id === form.barber_id &&
-      (b.client_name?.toLowerCase() === clientNameLower || (form.client_id && b.client_id === form.client_id))
-    );
-    const isReturn = clientPastBookings.length > 0;
-    const isRequest = !isWalkOrCall; // booked via form = requested specific barber
-    let visit_type = "NR";
-    if (isReturn && isRequest) visit_type = "RR";
-    else if (isReturn && !isRequest) visit_type = "RNR";
-    else if (!isReturn && isRequest) visit_type = "NR";
-    else visit_type = "NNR";
-
-    onSave({
+    const baseBooking = {
       ...form,
       barber_name: selectedBarber?.name || "",
-      service_name: selectedService?.name || "",
+      service_name: selectedService?.name || form.service_name || "Blocked",
       duration: serviceDuration,
       price: servicePrice,
       end_time: endTime,
       final_price: finalPrice,
       status: "scheduled",
-      visit_type,
-    });
+    };
+
+    if (!isBlockTime || !repeatEnabled || !repeatEndDate) {
+      // Determine visit type for non-block bookings
+      if (!isBlockTime) {
+        const clientNameLower = form.client_name?.toLowerCase();
+        const isWalkOrCall = clientNameLower === "walk-in" || clientNameLower === "call-in";
+        const clientPastBookings = bookings.filter(b =>
+          b.status !== "cancelled" && b.barber_id === form.barber_id &&
+          (b.client_name?.toLowerCase() === clientNameLower || (form.client_id && b.client_id === form.client_id))
+        );
+        const isReturn = clientPastBookings.length > 0;
+        const isRequest = !isWalkOrCall;
+        let visit_type = "NR";
+        if (isReturn && isRequest) visit_type = "RR";
+        else if (isReturn && !isRequest) visit_type = "RNR";
+        else if (!isReturn && isRequest) visit_type = "NR";
+        else visit_type = "NNR";
+        baseBooking.visit_type = visit_type;
+      }
+      onSave(baseBooking);
+      return;
+    }
+
+    // Generate repeated block bookings
+    const dates = [];
+    let current = new Date(form.date + "T12:00:00");
+    const end = new Date(repeatEndDate + "T12:00:00");
+
+    while (current <= end) {
+      dates.push(format(current, "yyyy-MM-dd"));
+      if (repeatFrequency === "daily") current = addDays(current, 1);
+      else if (repeatFrequency === "weekly") current = addWeeks(current, 1);
+      else if (repeatFrequency === "biweekly") current = addWeeks(current, 2);
+      else if (repeatFrequency === "monthly") current = addMonths(current, 1);
+    }
+
+    // Pass all occurrences as an array
+    onSave(dates.map(date => ({ ...baseBooking, date })));
   };
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
@@ -290,6 +317,41 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
             <div className="bg-[#0A0A0A] text-white rounded-lg p-3 flex justify-between items-center">
               <span className="text-sm">Total</span>
               <span className="text-lg font-bold text-[#B0BFA4]">${finalPrice.toFixed(2)}</span>
+            </div>
+          )}
+
+          {isBlockTime && (
+            <div className="space-y-3 bg-orange-50 border border-orange-200 rounded-lg p-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold text-orange-800">Repeat this block?</Label>
+                <button
+                  type="button"
+                  onClick={() => setRepeatEnabled(p => !p)}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${repeatEnabled ? "bg-orange-500" : "bg-gray-300"}`}
+                >
+                  <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${repeatEnabled ? "translate-x-4" : "translate-x-0.5"}`} />
+                </button>
+              </div>
+              {repeatEnabled && (
+                <>
+                  <div>
+                    <Label className="text-xs text-gray-500">Repeat Frequency</Label>
+                    <Select value={repeatFrequency} onValueChange={setRepeatFrequency}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">Daily</SelectItem>
+                        <SelectItem value="weekly">Weekly</SelectItem>
+                        <SelectItem value="biweekly">Bi-Weekly</SelectItem>
+                        <SelectItem value="monthly">Monthly</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-gray-500">Repeat Until</Label>
+                    <Input type="date" value={repeatEndDate} onChange={e => setRepeatEndDate(e.target.value)} min={form.date} />
+                  </div>
+                </>
+              )}
             </div>
           )}
 
