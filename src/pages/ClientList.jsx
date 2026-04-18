@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, User, Phone, Mail, Star, Plus, ArrowLeft } from "lucide-react";
+import { Search, User, Phone, Mail, Star, Plus, ArrowLeft, List } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { usePermissions } from "../components/permissions/usePermissions";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 
 export default function ClientList() {
   const [search, setSearch] = useState("");
+  const [showAllClients, setShowAllClients] = useState(false);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const { hasFullAccess } = usePermissions();
   const queryClient = useQueryClient();
@@ -20,6 +21,7 @@ export default function ClientList() {
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
     queryFn: () => base44.entities.Client.list("-last_visit"),
+    enabled: showAllClients || search.length > 0,
   });
 
   const { data: reviews = [] } = useQuery({
@@ -36,14 +38,15 @@ export default function ClientList() {
     },
   });
 
-  const filteredClients = clients.filter(c => {
+  const filteredClients = (showAllClients || search.length > 0) ? clients.filter(c => {
+    if (!search) return true;
     const searchLower = search.toLowerCase();
     const nameMatch = c.name?.toLowerCase().includes(searchLower);
     if (!hasFullAccess) return nameMatch;
     return nameMatch ||
       c.email?.toLowerCase().includes(searchLower) ||
       c.phone?.toLowerCase().includes(searchLower);
-  });
+  }) : [];
 
   const getClientRating = (clientId) => {
     const clientReviews = reviews.filter(r => r.client_id === clientId);
@@ -77,8 +80,8 @@ export default function ClientList() {
           </Button>
         </div>
 
-        <div className="mb-6">
-          <div className="relative">
+        <div className="mb-6 flex gap-3">
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
               placeholder={hasFullAccess ? "Search clients by name, email, or phone..." : "Search clients by name..."}
@@ -87,6 +90,14 @@ export default function ClientList() {
               className="pl-10"
             />
           </div>
+          <Button
+            variant={showAllClients ? "default" : "outline"}
+            className={showAllClients ? "bg-[#8B9A7E] hover:bg-[#6B7A5E] gap-2" : "gap-2"}
+            onClick={() => setShowAllClients(!showAllClients)}
+          >
+            <List className="w-4 h-4" />
+            {showAllClients ? "Showing All" : "Show All"}
+          </Button>
         </div>
 
         <div className="grid gap-3">
@@ -149,7 +160,14 @@ export default function ClientList() {
           })}
         </div>
 
-        {filteredClients.length === 0 && (
+        {!showAllClients && search.length === 0 && (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <p className="text-gray-500 mb-2">Search for a client by name or click "Show All" to load the full list</p>
+            </CardContent>
+          </Card>
+        )}
+        {(showAllClients || search.length > 0) && filteredClients.length === 0 && (
           <Card>
             <CardContent className="p-12 text-center">
               <p className="text-gray-500">No clients found</p>
