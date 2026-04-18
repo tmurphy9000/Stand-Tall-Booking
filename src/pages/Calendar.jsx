@@ -29,7 +29,6 @@ export default function CalendarPage() {
   const [initialPinchDistance, setInitialPinchDistance] = useState(null);
   const [initialZoomLevel, setInitialZoomLevel] = useState(1);
   const [showAssistant, setShowAssistant] = useState(false);
-  const [showInTodayOnly, setShowInTodayOnly] = useState(false);
 
   const queryClient = useQueryClient();
 
@@ -106,15 +105,12 @@ export default function CalendarPage() {
     });
   };
 
-  // Group barbers for display
+  // Group barbers for display — only show barbers scheduled to work on the viewed day
   const dayName = format(currentDate, "EEEE").toLowerCase(); // e.g. "monday"
   const activeBarbers = barbers.filter(b => {
     if (b.is_active === false) return false;
-    if (showInTodayOnly) {
-      // Check if barber has hours set for this day and it's not closed
-      const dayHours = b.hours?.[dayName];
-      if (!dayHours || dayHours.closed) return false;
-    }
+    const dayHours = b.hours?.[dayName];
+    if (!dayHours || dayHours.closed) return false;
     return true;
   });
   const totalGroups = Math.max(1, Math.ceil(activeBarbers.length / BARBERS_PER_GROUP));
@@ -228,8 +224,6 @@ export default function CalendarPage() {
         setZoomLevel={setZoomLevel}
         onRefresh={handleRefresh}
         isRefreshing={bookingsLoading}
-        showInTodayOnly={showInTodayOnly}
-        setShowInTodayOnly={setShowInTodayOnly}
       />
 
       {isLoading ? (
