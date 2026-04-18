@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { UserX, Phone } from "lucide-react";
 import { format, addMinutes, parse } from "date-fns";
@@ -7,10 +7,22 @@ import { format, addMinutes, parse } from "date-fns";
 export default function QuickBookingModal({ open, onClose, onSave, barbers, services, prefill, bookings = [] }) {
   const [step, setStep] = useState("type"); // "type" or "service"
   const [bookingType, setBookingType] = useState(null); // "walk-in" or "call-in"
+  const [showOutsideHoursWarning, setShowOutsideHoursWarning] = useState(false);
+  const [pendingBooking, setPendingBooking] = useState(null);
 
   const handleTypeSelect = (type) => {
     setBookingType(type);
     setStep("service");
+  };
+
+  const isOutsideBookableHours = (barber, startTime, date) => {
+    if (!barber || !startTime || !date) return false;
+    const dayName = format(new Date(date + "T12:00:00"), "EEEE").toLowerCase();
+    const dayHours = barber.hours?.[dayName];
+    if (!dayHours || dayHours.off) return false;
+    const { start, end } = dayHours;
+    if (!start || !end) return false;
+    return startTime < start || startTime >= end;
   };
 
   const handleServiceSelect = (service) => {
@@ -19,12 +31,7 @@ export default function QuickBookingModal({ open, onClose, onSave, barbers, serv
     const servicePrice = selectedBarber?.service_prices?.[service.id] ?? service.price;
     const endTime = format(addMinutes(parse(prefill.start_time, "HH:mm", new Date()), serviceDuration), "HH:mm");
 
-    // Walk-in/call-in = non-request; check if they've been to this barber before
-    // Since we don't have a client_id here, we can't reliably track — mark as NNR (new non-request) by default
-    // They could be return if they've had prior bookings under same name — for quick booking we default NNR
-    const visit_type = "NNR";
-
-    onSave({
+    const booking = {
       client_name: bookingType === "walk-in" ? "Walk-in" : "Call-in",
       client_phone: "",
       client_email: "",
@@ -41,19 +48,47 @@ export default function QuickBookingModal({ open, onClose, onSave, barbers, serv
       final_price: servicePrice,
       status: "scheduled",
       notes: bookingType === "walk-in" ? "Walk-in appointment" : "Call-in appointment",
-      visit_type,
-    });
-    
+      visit_type: "NNR",
+    };
+
+    if (isOutsideBookableHours(selectedBarber, prefill.start_time, prefill.date)) {
+      setPendingBooking(booking);
+      setShowOutsideHoursWarning(true);
+      return;
+    }
+
+    onSave(booking);
     handleClose();
   };
 
   const handleClose = () => {
     setStep("type");
     setBookingType(null);
+    setShowOutsideHoursWarning(false);
+    setPendingBooking(null);
     onClose();
   };
 
   return (
+    <>
+    <Dialog open={showOutsideHoursWarning} onOpenChange={() => { setShowOutsideHoursWarning(false); setPendingBooking(null); }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle className="text-base font-semibold">Outside Bookable Hours</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-gray-600 py-2">
+          This appointment is outside of bookable hours. Do you want to continue?
+        </p>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => { setShowOutsideHoursWarning(false); setPendingBooking(null); }}>
+            No, Cancel
+          </Button>
+          <Button className="bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white" onClick={() => { onSave(pendingBooking); handleClose(); }}>
+            Continue
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-md">
         <DialogHeader>
@@ -121,5 +156,6 @@ export default function QuickBookingModal({ open, onClose, onSave, barbers, serv
         )}
       </DialogContent>
     </Dialog>
+    </>
   );
 }

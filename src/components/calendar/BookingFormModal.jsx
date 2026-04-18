@@ -28,6 +28,8 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
   const [repeatEnabled, setRepeatEnabled] = useState(false);
   const [repeatFrequency, setRepeatFrequency] = useState("weekly");
   const [repeatEndDate, setRepeatEndDate] = useState("");
+  const [showOutsideHoursWarning, setShowOutsideHoursWarning] = useState(false);
+  const [pendingSave, setPendingSave] = useState(null);
 
   const { data: clients = [], refetch: refetchClients } = useQuery({
     queryKey: ["clients"],
@@ -144,21 +146,18 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
 
   const isBlockTime = form.client_name === "BLOCKED TIME";
 
-  const handleSave = () => {
-    if (!form.client_name || !form.barber_id || !form.service_id) return;
+  const isOutsideBookableHours = () => {
+    if (!selectedBarber || !form.start_time || !form.date) return false;
+    const dayName = format(new Date(form.date + "T12:00:00"), "EEEE").toLowerCase();
+    const dayHours = selectedBarber.hours?.[dayName];
+    if (!dayHours || dayHours.off) return false; // Already off that day, don't double-warn
+    const { start, end } = dayHours;
+    if (!start || !end) return false;
+    return form.start_time < start || form.start_time >= end;
+  };
 
-    const baseBooking = {
-      ...form,
-      barber_name: selectedBarber?.name || "",
-      service_name: selectedService?.name || form.service_name || "Blocked",
-      duration: serviceDuration,
-      price: servicePrice,
-      end_time: endTime,
-      final_price: finalPrice,
-      status: "scheduled",
-    };
-
-    if (!isBlockTime || !repeatEnabled || !repeatEndDate) {
+  const doSave = (bookingData) => {
+    if (!Array.isArray(bookingData)) {
       // Determine visit type for non-block bookings
       if (!isBlockTime) {
         const clientNameLower = form.client_name?.toLowerCase();
@@ -174,29 +173,52 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
         else if (isReturn && !isRequest) visit_type = "RNR";
         else if (!isReturn && isRequest) visit_type = "NR";
         else visit_type = "NNR";
-        baseBooking.visit_type = visit_type;
+        bookingData.visit_type = visit_type;
       }
-      onSave(baseBooking);
+    }
+    onSave(bookingData);
+  };
+
+  const handleSave = () => {
+    if (!form.client_name || !form.barber_id || !form.service_id) return;
+
+    const baseBooking = {
+      ...form,
+      barber_name: selectedBarber?.name || "",
+      service_name: selectedService?.name || form.service_name || "Blocked",
+      duration: serviceDuration,
+      price: servicePrice,
+      end_time: endTime,
+      final_price: finalPrice,
+      status: "scheduled",
+    };
+
+    let bookingData;
+    if (!isBlockTime || !repeatEnabled || !repeatEndDate) {
+      bookingData = baseBooking;
+    } else {
+      // Generate repeated block bookings
+      const dates = [];
+      let current = new Date(form.date + "T12:00:00");
+      const end = new Date(repeatEndDate + "T12:00:00");
+      while (current <= end) {
+        dates.push(format(current, "yyyy-MM-dd"));
+        if (repeatFrequency === "daily") current = addDays(current, 1);
+        else if (repeatFrequency === "weekly") current = addWeeks(current, 1);
+        else if (repeatFrequency === "biweekly") current = addWeeks(current, 2);
+        else if (repeatFrequency === "monthly") current = addMonths(current, 1);
+      }
+      const repeat_group_id = crypto.randomUUID();
+      bookingData = dates.map(date => ({ ...baseBooking, date, repeat_group_id }));
+    }
+
+    if (isOutsideBookableHours()) {
+      setPendingSave(bookingData);
+      setShowOutsideHoursWarning(true);
       return;
     }
 
-    // Generate repeated block bookings
-    const dates = [];
-    let current = new Date(form.date + "T12:00:00");
-    const end = new Date(repeatEndDate + "T12:00:00");
-
-    while (current <= end) {
-      dates.push(format(current, "yyyy-MM-dd"));
-      if (repeatFrequency === "daily") current = addDays(current, 1);
-      else if (repeatFrequency === "weekly") current = addWeeks(current, 1);
-      else if (repeatFrequency === "biweekly") current = addWeeks(current, 2);
-      else if (repeatFrequency === "monthly") current = addMonths(current, 1);
-    }
-
-    // Generate a shared group ID for all recurring entries
-    const repeat_group_id = crypto.randomUUID();
-    // Pass all occurrences as an array
-    onSave(dates.map(date => ({ ...baseBooking, date, repeat_group_id })));
+    doSave(bookingData);
   };
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
@@ -370,6 +392,26 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
           </Button>
         </DialogFooter>
       </DialogContent>
+
+      {/* Outside Bookable Hours Warning */}
+      <Dialog open={showOutsideHoursWarning} onOpenChange={setShowOutsideHoursWarning}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-base font-semibold">Outside Bookable Hours</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-gray-600 py-2">
+            This appointment is outside of bookable hours. Do you want to continue?
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowOutsideHoursWarning(false); setPendingSave(null); }}>
+              No, Cancel
+            </Button>
+            <Button className="bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white" onClick={() => { setShowOutsideHoursWarning(false); doSave(pendingSave); setPendingSave(null); }}>
+              Continue
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Merge Accounts Dialog */}
       <Dialog open={showMergeDialog} onOpenChange={setShowMergeDialog}>
