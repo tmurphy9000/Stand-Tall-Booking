@@ -60,9 +60,9 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
         {barbers.map(b => (
           <div key={b.id} className="bg-gray-50 rounded-xl px-3 py-3 flex items-center gap-3">
             {b.photo_url ? (
-              <img src={b.photo_url} alt={b.name} className="w-10 h-10 rounded-full object-cover ring-2 ring-[#B0BFA4]/30" />
+              <img src={b.photo_url} alt={b.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-[#B0BFA4]/30 flex-shrink-0" />
             ) : (
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#B0BFA4] to-[#8B9A7E] flex items-center justify-center text-white font-bold text-sm">
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-[#B0BFA4] to-[#8B9A7E] flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
                 {b.name?.charAt(0)}
               </div>
             )}
@@ -75,37 +75,37 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
                   <span className="text-[10px] px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-medium">Terminated</span>
                 )}
               </div>
-              <p className="text-[10px] text-gray-400">Services: {b.service_commission_rate || 50}% • Products: {b.product_commission_rate || 10}%</p>
+              <p className="text-[10px] text-gray-400 mb-2">Services: {b.service_commission_rate || 50}% • Products: {b.product_commission_rate || 10}%</p>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="h-9 px-3 gap-1.5 text-xs" onClick={() => setShowHours(b)}>
+                  <Clock className="w-4 h-4" /> Hours
+                </Button>
+                <Button variant="outline" size="sm" className="h-9 px-3 gap-1.5 text-xs text-[#8B9A7E] border-[#8B9A7E]/30 hover:bg-[#8B9A7E]/10" onClick={() => setShowDurations(b)}>
+                  <Scissors className="w-4 h-4" /> Services
+                </Button>
+                <Button variant="outline" size="sm" className="h-9 px-3 gap-1.5 text-xs" onClick={() => openEdit(b)}>
+                  <Pencil className="w-4 h-4" /> Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-3 gap-1.5 text-xs text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
+                  onClick={() => {
+                    if (window.confirm(`Delete ${b.name}? This cannot be undone.`)) {
+                      onDelete(b.id);
+                    }
+                  }}
+                >
+                  <Trash2 className="w-4 h-4" /> Delete
+                </Button>
+              </div>
             </div>
-            <div className="flex flex-col items-center gap-0.5 mr-1">
+            <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
               <Switch
                 checked={b.online_bookable !== false}
                 onCheckedChange={v => onUpdate(b.id, { online_bookable: v })}
               />
               <span className="text-[9px] text-gray-400">Online</span>
-            </div>
-            <div className="flex gap-1">
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setShowHours(b)}>
-                <Clock className="w-3.5 h-3.5" />
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-[#8B9A7E]" title="Services & Durations" onClick={() => setShowDurations(b)}>
-                <Scissors className="w-3.5 h-3.5" />
-              </Button>
-              <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => openEdit(b)}>
-                <Pencil className="w-3.5 h-3.5" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50" 
-                onClick={() => {
-                  if (window.confirm(`Delete ${b.name}? This cannot be undone.`)) {
-                    onDelete(b.id);
-                  }
-                }}
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </Button>
             </div>
           </div>
         ))}
