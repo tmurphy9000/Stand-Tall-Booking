@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff } from "lucide-react";
+import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff, Tag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import BarberManager from "../components/settings/BarberManager";
 import ServiceManager from "../components/settings/ServiceManager";
@@ -17,6 +17,7 @@ import AdminPasswordManager from "../components/settings/AdminPasswordManager";
 import InviteBarberForm from "../components/settings/InviteBarberForm";
 import PayrollManager from "../components/settings/PayrollManager";
 import CallOffManager from "../components/settings/CallOffManager";
+import DiscountManager from "../components/settings/DiscountManager";
 import { usePermissions } from "../components/permissions/usePermissions";
 
 export default function SettingsPage() {
@@ -96,6 +97,7 @@ export default function SettingsPage() {
     { value: "services", label: "Services", icon: Scissors },
     { value: "hours", label: "Shop Hours", icon: Clock },
     { value: "shop", label: "Shop", icon: Store },
+    { value: "discounts", label: "Discounts", icon: Tag },
     ...(hasFullAccess ? [
       { value: "calloff", label: "Call-Off", icon: PhoneOff },
       { value: "payroll", label: "Payroll", icon: DollarSign },
@@ -187,6 +189,7 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {activeTab === "discounts" && <DiscountManager />}
         {hasFullAccess && activeTab === "calloff" && <CallOffManager />}
         {hasFullAccess && activeTab === "payroll" && <PayrollManager />}
 

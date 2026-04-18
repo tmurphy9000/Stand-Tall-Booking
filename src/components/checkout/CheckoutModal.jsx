@@ -42,6 +42,12 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
     enabled: open,
   });
 
+  const { data: presetDiscounts = [] } = useQuery({
+    queryKey: ["discounts"],
+    queryFn: () => base44.entities.Discount.list(),
+    enabled: open,
+  });
+
   useEffect(() => {
     if (booking) {
       setItems([{
@@ -215,6 +221,7 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
           products={products}
           barbers={barbers}
           bookings={bookings}
+          presetDiscounts={presetDiscounts}
         />
         </Elements>
       ) : (
@@ -245,6 +252,7 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
           products={products}
           barbers={barbers}
           bookings={bookings}
+          presetDiscounts={presetDiscounts}
         />
       )}
     </Dialog>
@@ -256,7 +264,7 @@ function CheckoutContent({
   discount, setDiscount, tip, setTip, paymentMethod, setPaymentMethod,
   additionalBookings, setAdditionalBookings, addProduct, addService, 
   addBookingToTransaction, removeItem, subtotal, taxAmount, discountAmount, 
-  total, services, products, barbers, bookings 
+  total, services, products, barbers, bookings, presetDiscounts = []
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -399,6 +407,37 @@ function CheckoutContent({
               </Select>
             </div>
           </div>
+
+          {/* Preset Discounts */}
+          {presetDiscounts.filter(d => d.is_active).length > 0 && (
+            <div>
+              <Label className="text-xs">Quick Discounts</Label>
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {presetDiscounts.filter(d => d.is_active).map(d => {
+                  const isActive = discount.type === d.type && discount.value === d.value && discount._presetId === d.id;
+                  return (
+                    <button
+                      key={d.id}
+                      onClick={() => {
+                        if (isActive) {
+                          setDiscount({ type: "none", value: 0 });
+                        } else {
+                          setDiscount({ type: d.type, value: d.value, _presetId: d.id });
+                        }
+                      }}
+                      className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
+                        isActive
+                          ? "bg-[#8B9A7E] text-white border-[#8B9A7E]"
+                          : "bg-white text-gray-700 border-gray-200 hover:border-[#8B9A7E]"
+                      }`}
+                    >
+                      {d.name} · {d.type === "percentage" ? `${d.value}%` : `$${d.value}`}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Discount */}
           <div className="grid grid-cols-2 gap-2">
