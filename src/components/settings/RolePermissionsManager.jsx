@@ -33,11 +33,6 @@ export default function RolePermissionsManager() {
     base44.auth.me().then(setUser).catch(() => setUser(null));
   }, []);
 
-  // Only show for admin, owner, or manager
-  if (user && !["admin", "owner", "manager"].includes(user.role)) {
-    return null;
-  }
-
   const { data: rolePermissions = [] } = useQuery({
     queryKey: ["role-permissions"],
     queryFn: () => base44.entities.RolePermissions.list(),
@@ -77,6 +72,11 @@ export default function RolePermissionsManager() {
       queryClient.invalidateQueries({ queryKey: ["role-permissions"] });
     }
   };
+
+  // Only show for admin, owner, or manager
+  if (user && !["admin", "owner", "manager"].includes(user.role)) {
+    return null;
+  }
 
   const roles = ["service_provider", "manager", "owner"];
 

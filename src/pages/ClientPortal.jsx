@@ -49,6 +49,11 @@ export default function ClientPortal() {
     queryFn: () => base44.entities.Barber.list(),
   });
 
+  const { data: services = [] } = useQuery({
+    queryKey: ["services"],
+    queryFn: () => base44.entities.Service.list(),
+  });
+
   const handleAuth = async (e) => {
     e.preventDefault();
     
