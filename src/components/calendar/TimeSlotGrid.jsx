@@ -133,9 +133,28 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
   );
 }
 
-const COLUMN_WIDTH = 140;
+const MIN_COLUMN_WIDTH = 100;
 
 export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlotClick, onBookingContext, onDrop, onBookingResize, zoomLevel = 1 }) {
+  const containerRef = React.useRef(null);
+  const [containerWidth, setContainerWidth] = React.useState(0);
+
+  React.useEffect(() => {
+    if (!containerRef.current) return;
+    const obs = new ResizeObserver(entries => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    obs.observe(containerRef.current);
+    return () => obs.disconnect();
+  }, []);
+
+  const TIME_LABEL_WIDTH = 56; // w-14
+  const availableWidth = containerWidth - TIME_LABEL_WIDTH;
+  const COLUMN_WIDTH = barbers.length > 0 && availableWidth > 0
+    ? Math.max(MIN_COLUMN_WIDTH, Math.floor(availableWidth / barbers.length))
+    : 140;
   const slotHeight = BASE_SLOT_HEIGHT * zoomLevel;
   const timeSlots = generateTimeSlots(7, 22);
   const dayName = format(date, "EEEE").toLowerCase();
@@ -182,7 +201,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
   };
 
   return (
-    <div ref={gridRef} className="overflow-auto flex-1">
+    <div ref={(el) => { gridRef.current = el; if (el) containerRef.current = el; }} className="overflow-auto flex-1">
       <div className="inline-block min-w-full relative">
         {/* Barber header columns */}
         <div className="sticky top-0 z-20 bg-[#FAFAF8] flex border-b border-gray-100">

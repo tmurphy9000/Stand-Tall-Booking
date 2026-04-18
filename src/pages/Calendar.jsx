@@ -116,11 +116,8 @@ export default function CalendarPage() {
     if (dayHours?.closed === true) return false;
     return true;
   });
-  const totalGroups = Math.max(1, Math.ceil(activeBarbers.length / BARBERS_PER_GROUP));
-  const visibleBarbers = activeBarbers.slice(
-    barberGroupIndex * BARBERS_PER_GROUP,
-    (barberGroupIndex + 1) * BARBERS_PER_GROUP
-  );
+  const totalGroups = 1;
+  const visibleBarbers = activeBarbers;
 
   const handleSlotClick = (e, barber, time, date) => {
     setSlotMenu({ 
