@@ -134,10 +134,13 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
 }
 
 const MIN_COLUMN_WIDTH = 60;
+const MAX_COLUMN_WIDTH = 200;
 
 export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlotClick, onBookingContext, onDrop, onBookingResize, zoomLevel = 1 }) {
   const containerRef = React.useRef(null);
   const [containerWidth, setContainerWidth] = React.useState(0);
+  const [columnZoom, setColumnZoom] = useState(1);
+  const pinchRef = useRef({ initialDistance: null, initialZoom: 1 });
 
   React.useEffect(() => {
     if (!containerRef.current) return;
@@ -150,11 +153,37 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
     return () => obs.disconnect();
   }, []);
 
+  // Horizontal pinch-to-zoom handlers
+  const getHorizontalPinchDistance = (touches) => Math.abs(touches[0].clientX - touches[1].clientX);
+
+  const handleTouchStart = useCallback((e) => {
+    if (e.touches.length === 2) {
+      pinchRef.current = {
+        initialDistance: getHorizontalPinchDistance(e.touches),
+        initialZoom: columnZoom,
+      };
+    }
+  }, [columnZoom]);
+
+  const handleTouchMove = useCallback((e) => {
+    if (e.touches.length === 2 && pinchRef.current.initialDistance) {
+      const currentDistance = getHorizontalPinchDistance(e.touches);
+      const scale = currentDistance / pinchRef.current.initialDistance;
+      const newZoom = Math.max(0.5, Math.min(3, pinchRef.current.initialZoom * scale));
+      setColumnZoom(newZoom);
+    }
+  }, []);
+
+  const handleTouchEnd = useCallback(() => {
+    pinchRef.current.initialDistance = null;
+  }, []);
+
   const TIME_LABEL_WIDTH = 56; // w-14
   const availableWidth = containerWidth - TIME_LABEL_WIDTH;
-  const COLUMN_WIDTH = barbers.length > 0 && availableWidth > 0
+  const baseColumnWidth = barbers.length > 0 && availableWidth > 0
     ? Math.max(MIN_COLUMN_WIDTH, Math.floor(availableWidth / barbers.length))
     : 140;
+  const COLUMN_WIDTH = Math.max(MIN_COLUMN_WIDTH, Math.min(MAX_COLUMN_WIDTH, Math.floor(baseColumnWidth * columnZoom)));
   const slotHeight = BASE_SLOT_HEIGHT * zoomLevel;
   const timeSlots = generateTimeSlots(7, 22);
   const dayName = format(date, "EEEE").toLowerCase();
@@ -201,7 +230,14 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
   };
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-hidden relative" style={{ minHeight: 0 }}>
+    <div
+      ref={containerRef}
+      className="flex-1 overflow-hidden relative"
+      style={{ minHeight: 0 }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
     <div ref={gridRef} className="overflow-auto h-full">
       <div className="inline-block min-w-full relative">
         {/* Barber header columns */}
