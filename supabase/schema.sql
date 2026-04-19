@@ -262,86 +262,56 @@ alter table public.time_off_requests enable row level security;
 alter table public.barber_sensitive_info enable row level security;
 alter table public.reviews enable row level security;
 
--- ---- Public read: barbers, services, shop_settings ----
+-- ---- Anon + authenticated full access: all tables ----
+-- Permissive: allows the anon key (used by barbers) full access.
 
-create policy "Public can read barbers"
-  on public.barbers for select using (true);
+create policy "Anon full access barbers"
+  on public.barbers for all to anon, authenticated using (true) with check (true);
 
-create policy "Public can read services"
-  on public.services for select using (true);
+create policy "Anon full access services"
+  on public.services for all to anon, authenticated using (true) with check (true);
 
-create policy "Public can read shop_settings"
-  on public.shop_settings for select using (true);
+create policy "Anon full access clients"
+  on public.clients for all to anon, authenticated using (true) with check (true);
 
--- ---- Public read/write on role_permissions (barbers use anon key) ----
+create policy "Anon full access bookings"
+  on public.bookings for all to anon, authenticated using (true) with check (true);
 
-create policy "Public can read role_permissions"
-  on public.role_permissions for select using (true);
+create policy "Anon full access shop_settings"
+  on public.shop_settings for all to anon, authenticated using (true) with check (true);
 
--- ---- Public create: bookings (online booking form) ----
+create policy "Anon full access barber_passwords"
+  on public.barber_passwords for all to anon, authenticated using (true) with check (true);
 
-create policy "Public can create bookings"
-  on public.bookings for insert with check (true);
+create policy "Anon full access discounts"
+  on public.discounts for all to anon, authenticated using (true) with check (true);
 
--- ---- Barber custom auth: anon needs access to barber_passwords ----
--- Barbers authenticate with a custom password table, not Supabase Auth,
--- so their requests always use the anon key.
+create policy "Anon full access role_permissions"
+  on public.role_permissions for all to anon, authenticated using (true) with check (true);
 
-create policy "Public can read barber_passwords"
-  on public.barber_passwords for select using (true);
+create policy "Anon full access cash_transactions"
+  on public.cash_transactions for all to anon, authenticated using (true) with check (true);
 
-create policy "Public can update barber_passwords"
-  on public.barber_passwords for update using (true) with check (true);
+create policy "Anon full access notifications"
+  on public.notifications for all to anon, authenticated using (true) with check (true);
 
--- ---- Authenticated full access: all tables ----
+create policy "Anon full access products"
+  on public.products for all to anon, authenticated using (true) with check (true);
 
-create policy "Authenticated full access barbers"
-  on public.barbers for all to authenticated using (true) with check (true);
+create policy "Anon full access inventory_adjustments"
+  on public.inventory_adjustments for all to anon, authenticated using (true) with check (true);
 
-create policy "Authenticated full access services"
-  on public.services for all to authenticated using (true) with check (true);
+create policy "Anon full access payroll_reports"
+  on public.payroll_reports for all to anon, authenticated using (true) with check (true);
 
-create policy "Authenticated full access clients"
-  on public.clients for all to authenticated using (true) with check (true);
+create policy "Anon full access time_off_requests"
+  on public.time_off_requests for all to anon, authenticated using (true) with check (true);
 
-create policy "Authenticated full access bookings"
-  on public.bookings for all to authenticated using (true) with check (true);
+create policy "Anon full access barber_sensitive_info"
+  on public.barber_sensitive_info for all to anon, authenticated using (true) with check (true);
 
-create policy "Authenticated full access shop_settings"
-  on public.shop_settings for all to authenticated using (true) with check (true);
-
-create policy "Authenticated full access barber_passwords"
-  on public.barber_passwords for all to authenticated using (true) with check (true);
-
-create policy "Authenticated full access discounts"
-  on public.discounts for all to authenticated using (true) with check (true);
-
-create policy "Authenticated full access role_permissions"
-  on public.role_permissions for all to authenticated using (true) with check (true);
-
-create policy "Authenticated full access cash_transactions"
-  on public.cash_transactions for all to authenticated using (true) with check (true);
-
-create policy "Authenticated full access notifications"
-  on public.notifications for all to authenticated using (true) with check (true);
-
-create policy "Authenticated full access products"
-  on public.products for all to authenticated using (true) with check (true);
-
-create policy "Authenticated full access inventory_adjustments"
-  on public.inventory_adjustments for all to authenticated using (true) with check (true);
-
-create policy "Authenticated full access payroll_reports"
-  on public.payroll_reports for all to authenticated using (true) with check (true);
-
-create policy "Authenticated full access time_off_requests"
-  on public.time_off_requests for all to authenticated using (true) with check (true);
-
-create policy "Authenticated full access barber_sensitive_info"
-  on public.barber_sensitive_info for all to authenticated using (true) with check (true);
-
-create policy "Authenticated full access reviews"
-  on public.reviews for all to authenticated using (true) with check (true);
+create policy "Anon full access reviews"
+  on public.reviews for all to anon, authenticated using (true) with check (true);
 
 -- ============================================================
 -- SEED: Default role permissions
