@@ -41,7 +41,7 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
     { label: "Confirm", icon: CheckCircle, color: "text-blue-600", action: () => { onAction("confirm", booking.id); onClose(); }, show: !isBlock && booking.status === "scheduled" },
     { label: "Mark Arrived", icon: UserCheck, color: "text-green-600", action: () => { onAction("checked_in", booking.id); onClose(); }, show: !isBlock && (booking.status === "confirmed" || booking.status === "scheduled") },
     { label: "Checkout", icon: CheckCircle, color: "text-[#8B9A7E]", action: () => { onAction("checkout", booking.id); onClose(); }, show: !isBlock && booking.status !== "cancelled" && booking.status !== "completed" && booking.status !== "no_show" },
-    { label: "Mark as No-Show", icon: AlertCircle, color: "text-orange-500", action: () => setShowNoShow(true), show: !isBlock && (booking.status === "scheduled" || booking.status === "confirmed") },
+    { label: "Mark as No-Show", icon: AlertCircle, color: "text-orange-500", action: () => setShowNoShow(true), show: !isBlock && (booking.status === "scheduled" || booking.status === "confirmed" || booking.status === "checked_in") },
     { label: "Mark as Late", icon: Clock, color: "text-yellow-500", action: () => setShowLate(true), show: !isBlock && (booking.status === "scheduled" || booking.status === "confirmed" || booking.status === "checked_in") },
     { label: "Cancel", icon: XCircle, color: "text-red-500", action: () => setShowCancel(true), show: !isBlock && booking.status !== "cancelled" && booking.status !== "completed" },
     { label: "Delete Block", icon: Trash2, color: "text-red-500", action: () => setShowDeleteBlock(true), show: isBlock },
