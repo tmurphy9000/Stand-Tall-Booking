@@ -1,0 +1,77 @@
+{
+  "name": "Client",
+  "type": "object",
+  "properties": {
+    "email": {
+      "type": "string",
+      "description": "Client email"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Client phone number"
+    },
+    "name": {
+      "type": "string",
+      "description": "Client full name"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "Profile photo URL"
+    },
+    "preferred_barber_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of preferred barber IDs"
+    },
+    "preferred_service_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of preferred service IDs"
+    },
+    "preferred_brands": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of preferred product brands"
+    },
+    "staff_notes": {
+      "type": "string",
+      "description": "Notes visible only to staff (hair type, allergies, etc.)"
+    },
+    "preferences": {
+      "type": "object",
+      "description": "Client preferences (favorite barber, services, etc.)"
+    },
+    "total_visits": {
+      "type": "number",
+      "default": 0
+    },
+    "total_spent": {
+      "type": "number",
+      "default": 0
+    },
+    "last_visit": {
+      "type": "string",
+      "format": "date"
+    },
+    "no_show_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of times client was a no-show"
+    },
+    "late_count": {
+      "type": "number",
+      "default": 0,
+      "description": "Number of times client was marked late"
+    }
+  },
+  "required": [
+    "email",
+    "name"
+  ]
+}

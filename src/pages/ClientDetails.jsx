@@ -5,7 +5,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, User, Calendar, DollarSign, Phone, Mail, Star, Loader2 } from "lucide-react";
+import { ArrowLeft, User, Calendar, DollarSign, Phone, Mail, Star, Loader2, AlertCircle, Clock } from "lucide-react";
 import { format } from "date-fns";
 import ClientNotesCard from "../components/client/ClientNotesCard";
 import { usePermissions } from "../components/permissions/usePermissions";
@@ -80,7 +80,7 @@ export default function ClientDetails() {
     );
   }
 
-  const completedBookings = bookings.filter(b => b.status === "completed");
+  const completedBookings = bookings.filter(b => ["completed", "no_show", "cancelled"].includes(b.status));
   const upcomingBookings = bookings.filter(b => b.date >= format(new Date(), "yyyy-MM-dd") && b.status !== "cancelled" && b.status !== "completed");
 
   return (
@@ -152,6 +152,30 @@ export default function ClientDetails() {
               </div>
             </div>
 
+            {/* Reliability flags */}
+            {((client.no_show_count || 0) > 0 || (client.late_count || 0) > 0) && (
+              <div className="flex gap-3 mt-4 pt-4 border-t">
+                {(client.no_show_count || 0) > 0 && (
+                  <div className="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-lg px-3 py-2 flex-1 justify-center">
+                    <AlertCircle className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                    <div className="text-center">
+                      <p className="text-lg font-bold text-orange-600">{client.no_show_count}</p>
+                      <p className="text-[10px] text-orange-500">No-Show{client.no_show_count !== 1 ? "s" : ""}</p>
+                    </div>
+                  </div>
+                )}
+                {(client.late_count || 0) > 0 && (
+                  <div className="flex items-center gap-2 bg-yellow-50 border border-yellow-200 rounded-lg px-3 py-2 flex-1 justify-center">
+                    <Clock className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                    <div className="text-center">
+                      <p className="text-lg font-bold text-yellow-600">{client.late_count}</p>
+                      <p className="text-[10px] text-yellow-500">Late Arrival{client.late_count !== 1 ? "s" : ""}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {client.last_visit && (
               <p className="text-xs text-gray-500 mt-4 text-center">
                 Last visit: {format(new Date(client.last_visit), "MMM d, yyyy")}
@@ -219,27 +243,45 @@ export default function ClientDetails() {
         {/* Recent Bookings */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Recent Bookings</CardTitle>
+            <CardTitle className="text-base">Booking History</CardTitle>
           </CardHeader>
           <CardContent>
             {completedBookings.length === 0 ? (
               <p className="text-sm text-gray-500 text-center py-4">No booking history</p>
             ) : (
               <div className="space-y-2">
-                {completedBookings.slice(0, 5).map(booking => (
-                  <div key={booking.id} className="p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-semibold text-sm">{booking.service_name}</p>
-                        <p className="text-xs text-gray-500">with {booking.barber_name}</p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          {format(new Date(booking.date), "MMM d, yyyy")} at {booking.start_time}
-                        </p>
+                {completedBookings.slice(0, 10).map(booking => {
+                  const isNoShow = booking.status === "no_show";
+                  const isCancelled = booking.status === "cancelled";
+                  return (
+                    <div key={booking.id} className={`p-3 rounded-lg border ${isNoShow ? "bg-orange-50 border-orange-100" : isCancelled ? "bg-gray-50 border-gray-100" : "bg-gray-50 border-transparent"}`}>
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <p className="font-semibold text-sm">{booking.service_name}</p>
+                            {isNoShow && (
+                              <span className="text-[10px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
+                                <AlertCircle className="w-2.5 h-2.5" /> No-Show
+                              </span>
+                            )}
+                            {isCancelled && (
+                              <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded font-medium">
+                                Cancelled
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500">with {booking.barber_name}</p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {format(new Date(booking.date), "MMM d, yyyy")} at {booking.start_time}
+                          </p>
+                        </div>
+                        {!isNoShow && !isCancelled && (
+                          <p className="font-bold text-[#C9A94E]">${booking.final_price || booking.price}</p>
+                        )}
                       </div>
-                      <p className="font-bold text-[#C9A94E]">${booking.final_price || booking.price}</p>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </CardContent>

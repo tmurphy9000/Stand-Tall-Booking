@@ -2,19 +2,22 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle, XCircle, UserCheck, Trash2, User, AlertCircle } from "lucide-react";
+import { CheckCircle, XCircle, UserCheck, Trash2, User, AlertCircle, Clock } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../../utils";
 import NoShowDialog from "./NoShowDialog";
+import LateDialog from "./LateDialog";
 import { format } from "date-fns";
 
 export default function BookingContextMenu({ booking, position, onClose, onAction }) {
   const [showCancel, setShowCancel] = useState(false);
   const [showNoShow, setShowNoShow] = useState(false);
+  const [showLate, setShowLate] = useState(false);
   const [showDeleteBlock, setShowDeleteBlock] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
 
   const isBlock = booking?.client_name === "BLOCKED TIME";
+
 
   if (!booking) return null;
 
@@ -30,11 +33,16 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
     setShowNoShow(false);
   };
 
+  const handleLateConfirm = async (bookingId) => {
+    await onAction("late", bookingId);
+  };
+
   const actions = [
     { label: "Confirm", icon: CheckCircle, color: "text-blue-600", action: () => { onAction("confirm", booking.id); onClose(); }, show: !isBlock && booking.status === "scheduled" },
     { label: "Mark Arrived", icon: UserCheck, color: "text-green-600", action: () => { onAction("checked_in", booking.id); onClose(); }, show: !isBlock && (booking.status === "confirmed" || booking.status === "scheduled") },
     { label: "Checkout", icon: CheckCircle, color: "text-[#8B9A7E]", action: () => { onAction("checkout", booking.id); onClose(); }, show: !isBlock && booking.status !== "cancelled" && booking.status !== "completed" && booking.status !== "no_show" },
     { label: "Mark as No-Show", icon: AlertCircle, color: "text-orange-500", action: () => setShowNoShow(true), show: !isBlock && (booking.status === "scheduled" || booking.status === "confirmed") },
+    { label: "Mark as Late", icon: Clock, color: "text-yellow-500", action: () => setShowLate(true), show: !isBlock && (booking.status === "scheduled" || booking.status === "confirmed" || booking.status === "checked_in") },
     { label: "Cancel", icon: XCircle, color: "text-red-500", action: () => setShowCancel(true), show: !isBlock && booking.status !== "cancelled" && booking.status !== "completed" },
     { label: "Delete Block", icon: Trash2, color: "text-red-500", action: () => setShowDeleteBlock(true), show: isBlock },
   ].filter(a => a.show);
@@ -42,7 +50,7 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
   return (
     <>
       {/* Context dropdown */}
-      {!showCancel && !showNoShow && !showDeleteBlock && (
+      {!showCancel && !showNoShow && !showLate && !showDeleteBlock && (
         <div
           className="fixed z-50 bg-white rounded-xl shadow-xl border border-gray-100 py-1 min-w-[180px]"
           style={{ top: position.y, left: position.x }}
@@ -75,7 +83,7 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
       )}
 
       {/* Click outside overlay */}
-      {!showCancel && !showNoShow && !showDeleteBlock && (
+      {!showCancel && !showNoShow && !showLate && !showDeleteBlock && (
         <div className="fixed inset-0 z-40" onClick={onClose} />
       )}
 
@@ -109,6 +117,14 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
         booking={booking}
         onClose={() => { setShowNoShow(false); onClose(); }}
         onConfirm={handleNoShowConfirm}
+      />
+
+      {/* Late dialog */}
+      <LateDialog
+        open={showLate}
+        booking={booking}
+        onClose={() => { setShowLate(false); onClose(); }}
+        onConfirm={handleLateConfirm}
       />
 
       {/* Delete Block dialog */}

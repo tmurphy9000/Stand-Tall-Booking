@@ -172,7 +172,6 @@ export default function CalendarPage() {
       return;
     }
     if (action === "delete_block_all" && extra?.repeat_group_id) {
-      // Fetch all bookings in this group and delete them
       const allBookings = await base44.entities.Booking.list("-date", 1000);
       const groupBookings = allBookings.filter(b => b.repeat_group_id === extra.repeat_group_id);
       for (const b of groupBookings) {
@@ -181,6 +180,29 @@ export default function CalendarPage() {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       return;
     }
+
+    // Record no-show or late on the client account
+    if (action === "no_show" || action === "late") {
+      const booking = bookings.find(b => b.id === bookingId);
+      if (booking?.client_id) {
+        const clients = await base44.entities.Client.filter({ id: booking.client_id });
+        const client = clients[0];
+        if (client) {
+          const field = action === "no_show" ? "no_show_count" : "late_count";
+          await base44.entities.Client.update(client.id, {
+            [field]: (client[field] || 0) + 1
+          });
+        }
+      }
+      if (action === "no_show") {
+        updateBooking.mutate({ id: bookingId, data: { status: "no_show" } });
+        return;
+      }
+      // "late" just records on the client, keeps booking status as-is (checked_in)
+      updateBooking.mutate({ id: bookingId, data: { status: "checked_in" } });
+      return;
+    }
+
     const statusMap = { confirm: "confirmed", checked_in: "checked_in", completed: "completed", cancel: "cancelled" };
     const data = { status: statusMap[action] || action };
     if (extra?.cancel_reason) data.cancel_reason = extra.cancel_reason;
