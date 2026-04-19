@@ -8,7 +8,6 @@ import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
-import PublicBooking from './pages/PublicBooking';
 import BarberLogin from './pages/BarberLogin';
 import ChangePassword from './pages/ChangePassword';
 
@@ -62,7 +61,6 @@ const AuthenticatedApp = () => {
           }
         />
       ))}
-      <Route path="/booking" element={<PublicBooking />} />
       <Route path="/barber-login" element={<BarberLogin />} />
       <Route path="/ChangePassword" element={<ChangePassword />} />
       <Route path="*" element={<PageNotFound />} />
