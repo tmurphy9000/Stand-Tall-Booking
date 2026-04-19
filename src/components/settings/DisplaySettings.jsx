@@ -81,33 +81,46 @@ export default function DisplaySettings() {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {ALL_TIP_OPTIONS.map((opt) => {
-            const isFixed = opt.value === "no_tip" || opt.value === "custom";
-            const isSelected = isFixed || selectedTips.includes(opt.value);
-            const isDisabled = !isFixed && !selectedTips.includes(opt.value) && selectedTips.length >= 3;
-
-            return (
-              <button
-                key={String(opt.value)}
-                onClick={() => !isFixed && toggleTip(opt.value)}
-                disabled={isFixed || isDisabled}
-                className={cn(
-                  "px-4 py-2 rounded-full border text-sm font-medium transition-all",
-                  isFixed
-                    ? "bg-gray-100 text-gray-400 border-gray-200 cursor-default"
-                    : isSelected
-                    ? "bg-[#8B9A7E] text-white border-[#8B9A7E]"
-                    : isDisabled
-                    ? "bg-white text-gray-300 border-gray-200 cursor-not-allowed"
-                    : "bg-white text-gray-700 border-gray-300 hover:border-[#8B9A7E] cursor-pointer"
-                )}
-              >
-                {opt.label}
-                {isFixed && <span className="ml-1 text-xs">(always shown)</span>}
-              </button>
-            );
-          })}
+        <div className="space-y-2">
+          {/* Percentage tips: 10% → 30%, least to most */}
+          <div className="flex flex-wrap gap-2">
+            {ALL_TIP_OPTIONS.filter(opt => typeof opt.value === "number").map((opt) => {
+              const isSelected = selectedTips.includes(opt.value);
+              const isDisabled = !isSelected && selectedTips.length >= 3;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => toggleTip(opt.value)}
+                  disabled={isDisabled}
+                  className={cn(
+                    "px-4 py-2 rounded-full border text-sm font-medium transition-all",
+                    isSelected
+                      ? "bg-[#8B9A7E] text-white border-[#8B9A7E]"
+                      : isDisabled
+                      ? "bg-white text-gray-300 border-gray-200 cursor-not-allowed"
+                      : "bg-white text-gray-700 border-gray-300 hover:border-[#8B9A7E] cursor-pointer"
+                  )}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+          {/* No Tip + Custom side by side */}
+          <div className="flex gap-2">
+            {["no_tip", "custom"].map((val) => {
+              const opt = ALL_TIP_OPTIONS.find(o => o.value === val);
+              return (
+                <button
+                  key={val}
+                  disabled
+                  className="px-4 py-2 rounded-full border text-sm font-medium bg-gray-100 text-gray-400 border-gray-200 cursor-default"
+                >
+                  {opt.label} <span className="text-xs">(always shown)</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         <p className="text-xs text-gray-400">
