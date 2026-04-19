@@ -3,16 +3,18 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, DollarSign, Calendar, Plus } from "lucide-react";
+import { Loader2, DollarSign, Calendar, Plus, History } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import AddBarberDialog from "../components/payroll/AddBarberDialog";
+import PastPayrollReports from "../components/payroll/PastPayrollReports";
 
 export default function PayrollPage() {
   const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [pastReportsOpen, setPastReportsOpen] = useState(false);
 
   const { data: barbers = [], isLoading: barbersLoading } = useQuery({
     queryKey: ["barbers"],
@@ -69,6 +71,14 @@ export default function PayrollPage() {
         <h1 className="text-2xl font-bold text-[#0A0A0A]">Payroll</h1>
         <div className="flex items-center gap-4">
           <Button
+            variant="outline"
+            onClick={() => setPastReportsOpen(true)}
+            className="border-[#8B9A7E] text-[#8B9A7E] hover:bg-[#8B9A7E]/10"
+          >
+            <History className="w-4 h-4 mr-2" />
+            Past Payroll Reports
+          </Button>
+          <Button
             onClick={() => setDialogOpen(true)}
             className="bg-[#8B9A7E] hover:bg-[#6B7A5E]"
           >
@@ -100,6 +110,7 @@ export default function PayrollPage() {
       </div>
 
       <AddBarberDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+      <PastPayrollReports open={pastReportsOpen} onClose={() => setPastReportsOpen(false)} />
 
           {/* Summary Card */}
       <Card className="mb-6 bg-gradient-to-br from-[#8B9A7E]/10 to-[#B0BFA4]/10 border-[#8B9A7E]/20">
