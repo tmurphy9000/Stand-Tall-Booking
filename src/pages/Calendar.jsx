@@ -121,10 +121,12 @@ export default function CalendarPage() {
     });
   };
 
-  // Group barbers for display — only show barbers scheduled to work on the viewed day
+  // Group barbers for display — filter based on display setting
+  const showWorkingOnly = localStorage.getItem("calendar_show_working_only") !== "false";
   const dayName = format(currentDate, "EEEE").toLowerCase(); // e.g. "monday"
   const activeBarbers = barbers.filter(b => {
     if (b.is_active === false) return false;
+    if (!showWorkingOnly) return true;
     // If no hours configured at all, show the barber (assume always working)
     if (!b.hours || Object.keys(b.hours).length === 0) return true;
     const dayHours = b.hours?.[dayName];
