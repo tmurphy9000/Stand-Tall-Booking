@@ -21,9 +21,9 @@ export default function LeaderboardCard({ bookings, cashTransactions, barbers })
 
     const stats = {};
     
-    // Count services from bookings
+    // Count services from completed/checked-out bookings only
     bookings.forEach(b => {
-      if (b.status === "cancelled" || b.date < cutoffDate) return;
+      if (b.status !== "completed" || b.date < cutoffDate) return;
       if (!stats[b.barber_name]) {
         stats[b.barber_name] = { services: 0, products: 0 };
       }
