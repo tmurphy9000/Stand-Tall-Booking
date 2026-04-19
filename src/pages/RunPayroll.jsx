@@ -258,6 +258,58 @@ export default function RunPayrollPage() {
             ))}
           </div>
 
+          {/* Shop Breakdown */}
+          {(() => {
+            const grossRevenue = payrollData.reduce((sum, d) => sum + d.service_revenue, 0);
+            const totalServiceCommission = payrollData.reduce((sum, d) => sum + d.service_commission, 0);
+            const totalProductCommission = payrollData.reduce((sum, d) => sum + d.product_commission, 0);
+            const totalCommission = totalServiceCommission + totalProductCommission;
+            const totalTips = payrollData.reduce((sum, d) => sum + d.tips, 0);
+            const netRevenue = grossRevenue - totalCommission;
+
+            return (
+              <Card className="border-2 border-[#0A0A0A] mt-4">
+                <CardHeader>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <DollarSign className="w-4 h-4" />
+                    Shop Summary — {format(new Date(startDate), "MMM d")} to {format(new Date(endDate), "MMM d, yyyy")}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-500">Gross Revenue</p>
+                      <p className="text-xl font-bold text-[#0A0A0A] mt-1">${grossRevenue.toFixed(2)}</p>
+                      <p className="text-[10px] text-gray-400">all completed services</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-500">Net Revenue</p>
+                      <p className="text-xl font-bold text-[#8B9A7E] mt-1">${netRevenue.toFixed(2)}</p>
+                      <p className="text-[10px] text-gray-400">after commissions</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-500">Total Commission Payout</p>
+                      <p className="text-xl font-bold text-[#0A0A0A] mt-1">${totalCommission.toFixed(2)}</p>
+                      <p className="text-[10px] text-gray-400">service + retail</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-500">Service Commission</p>
+                      <p className="text-lg font-semibold mt-1">${totalServiceCommission.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-500">Retail Commission</p>
+                      <p className="text-lg font-semibold mt-1">${totalProductCommission.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-500">Total Tips</p>
+                      <p className="text-lg font-semibold mt-1">${totalTips.toFixed(2)}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })()}
+
           {/* Submit Button */}
           <div className="flex justify-end pt-4">
             <Button
