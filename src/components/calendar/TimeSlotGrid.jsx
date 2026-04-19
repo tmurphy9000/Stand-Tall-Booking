@@ -170,7 +170,11 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
       const currentDistance = getHorizontalPinchDistance(e.touches);
       const scale = currentDistance / pinchRef.current.initialDistance;
       const newZoom = Math.max(0.5, Math.min(3, pinchRef.current.initialZoom * scale));
-      setColumnZoom(newZoom);
+      setColumnZoom(prev => {
+        // Smooth by interpolating towards target
+        const target = Math.max(0.5, Math.min(3, pinchRef.current.initialZoom * scale));
+        return prev + (target - prev) * 0.3;
+      });
     }
   }, []);
 
@@ -232,13 +236,28 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
   return (
     <div
       ref={containerRef}
-      className="flex-1 overflow-hidden relative"
+      className="flex-1 flex flex-col overflow-hidden relative"
       style={{ minHeight: 0 }}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-    <div ref={gridRef} className="overflow-auto h-full">
+      {/* Column width slider bar */}
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-[#FAFAF8] border-b border-gray-100">
+        <span className="text-[9px] text-gray-400 flex-shrink-0">↔</span>
+        <input
+          type="range"
+          min={0.5}
+          max={3}
+          step={0.05}
+          value={columnZoom}
+          onChange={(e) => setColumnZoom(parseFloat(e.target.value))}
+          className="flex-1 h-1 accent-[#8B9A7E] cursor-pointer"
+          style={{ accentColor: '#8B9A7E' }}
+        />
+        <span className="text-[9px] text-gray-400 flex-shrink-0">↔</span>
+      </div>
+    <div ref={gridRef} className="overflow-auto flex-1">
       <div className="inline-block min-w-full relative">
         {/* Barber header columns */}
         <div className="sticky top-0 z-20 bg-[#FAFAF8] flex border-b border-gray-100">
@@ -339,6 +358,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
           );
         })}
       </div>
+    </div>
     </div>
     </div>
   );
