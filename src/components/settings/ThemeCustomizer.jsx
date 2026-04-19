@@ -44,7 +44,11 @@ const COLOR_LABELS = {
 function loadColors() {
   try {
     const stored = localStorage.getItem(THEME_KEY);
-    if (stored) return JSON.parse(stored);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // Guard against old nested format (light/dark keys)
+      if (parsed.background && typeof parsed.background === "string") return parsed;
+    }
   } catch {}
   return { ...DEFAULTS };
 }
