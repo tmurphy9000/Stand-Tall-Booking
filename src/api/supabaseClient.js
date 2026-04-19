@@ -88,6 +88,12 @@ function createEntityApi(tableName) {
       return data;
     },
 
+    async get(id) {
+      const { data, error } = await supabase.from(tableName).select('*').eq('id', id).single();
+      throwOnError(error);
+      return data;
+    },
+
     async filter(filterObj, sortBy) {
       let query = supabase.from(tableName).select('*');
       query = applyFilter(query, filterObj);
@@ -141,6 +147,12 @@ const auth = {
     const { data: { user }, error } = await supabase.auth.getUser();
     throwOnError(error);
     return user;
+  },
+
+  async login(email, password) {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    throwOnError(error);
+    return data.user;
   },
 
   async logout(redirectUrl) {
