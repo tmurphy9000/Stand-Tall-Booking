@@ -3,12 +3,16 @@ import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import ClientIdentification from "../components/booking/ClientIdentification";
+import BarberSelection from "../components/booking/BarberSelection";
+import DateAndTimeSelection from "../components/booking/DateAndTimeSelection";
 import AppointmentBooking from "../components/booking/AppointmentBooking";
 import BookingConfirmation from "../components/booking/BookingConfirmation";
 
 export default function PublicBooking() {
-  const [step, setStep] = useState("identify"); // identify, booking, confirmation
+  const [step, setStep] = useState("identify"); // identify, barber, dateTime, service, confirmation
   const [client, setClient] = useState(null);
+  const [barber, setBarber] = useState(null);
+  const [dateTime, setDateTime] = useState(null);
   const [booking, setBooking] = useState(null);
 
   const { data: shopSettings = [] } = useQuery({
@@ -18,12 +22,35 @@ export default function PublicBooking() {
 
   const handleIdentifySuccess = (foundClient) => {
     setClient(foundClient);
-    setStep("booking");
+    setStep("barber");
   };
 
   const handleBackToIdentify = () => {
     setClient(null);
+    setBarber(null);
+    setDateTime(null);
     setStep("identify");
+  };
+
+  const handleBarberSuccess = (selectedBarber) => {
+    setBarber(selectedBarber);
+    setStep("dateTime");
+  };
+
+  const handleBackToBarber = () => {
+    setBarber(null);
+    setDateTime(null);
+    setStep("barber");
+  };
+
+  const handleDateTimeSuccess = (selectedDateTime) => {
+    setDateTime(selectedDateTime);
+    setStep("service");
+  };
+
+  const handleBackToDateTime = () => {
+    setDateTime(null);
+    setStep("dateTime");
   };
 
   const handleBookingSuccess = (bookingData) => {
@@ -31,8 +58,8 @@ export default function PublicBooking() {
     setStep("confirmation");
   };
 
-  const handleBackToBooking = () => {
-    setStep("booking");
+  const handleBackToService = () => {
+    setStep("service");
   };
 
   return (
@@ -51,8 +78,9 @@ export default function PublicBooking() {
 
         {/* Step Indicator */}
         <div className="flex justify-center gap-2 mb-6">
-          <div className={`h-2 w-12 rounded-full ${step === "identify" ? "bg-[#C9A94E]" : "bg-gray-200"}`} />
-          <div className={`h-2 w-12 rounded-full ${step === "booking" ? "bg-[#C9A94E]" : "bg-gray-200"}`} />
+          <div className={`h-2 w-12 rounded-full ${["identify", "barber", "dateTime", "service"].includes(step) ? "bg-[#C9A94E]" : "bg-gray-200"}`} />
+          <div className={`h-2 w-12 rounded-full ${["barber", "dateTime", "service"].includes(step) ? "bg-[#C9A94E]" : "bg-gray-200"}`} />
+          <div className={`h-2 w-12 rounded-full ${["dateTime", "service"].includes(step) ? "bg-[#C9A94E]" : "bg-gray-200"}`} />
           <div className={`h-2 w-12 rounded-full ${step === "confirmation" ? "bg-[#C9A94E]" : "bg-gray-200"}`} />
         </div>
 
@@ -61,11 +89,30 @@ export default function PublicBooking() {
           <ClientIdentification onSuccess={handleIdentifySuccess} />
         )}
 
-        {step === "booking" && client && (
+        {step === "barber" && client && (
+          <BarberSelection 
+            client={client}
+            onSuccess={handleBarberSuccess}
+            onBack={handleBackToIdentify}
+          />
+        )}
+
+        {step === "dateTime" && client && barber && (
+          <DateAndTimeSelection 
+            client={client}
+            barber={barber}
+            onSuccess={handleDateTimeSuccess}
+            onBack={handleBackToBarber}
+          />
+        )}
+
+        {step === "service" && client && barber && dateTime && (
           <AppointmentBooking 
             client={client}
+            barber={barber}
+            dateTime={dateTime}
             onSuccess={handleBookingSuccess}
-            onBack={handleBackToIdentify}
+            onBack={handleBackToDateTime}
           />
         )}
 
