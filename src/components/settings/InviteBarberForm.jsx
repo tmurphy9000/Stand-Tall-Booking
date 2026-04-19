@@ -15,6 +15,7 @@ const EMPTY_FORM = {
   phone: "",
   email: "",
   role: "service_provider",
+  temp_password: "",
 };
 
 const EMPTY_PAYROLL = {
@@ -37,8 +38,8 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
   const fullName = `${form.first_name.trim()} ${form.last_name.trim()}`.trim();
 
   const handleSubmit = async () => {
-    if (!form.email || !form.first_name || !form.last_name) {
-      toast.error("First name, last name, and email are required");
+    if (!form.email || !form.first_name || !form.last_name || !form.temp_password) {
+      toast.error("First name, last name, email, and temporary password are required");
       return;
     }
 
@@ -48,13 +49,21 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
       await base44.users.inviteUser(form.email, "user");
 
       // Create barber profile
-      await base44.entities.Barber.create({
+      const barberResult = await base44.entities.Barber.create({
         name: fullName,
         email: form.email,
         phone: form.phone,
         permission_level: form.role,
         is_active: true,
         online_bookable: true,
+      });
+
+      // Sync existing barber records by name match and update with user_id
+      await base44.functions.invoke("syncBarberAccounts", {
+        barber_name: fullName,
+        user_id: barberResult.id,
+        email: form.email,
+        temp_password: form.temp_password,
       });
 
       if (payrollEntry === "manual") {
@@ -70,13 +79,13 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
         });
         toast.success(`${fullName} added and payroll info saved.`);
       } else {
-        // Send email asking barber to fill in their own info
+        // Send email with temporary password
         await base44.integrations.Core.SendEmail({
           to: form.email,
-          subject: "Complete Your Barber Profile — Payroll & ID Info Needed",
-          body: `Hi ${form.first_name},\n\nWelcome to Stand Tall Barbershop! Your account has been created.\n\nPlease log into the app and complete your payroll information (SSN, bank details, driver's license) so we can set you up on payroll.\n\nIf you have any questions, reach out to your manager.\n\nSee you soon!`,
+          subject: "Welcome to Stand Tall Barbershop — Your Login Details",
+          body: `Hi ${form.first_name},\n\nWelcome to Stand Tall Barbershop! Your account has been created.\n\nTemporary Password: ${form.temp_password}\n\nPlease log in and change your password immediately. You'll also need to complete your payroll information (SSN, bank details, driver's license) so we can set you up on payroll.\n\nIf you have any questions, reach out to your manager.\n\nSee you soon!`,
         });
-        toast.success(`Invitation sent to ${form.email}. They'll be emailed to complete their payroll info.`);
+        toast.success(`${fullName} invited! Temporary password sent to ${form.email}.`);
       }
 
       setForm(EMPTY_FORM);
@@ -143,6 +152,17 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
                 onChange={e => set("email", e.target.value)}
                 placeholder="barber@example.com"
               />
+            </div>
+
+            <div>
+              <Label className="text-xs text-gray-500">Temporary Password *</Label>
+              <Input
+                type="password"
+                value={form.temp_password}
+                onChange={e => set("temp_password", e.target.value)}
+                placeholder="Create a temporary password"
+              />
+              <p className="text-xs text-gray-400 mt-1">They'll be asked to change this on first login</p>
             </div>
 
             <div>
