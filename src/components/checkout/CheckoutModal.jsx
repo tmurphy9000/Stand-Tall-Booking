@@ -124,8 +124,8 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
   }, 0);
   
   const discountAmount = discount.type === "percentage" 
-    ? subtotal * (discount.value / 100)
-    : discount.type === "fixed" ? discount.value : 0;
+    ? subtotal * (parseFloat(discount.value) / 100)
+    : discount.type === "fixed" ? parseFloat(discount.value) || 0 : 0;
   
   const total = subtotal + taxAmount - discountAmount + (tip || 0);
 
@@ -422,7 +422,7 @@ function CheckoutContent({
                         if (isActive) {
                           setDiscount({ type: "none", value: 0 });
                         } else {
-                          setDiscount({ type: d.type, value: d.value, _presetId: d.id });
+                          setDiscount({ type: d.type, value: parseFloat(d.value) || 0, _presetId: d.id });
                         }
                       }}
                       className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
