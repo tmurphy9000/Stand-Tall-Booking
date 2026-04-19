@@ -15,6 +15,7 @@ import PermissionsManager from "../components/settings/PermissionsManager";
 import RolePermissionsManager from "../components/settings/RolePermissionsManager";
 import AdminPasswordManager from "../components/settings/AdminPasswordManager";
 import InviteBarberForm from "../components/settings/InviteBarberForm";
+import TermsAndConditions from "../components/settings/TermsAndConditions";
 import PayrollManager from "../components/settings/PayrollManager";
 import CallOffManager from "../components/settings/CallOffManager";
 import DiscountManager from "../components/settings/DiscountManager";
@@ -137,13 +138,16 @@ export default function SettingsPage() {
         ))}
 
         {hasFullAccess && (
-          <button
-            onClick={() => setShowInviteForm(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left text-white/60 hover:text-white hover:bg-white/10 mt-auto"
-          >
-            <Mail className="w-4 h-4 flex-shrink-0" />
-            Invite Barber
-          </button>
+          <div className="mt-auto">
+            <TermsAndConditions />
+            <button
+              onClick={() => setShowInviteForm(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left text-white/60 hover:text-white hover:bg-white/10 w-full"
+            >
+              <Mail className="w-4 h-4 flex-shrink-0" />
+              Invite Barber
+            </button>
+          </div>
         )}
       </div>
 
