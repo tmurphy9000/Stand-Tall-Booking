@@ -1,0 +1,98 @@
+{
+  "name": "RolePermissions",
+  "type": "object",
+  "properties": {
+    "role": {
+      "type": "string",
+      "enum": [
+        "service_provider",
+        "manager",
+        "owner"
+      ],
+      "description": "Role type"
+    },
+    "view_calendar": {
+      "type": "boolean",
+      "default": true,
+      "description": "Can view the calendar"
+    },
+    "create_booking": {
+      "type": "boolean",
+      "default": true,
+      "description": "Can create bookings"
+    },
+    "edit_booking": {
+      "type": "boolean",
+      "default": true,
+      "description": "Can edit bookings"
+    },
+    "cancel_booking": {
+      "type": "boolean",
+      "default": true,
+      "description": "Can cancel bookings"
+    },
+    "checkout_booking": {
+      "type": "boolean",
+      "default": true,
+      "description": "Can process checkout"
+    },
+    "edit_booking_contact": {
+      "type": "boolean",
+      "default": true,
+      "description": "Can enter/edit client contact info when creating bookings"
+    },
+    "view_client_contact": {
+      "type": "boolean",
+      "default": false,
+      "description": "Can view client contact information"
+    },
+    "view_client_notes": {
+      "type": "boolean",
+      "default": true,
+      "description": "Can view client notes"
+    },
+    "edit_client_notes": {
+      "type": "boolean",
+      "default": true,
+      "description": "Can edit client notes"
+    },
+    "view_shop_reports": {
+      "type": "boolean",
+      "default": false,
+      "description": "Can view full shop reports and all barbers data"
+    },
+    "view_personal_reports": {
+      "type": "boolean",
+      "default": false,
+      "description": "Can view own personal performance reports"
+    },
+    "view_payroll": {
+      "type": "boolean",
+      "default": false,
+      "description": "Can view payroll"
+    },
+    "view_inventory": {
+      "type": "boolean",
+      "default": false,
+      "description": "Can view inventory"
+    },
+    "manage_staff": {
+      "type": "boolean",
+      "default": false,
+      "description": "Can manage staff"
+    },
+    "view_cash_tracker": {
+      "type": "boolean",
+      "default": false,
+      "description": "Can view cash tracker"
+    },
+    "manage_settings": {
+      "type": "boolean",
+      "default": false,
+      "description": "Can manage settings"
+    }
+  },
+  "required": [
+    "role"
+  ]
+}
