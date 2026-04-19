@@ -27,7 +27,7 @@ const tabs = [
 const settingsTab = { name: "Settings", icon: Settings, page: "Settings" };
 
 export default function Layout({ children, currentPageName }) {
-  const showTabs = !["ClientBooking", "ClientPortal", "ClientHistory", "ClientDetails", "ClientList"].includes(currentPageName);
+  const showTabs = !["ClientList"].includes(currentPageName);
   const [user, setUser] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { hasFullAccess, currentBarber } = usePermissions();
