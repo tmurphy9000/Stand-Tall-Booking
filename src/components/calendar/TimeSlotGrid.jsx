@@ -100,7 +100,7 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
       onMouseEnter={() => setShowHandles(true)}
       onMouseLeave={() => !isResizing && setShowHandles(false)}
       className={cn(
-        "booking-card absolute left-0.5 right-0.5 rounded-md border-l-[3px] px-1.5 py-0.5 overflow-hidden z-10",
+        "booking-card absolute left-0.5 right-0.5 rounded-md border-l-[3px] px-1 py-0.5 overflow-hidden z-10",
         statusColors[booking.status] || statusColors.scheduled
       )}
       style={{ top: 0, height }}
@@ -133,7 +133,7 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
   );
 }
 
-const MIN_COLUMN_WIDTH = 100;
+const MIN_COLUMN_WIDTH = 60;
 
 export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlotClick, onBookingContext, onDrop, onBookingResize, zoomLevel = 1 }) {
   const containerRef = React.useRef(null);
@@ -215,18 +215,18 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
             ).length;
             
             return (
-              <div key={barber.id} className="px-2 py-2 text-center border-l border-gray-50" style={{ width: `${COLUMN_WIDTH}px`, minWidth: `${COLUMN_WIDTH}px` }}>
-                <div className="flex flex-col items-center gap-1">
+              <div key={barber.id} className="px-1 py-1 text-center border-l border-gray-50" style={{ width: `${COLUMN_WIDTH}px`, minWidth: `${COLUMN_WIDTH}px` }}>
+                <div className="flex flex-col items-center gap-0.5">
                   {barber.photo_url ? (
-                    <img src={barber.photo_url} alt={barber.name} className="w-7 h-7 rounded-full object-cover ring-2 ring-[#8B9A7E]/30" />
+                    <img src={barber.photo_url} alt={barber.name} className="w-5 h-5 rounded-full object-cover ring-1 ring-[#8B9A7E]/30" />
                   ) : (
-                    <div className="w-7 h-7 rounded-full bg-[#8B9A7E] flex items-center justify-center text-[#FAFAF8] text-[10px] font-bold">
+                    <div className="w-5 h-5 rounded-full bg-[#8B9A7E] flex items-center justify-center text-[#FAFAF8] text-[9px] font-bold">
                       {barber.name?.charAt(0)}
                     </div>
                   )}
-                  <div className="flex items-center gap-1">
-                    <span className="text-[10px] font-medium text-gray-700 truncate max-w-full">{barber.name}</span>
-                    <span className="text-[9px] font-bold text-[#8B9A7E] bg-[#8B9A7E]/10 px-1.5 py-0.5 rounded-full">
+                  <div className="flex items-center gap-0.5">
+                    <span className="text-[9px] font-medium text-gray-700 truncate max-w-full">{barber.name.split(' ')[0]}</span>
+                    <span className="text-[8px] font-bold text-[#8B9A7E] bg-[#8B9A7E]/10 px-1 py-0.5 rounded-full">
                       {barberAppointmentCount}
                     </span>
                   </div>
