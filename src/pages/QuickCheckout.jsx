@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, Plus, DollarSign, CreditCard } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { base44 } from "@/api/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";

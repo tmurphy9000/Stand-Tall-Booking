@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { base44 } from "@/api/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";

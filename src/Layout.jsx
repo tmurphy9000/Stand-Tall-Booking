@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { Calendar, Package, BarChart3, Banknote, Settings, Scissors, DollarSign, ChevronLeft, ChevronRight, Users, Lock, Monitor, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { base44 } from "@/api/base44Client";
+import { base44 } from "@/api/supabaseClient";
 import NotificationBell from "./components/notifications/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";

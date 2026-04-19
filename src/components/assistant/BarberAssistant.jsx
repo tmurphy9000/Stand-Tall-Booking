@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { base44 } from "@/api/base44Client";
+import { base44 } from "@/api/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";

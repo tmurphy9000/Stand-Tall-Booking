@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, addMinutes, parse, addDays, addWeeks, addMonths } from "date-fns";
-import { base44 } from "@/api/base44Client";
+import { base44 } from "@/api/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 
 export default function BookingFormModal({ open, onClose, onSave, barbers, services, prefill, bookings = [] }) {

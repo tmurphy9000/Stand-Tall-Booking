@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { AlertCircle } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { base44 } from "@/api/supabaseClient";
 import { toast } from "sonner";
 
 export default function NoShowDialog({ open, booking, onClose, onConfirm }) {

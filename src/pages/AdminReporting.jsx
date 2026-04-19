@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { base44 } from "@/api/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, parseISO } from "date-fns";
 import { Input } from "@/components/ui/input";
