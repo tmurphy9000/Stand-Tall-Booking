@@ -1,0 +1,43 @@
+{
+  "name": "ShopSettings",
+  "type": "object",
+  "properties": {
+    "shop_name": {
+      "type": "string",
+      "default": "Stand Tall Barbershop"
+    },
+    "operating_hours": {
+      "type": "object",
+      "description": "Per-day operating hours: {monday: {start, end, closed}, ...}"
+    },
+    "timezone": {
+      "type": "string",
+      "default": "America/New_York"
+    },
+    "default_commission_rate": {
+      "type": "number",
+      "default": 50
+    },
+    "default_tax_rate": {
+      "type": "number",
+      "default": 7.5,
+      "description": "Default retail product tax rate percentage"
+    },
+    "default_service_tax_rate": {
+      "type": "number",
+      "default": 0,
+      "description": "Default service tax rate percentage"
+    },
+    "admin_password_1": {
+      "type": "string",
+      "default": "2024",
+      "description": "First admin password"
+    },
+    "admin_password_2": {
+      "type": "string",
+      "default": "1212",
+      "description": "Second admin password"
+    }
+  },
+  "required": []
+}

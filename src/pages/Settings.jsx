@@ -102,7 +102,7 @@ export default function SettingsPage() {
     { value: "barbers", label: "Barbers", icon: Users },
     { value: "services", label: "Services", icon: Scissors },
     { value: "hours", label: "Shop Hours", icon: Clock },
-    { value: "shop", label: "Shop", icon: Store },
+    { value: "shop", label: "Tax Rates", icon: Store },
     { value: "discounts", label: "Discounts", icon: Tag },
     { value: "display", label: "Display", icon: Monitor },
     { value: "hardware", label: "Hardware", icon: Cpu },
@@ -184,20 +184,21 @@ export default function SettingsPage() {
 
         {activeTab === "shop" && (
           <div className="space-y-4 max-w-md">
-            <h2 className="text-sm font-semibold">Shop Settings</h2>
+            <h2 className="text-sm font-semibold">Tax Rates</h2>
             <div>
-              <Label className="text-xs text-gray-500">Shop Name</Label>
-              <Input
-                value={settings.shop_name || "Stand Tall Barbershop"}
-                onChange={e => saveSettings.mutate({ ...settings, shop_name: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label className="text-xs text-gray-500">Default Tax Rate %</Label>
+              <Label className="text-xs text-gray-500">Default Retail Product Tax Rate %</Label>
               <Input
                 type="number"
                 value={settings.default_tax_rate || 7.5}
                 onChange={e => saveSettings.mutate({ ...settings, default_tax_rate: parseFloat(e.target.value) || 7.5 })}
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-gray-500">Default Service Tax Rate %</Label>
+              <Input
+                type="number"
+                value={settings.default_service_tax_rate ?? 0}
+                onChange={e => saveSettings.mutate({ ...settings, default_service_tax_rate: parseFloat(e.target.value) || 0 })}
               />
             </div>
           </div>
