@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff, Tag, Monitor, Cpu } from "lucide-react";
+import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff, Tag, Monitor, Cpu, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import BarberManager from "../components/settings/BarberManager";
 import ServiceManager from "../components/settings/ServiceManager";
@@ -20,6 +20,7 @@ import CallOffManager from "../components/settings/CallOffManager";
 import DiscountManager from "../components/settings/DiscountManager";
 import DisplaySettings from "../components/settings/DisplaySettings";
 import HardwareSettings from "../components/settings/HardwareSettings";
+import SubscriptionManager from "../components/settings/SubscriptionManager";
 import { usePermissions } from "../components/permissions/usePermissions";
 
 export default function SettingsPage() {
@@ -107,6 +108,7 @@ export default function SettingsPage() {
       { value: "payroll", label: "Payroll", icon: DollarSign },
     ] : []),
     ...(isAdmin ? [{ value: "permissions", label: "Access", icon: Shield }] : []),
+    ...(isAdmin ? [{ value: "subscription", label: "Subscription", icon: CreditCard }] : []),
   ];
 
   return (
@@ -199,6 +201,8 @@ export default function SettingsPage() {
         {activeTab === "hardware" && <HardwareSettings />}
         {hasFullAccess && activeTab === "calloff" && <CallOffManager />}
         {hasFullAccess && activeTab === "payroll" && <PayrollManager />}
+
+        {isAdmin && activeTab === "subscription" && <SubscriptionManager />}
 
         {isAdmin && activeTab === "permissions" && (
           <div className="space-y-4">
