@@ -52,6 +52,11 @@ export default function ClientDetails() {
     queryFn: () => base44.entities.Service.list(),
   });
 
+  const { data: inventoryAdjustments = [] } = useQuery({
+    queryKey: ["inventory-adjustments"],
+    queryFn: () => base44.entities.InventoryAdjustment.list(),
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -82,6 +87,11 @@ export default function ClientDetails() {
 
   const completedBookings = bookings.filter(b => ["completed", "no_show", "cancelled"].includes(b.status));
   const upcomingBookings = bookings.filter(b => b.date >= format(new Date(), "yyyy-MM-dd") && b.status !== "cancelled" && b.status !== "completed");
+  
+  // Get products purchased (from inventory adjustments where client made a purchase)
+  const productsPurchased = inventoryAdjustments.filter(
+    adj => adj.adjusted_by === client?.name && adj.adjustment_type === "subtract"
+  );
 
   return (
     <div className="min-h-screen bg-[#FAFAF8] p-4">
@@ -239,6 +249,66 @@ export default function ClientDetails() {
 
         {/* Staff Notes */}
         <ClientNotesCard client={client} />
+
+        {/* Products Purchased */}
+        {productsPurchased.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Products Purchased</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {productsPurchased.slice(0, 15).map((item, idx) => (
+                  <div key={idx} className="p-3 rounded-lg bg-gray-50 border border-gray-100">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-semibold text-sm">{item.product_name}</p>
+                        <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
+                        {item.date && (
+                          <p className="text-xs text-gray-400 mt-1">
+                            {format(new Date(item.date), "MMM d, yyyy")}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Upcoming Appointments */}
+        {upcomingBookings.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Upcoming Appointments</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                {upcomingBookings.map(booking => (
+                  <div key={booking.id} className="p-3 rounded-lg bg-blue-50 border border-blue-100">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-sm">{booking.service_name}</p>
+                          <span className="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-medium">
+                            Upcoming
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-500">with {booking.barber_name}</p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          {format(new Date(booking.date), "MMM d, yyyy")} at {booking.start_time}
+                        </p>
+                      </div>
+                      <p className="font-bold text-[#8B9A7E]">${booking.final_price || booking.price}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Recent Bookings */}
         <Card>
