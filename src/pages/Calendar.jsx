@@ -7,11 +7,12 @@ import TimeSlotGrid from "../components/calendar/TimeSlotGrid";
 import BookingFormModal from "../components/calendar/BookingFormModal";
 import QuickBookingModal from "../components/calendar/QuickBookingModal";
 import BookingContextMenu from "../components/calendar/BookingContextMenu";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BarberAssistant from "../components/assistant/BarberAssistant";
 import LeaderboardCard from "../components/calendar/LeaderboardCard";
 import CheckoutModal from "../components/checkout/CheckoutModal";
+import { useViewMode } from "../lib/ViewModeContext";
 
 const BARBERS_PER_GROUP = 5;
 
@@ -29,6 +30,8 @@ export default function CalendarPage() {
   const [initialPinchDistance, setInitialPinchDistance] = useState(null);
   const [initialZoomLevel, setInitialZoomLevel] = useState(1);
   const [showAssistant, setShowAssistant] = useState(false);
+  const [mobileBarberIndex, setMobileBarberIndex] = useState(0);
+  const { isMobile } = useViewMode();
 
   const queryClient = useQueryClient();
 
@@ -136,7 +139,9 @@ export default function CalendarPage() {
     return true;
   });
   const totalGroups = 1;
-  const visibleBarbers = activeBarbers;
+  const visibleBarbers = isMobile
+    ? (activeBarbers[mobileBarberIndex] ? [activeBarbers[mobileBarberIndex]] : [])
+    : activeBarbers;
 
   const handleSlotClick = (e, barber, time, date) => {
     setSlotMenu({ 
@@ -244,12 +249,42 @@ export default function CalendarPage() {
 
   return (
     <div 
-      className="flex h-[calc(100vh-120px)]"
+      className={isMobile ? "flex flex-col h-screen" : "flex h-[calc(100vh-120px)]"}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden min-h-0">
+      {/* Mobile barber switcher */}
+      {isMobile && activeBarbers.length > 1 && (
+        <div className="flex items-center justify-between px-3 py-1.5 bg-white border-b border-gray-100 flex-shrink-0">
+          <button
+            onClick={() => setMobileBarberIndex(i => Math.max(0, i - 1))}
+            disabled={mobileBarberIndex === 0}
+            className="p-1 rounded disabled:opacity-30"
+          >
+            <ChevronLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <div className="flex items-center gap-2">
+            {activeBarbers[mobileBarberIndex]?.photo_url ? (
+              <img src={activeBarbers[mobileBarberIndex].photo_url} className="w-6 h-6 rounded-full object-cover" />
+            ) : (
+              <div className="w-6 h-6 rounded-full bg-[#8B9A7E] flex items-center justify-center text-white text-[10px] font-bold">
+                {activeBarbers[mobileBarberIndex]?.name?.charAt(0)}
+              </div>
+            )}
+            <span className="text-sm font-semibold text-gray-700">{activeBarbers[mobileBarberIndex]?.name}</span>
+            <span className="text-xs text-gray-400">{mobileBarberIndex + 1}/{activeBarbers.length}</span>
+          </div>
+          <button
+            onClick={() => setMobileBarberIndex(i => Math.min(activeBarbers.length - 1, i + 1))}
+            disabled={mobileBarberIndex === activeBarbers.length - 1}
+            className="p-1 rounded disabled:opacity-30"
+          >
+            <ChevronRight className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
+      )}
       <CalendarHeader
         currentDate={currentDate}
         setCurrentDate={setCurrentDate}
@@ -410,14 +445,16 @@ export default function CalendarPage() {
       </Button>
       </div>
 
-      {/* Leaderboard Sidebar */}
-      <div className="w-80 flex-shrink-0 border-l border-gray-100 overflow-y-auto p-4 bg-white">
-        <LeaderboardCard 
-          bookings={bookings}
-          cashTransactions={cashTransactions}
-          barbers={barbers}
-        />
-      </div>
+      {/* Leaderboard Sidebar - hidden in mobile mode */}
+      {!isMobile && (
+        <div className="w-80 flex-shrink-0 border-l border-gray-100 overflow-y-auto p-4 bg-white">
+          <LeaderboardCard 
+            bookings={bookings}
+            cashTransactions={cashTransactions}
+            barbers={barbers}
+          />
+        </div>
+      )}
     </div>
   );
 }
