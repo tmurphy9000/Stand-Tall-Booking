@@ -109,11 +109,11 @@ export default function SettingsPage() {
     { value: "client_notifications", label: "Notifications", icon: Bell },
     { value: "policies", label: "Policies", icon: FileText },
     ...(hasFullAccess ? [
-      { value: "calloff", label: "Call-Off", icon: PhoneOff },
       { value: "payroll", label: "Payroll", icon: DollarSign },
     ] : []),
     ...(isAdmin ? [{ value: "permissions", label: "Access", icon: Shield }] : []),
     ...(isAdmin ? [{ value: "subscription", label: "Subscription", icon: CreditCard }] : []),
+    ...(hasFullAccess ? [{ value: "calloff", label: "Call-Off", icon: PhoneOff }] : []),
   ];
 
   return (
@@ -137,9 +137,9 @@ export default function SettingsPage() {
           </button>
         ))}
 
-        {hasFullAccess && (
-          <div className="mt-auto">
-            <TermsAndConditions />
+        <div className="mt-2 border-t border-white/10 pt-2">
+          <TermsAndConditions />
+          {hasFullAccess && (
             <button
               onClick={() => setShowInviteForm(true)}
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left text-white/60 hover:text-white hover:bg-white/10 w-full"
@@ -147,8 +147,8 @@ export default function SettingsPage() {
               <Mail className="w-4 h-4 flex-shrink-0" />
               Invite Barber
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Content area */}
