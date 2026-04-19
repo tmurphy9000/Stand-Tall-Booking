@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import ThemeCustomizer from "./ThemeCustomizer";
 
+
 const STORAGE_KEY = "calendar_show_working_only";
 const TIP_PREFS_KEY = "tip_display_preferences";
 
