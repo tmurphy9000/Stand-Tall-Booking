@@ -179,11 +179,27 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
     onSave(bookingData);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.client_name || !form.barber_id || !form.service_id) return;
+
+    // Auto-create client if doesn't exist and not a blocked time
+    let finalClientId = form.client_id;
+    if (!isBlockTime && !form.client_id && form.client_name && form.client_email) {
+      try {
+        const newClient = await base44.entities.Client.create({
+          name: form.client_name,
+          email: form.client_email,
+          phone: form.client_phone || "",
+        });
+        finalClientId = newClient.id;
+      } catch (error) {
+        console.error("Error creating client:", error);
+      }
+    }
 
     const baseBooking = {
       ...form,
+      client_id: finalClientId,
       barber_name: selectedBarber?.name || "",
       service_name: selectedService?.name || form.service_name || "Blocked",
       duration: serviceDuration,
