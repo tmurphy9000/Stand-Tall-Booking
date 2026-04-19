@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Calendar, Clock, Loader2 } from "lucide-react";
 import { format, addDays, isAfter, isBefore, startOfDay } from "date-fns";
-import DayPicker from "react-day-picker";
+import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 
 export default function DateAndTimeSelection({ client, barber, onSuccess, onBack }) {
