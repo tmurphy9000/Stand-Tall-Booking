@@ -360,6 +360,5 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
       </div>
     </div>
     </div>
-    </div>
   );
 }
