@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { AlertCircle } from "lucide-react";
-import { base44 } from "@/api/base44Client";
 import { toast } from "sonner";
 
 export default function NoShowDialog({ open, booking, onClose, onConfirm }) {
@@ -18,21 +17,10 @@ export default function NoShowDialog({ open, booking, onClose, onConfirm }) {
 
       // Send notification if toggle is on
       if (notifyClient && booking.client_email) {
-        await base44.integrations.Core.SendEmail({
-          to: booking.client_email,
-          subject: "Appointment No-Show Notification",
-          body: `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h2 style="color: #333;">Appointment No-Show</h2>
-              <p>Hello ${booking.client_name},</p>
-              <p>Your appointment scheduled for <strong>${booking.date}</strong> at <strong>${booking.start_time}</strong> has been marked as a no-show${addToHistory ? ' and added to your appointment history' : ''}.</p>
-              <p>If you have any questions or concerns, please contact us:</p>
-              <p style="font-size: 18px; font-weight: bold; color: #8B9A7E;">📞 728-289-1010</p>
-              <p>Thank you,<br>Stand Tall Barbershop</p>
-            </div>
-          `
-        });
-        toast.success("No-show notification sent");
+        // Email delivery requires a configured email service.
+        // Wire up your preferred provider (e.g. Supabase Edge Function + SendGrid) here.
+        console.log("Would notify client:", booking.client_email);
+        toast.success("No-show recorded (email service not configured)");
       }
 
       onClose();

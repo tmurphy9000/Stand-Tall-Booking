@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,17 +23,17 @@ export default function PayrollManager() {
 
   const { data: barbers = [] } = useQuery({
     queryKey: ["barbers"],
-    queryFn: () => base44.entities.Barber.list(),
+    queryFn: () => entities.Barber.list(),
   });
 
   const { data: sensitiveInfo = [] } = useQuery({
     queryKey: ["barberSensitiveInfo"],
-    queryFn: () => base44.entities.BarberSensitiveInfo.list(),
+    queryFn: () => entities.BarberSensitiveInfo.list(),
     enabled: hasFullAccess,
   });
 
   const updateInfo = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.BarberSensitiveInfo.update(id, data),
+    mutationFn: ({ id, data }) => entities.BarberSensitiveInfo.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["barberSensitiveInfo"] });
       toast.success("Payroll information updated");
@@ -43,7 +43,7 @@ export default function PayrollManager() {
   });
 
   const deleteInfo = useMutation({
-    mutationFn: (id) => base44.entities.BarberSensitiveInfo.delete(id),
+    mutationFn: (id) => entities.BarberSensitiveInfo.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["barberSensitiveInfo"] });
       toast.success("Payroll information deleted");

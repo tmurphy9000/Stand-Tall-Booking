@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePermissions } from "../components/permissions/usePermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,16 +25,16 @@ export default function StaffSchedule() {
 
   const { data: timeOffRequests = [] } = useQuery({
     queryKey: ["timeOffRequests"],
-    queryFn: () => base44.entities.TimeOffRequest.list("-created_date"),
+    queryFn: () => entities.TimeOffRequest.list("-created_date"),
   });
 
   const { data: barbers = [] } = useQuery({
     queryKey: ["barbers"],
-    queryFn: () => base44.entities.Barber.list(),
+    queryFn: () => entities.Barber.list(),
   });
 
   const createRequest = useMutation({
-    mutationFn: (data) => base44.entities.TimeOffRequest.create(data),
+    mutationFn: (data) => entities.TimeOffRequest.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["timeOffRequests"] });
       toast.success("Time-off request submitted");
@@ -44,7 +44,7 @@ export default function StaffSchedule() {
   });
 
   const updateRequest = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.TimeOffRequest.update(id, data),
+    mutationFn: ({ id, data }) => entities.TimeOffRequest.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["timeOffRequests"] });
       toast.success("Request updated");

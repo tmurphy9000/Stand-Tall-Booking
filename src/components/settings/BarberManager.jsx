@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,8 +44,11 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
   const handlePhoto = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    set("photo_url", file_url);
+    const path = `barbers/${Date.now()}_${file.name}`;
+    const { data, error } = await supabase.storage.from('photos').upload(path, file, { upsert: true });
+    if (error) { console.error('Photo upload failed:', error); return; }
+    const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(data.path);
+    set("photo_url", publicUrl);
   };
 
   return (

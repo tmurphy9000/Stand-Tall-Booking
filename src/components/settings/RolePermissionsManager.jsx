@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
+import { auth } from "@/api/auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
@@ -31,17 +32,17 @@ export default function RolePermissionsManager() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => setUser(null));
+    auth.me().then(setUser).catch(() => setUser(null));
   }, []);
 
   const { data: rolePermissions = [] } = useQuery({
     queryKey: ["role-permissions"],
-    queryFn: () => base44.entities.RolePermissions.list(),
+    queryFn: () => entities.RolePermissions.list(),
   });
 
   const updatePermission = useMutation({
     mutationFn: ({ id, permissionKey, value }) =>
-      base44.entities.RolePermissions.update(id, { [permissionKey]: value }),
+      entities.RolePermissions.update(id, { [permissionKey]: value }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["role-permissions"] });
       toast.success("Permission updated");
@@ -70,7 +71,7 @@ export default function RolePermissionsManager() {
         view_cash_tracker: role !== "service_provider",
         manage_settings: role === "owner",
       };
-      await base44.entities.RolePermissions.create(defaultPerms);
+      await entities.RolePermissions.create(defaultPerms);
       queryClient.invalidateQueries({ queryKey: ["role-permissions"] });
     }
   };

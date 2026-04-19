@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -14,7 +14,7 @@ export default function NotificationBell({ userEmail, userType = "staff" }) {
     queryKey: ["notifications", userEmail],
     queryFn: async () => {
       if (!userEmail) return [];
-      return await base44.entities.Notification.filter(
+      return await entities.Notification.filter(
         { recipient_email: userEmail, recipient_type: userType },
         "-created_date"
       );
@@ -23,7 +23,7 @@ export default function NotificationBell({ userEmail, userType = "staff" }) {
   });
 
   const markAsRead = useMutation({
-    mutationFn: (id) => base44.entities.Notification.update(id, { is_read: true }),
+    mutationFn: (id) => entities.Notification.update(id, { is_read: true }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
@@ -32,7 +32,7 @@ export default function NotificationBell({ userEmail, userType = "staff" }) {
   const markAllRead = useMutation({
     mutationFn: async () => {
       const unread = notifications.filter(n => !n.is_read);
-      await Promise.all(unread.map(n => base44.entities.Notification.update(n.id, { is_read: true })));
+      await Promise.all(unread.map(n => entities.Notification.update(n.id, { is_read: true })));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifications"] });

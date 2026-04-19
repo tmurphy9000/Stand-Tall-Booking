@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
+import { auth } from "@/api/auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,21 +20,21 @@ export default function InventoryPage() {
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ["products"],
-    queryFn: () => base44.entities.Product.list(),
+    queryFn: () => entities.Product.list(),
   });
 
   const createProduct = useMutation({
-    mutationFn: (data) => base44.entities.Product.create(data),
+    mutationFn: (data) => entities.Product.create(data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["products"] }); setShowForm(false); },
   });
 
   const updateProduct = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Product.update(id, data),
+    mutationFn: ({ id, data }) => entities.Product.update(id, data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["products"] }); setShowForm(false); setEditProduct(null); },
   });
 
   const deleteProduct = useMutation({
-    mutationFn: (id) => base44.entities.Product.delete(id),
+    mutationFn: (id) => entities.Product.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["products"] }),
   });
 
@@ -43,10 +44,10 @@ export default function InventoryPage() {
       const currentStock = product.stock_quantity || 0;
       const newStock = type === "add" ? currentStock + quantity : currentStock - quantity;
       
-      await base44.entities.Product.update(productId, { stock_quantity: Math.max(0, newStock) });
+      await entities.Product.update(productId, { stock_quantity: Math.max(0, newStock) });
       
-      const user = await base44.auth.me();
-      await base44.entities.InventoryAdjustment.create({
+      const user = await auth.me();
+      await entities.InventoryAdjustment.create({
         product_id: productId,
         product_name: product.name,
         adjustment_type: type,
@@ -68,29 +69,30 @@ export default function InventoryPage() {
     const file = e.target.files[0];
     if (!file) return;
     setImporting(true);
-    const { file_url } = await base44.integrations.Core.UploadFile({ file });
-    const result = await base44.integrations.Core.ExtractDataFromUploadedFile({
-      file_url,
-      json_schema: {
-        type: "array",
-        items: {
-          type: "object",
-          properties: {
-            name: { type: "string" },
-            sku: { type: "string" },
-            category: { type: "string" },
-            cost_per_unit: { type: "number" },
-            retail_price: { type: "number" },
-            stock_quantity: { type: "number" },
-          },
-        },
-      },
-    });
-    if (result.status === "success" && Array.isArray(result.output)) {
-      await base44.entities.Product.bulkCreate(result.output);
-      queryClient.invalidateQueries({ queryKey: ["products"] });
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').filter(l => l.trim());
+      if (lines.length < 2) { toast.error("CSV must have a header row and at least one data row"); return; }
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/\s+/g, '_'));
+      const rows = lines.slice(1).map(line => {
+        const values = line.split(',');
+        const row = {};
+        headers.forEach((h, i) => {
+          const val = values[i]?.trim().replace(/^"|"$/g, '') ?? '';
+          row[h] = ['cost_per_unit', 'retail_price', 'stock_quantity'].includes(h) ? parseFloat(val) || 0 : val;
+        });
+        return row;
+      }).filter(r => r.name);
+      if (rows.length) {
+        await entities.Product.bulkCreate(rows);
+        queryClient.invalidateQueries({ queryKey: ["products"] });
+        toast.success(`Imported ${rows.length} products`);
+      }
+    } catch (err) {
+      toast.error("CSV import failed: " + err.message);
+    } finally {
+      setImporting(false);
     }
-    setImporting(false);
   };
 
   const handleSave = (data) => {

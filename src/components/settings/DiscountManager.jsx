@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,21 +19,21 @@ export default function DiscountManager() {
 
   const { data: discounts = [] } = useQuery({
     queryKey: ["discounts"],
-    queryFn: () => base44.entities.Discount.list(),
+    queryFn: () => entities.Discount.list(),
   });
 
   const createDiscount = useMutation({
-    mutationFn: (data) => base44.entities.Discount.create(data),
+    mutationFn: (data) => entities.Discount.create(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["discounts"] }),
   });
 
   const updateDiscount = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Discount.update(id, data),
+    mutationFn: ({ id, data }) => entities.Discount.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["discounts"] }),
   });
 
   const deleteDiscount = useMutation({
-    mutationFn: (id) => base44.entities.Discount.delete(id),
+    mutationFn: (id) => entities.Discount.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["discounts"] }),
   });
 

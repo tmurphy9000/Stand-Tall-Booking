@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,12 +24,12 @@ export default function AdminPasswordManager({ settings }) {
       }
       
       if (settings?.id) {
-        return await base44.entities.ShopSettings.update(settings.id, {
+        return await entities.ShopSettings.update(settings.id, {
           admin_password_1: password1,
           admin_password_2: password2,
         });
       } else {
-        return await base44.entities.ShopSettings.create({
+        return await entities.ShopSettings.create({
           admin_password_1: password1,
           admin_password_2: password2,
         });

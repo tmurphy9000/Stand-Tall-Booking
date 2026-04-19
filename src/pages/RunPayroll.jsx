@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
+import { functions } from "@/api/functions";
 import { useQuery } from "@tanstack/react-query";
 import { format, subDays } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -21,22 +22,22 @@ export default function RunPayrollPage() {
 
   const { data: bookings = [], isLoading: bookingsLoading } = useQuery({
     queryKey: ["bookings-all"],
-    queryFn: () => base44.entities.Booking.list("-date", 1000),
+    queryFn: () => entities.Booking.list("-date", 1000),
   });
 
   const { data: barbers = [], isLoading: barbersLoading } = useQuery({
     queryKey: ["barbers"],
-    queryFn: () => base44.entities.Barber.list(),
+    queryFn: () => entities.Barber.list(),
   });
 
   const { data: cashTx = [], isLoading: cashLoading } = useQuery({
     queryKey: ["cash-all"],
-    queryFn: () => base44.entities.CashTransaction.list("-created_date", 1000),
+    queryFn: () => entities.CashTransaction.list("-created_date", 1000),
   });
 
   const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: ["products-all"],
-    queryFn: () => base44.entities.Product.list(),
+    queryFn: () => entities.Product.list(),
   });
 
   const { startDate, endDate } = useMemo(() => {
@@ -103,7 +104,7 @@ export default function RunPayrollPage() {
   const handleSubmitPayroll = async () => {
     setIsSubmitting(true);
     try {
-      const response = await base44.functions.invoke("gustoPayroll", {
+      const response = await functions.invoke("gustoPayroll", {
         payrollData,
         startDate,
         endDate,

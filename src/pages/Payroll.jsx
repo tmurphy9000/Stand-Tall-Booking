@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,12 +18,12 @@ export default function PayrollPage() {
 
   const { data: barbers = [], isLoading: barbersLoading } = useQuery({
     queryKey: ["barbers"],
-    queryFn: () => base44.entities.Barber.list(),
+    queryFn: () => entities.Barber.list(),
   });
 
   const { data: bookings = [], isLoading: bookingsLoading } = useQuery({
     queryKey: ["payroll-bookings", startDate, endDate],
-    queryFn: () => base44.entities.Booking.filter({
+    queryFn: () => entities.Booking.filter({
       status: "completed",
       date: { $gte: startDate, $lte: endDate }
     }),

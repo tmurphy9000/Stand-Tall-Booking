@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
 import { useQuery } from "@tanstack/react-query";
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, parseISO } from "date-fns";
 import { Input } from "@/components/ui/input";
@@ -19,27 +19,27 @@ export default function ReportsPage() {
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["bookings-all"],
-    queryFn: () => base44.entities.Booking.list("-date", 1000),
+    queryFn: () => entities.Booking.list("-date", 1000),
   });
 
   const { data: barbers = [] } = useQuery({
     queryKey: ["barbers"],
-    queryFn: () => base44.entities.Barber.list(),
+    queryFn: () => entities.Barber.list(),
   });
 
   const { data: cashTx = [] } = useQuery({
     queryKey: ["cash-all"],
-    queryFn: () => base44.entities.CashTransaction.list("-created_date", 1000),
+    queryFn: () => entities.CashTransaction.list("-created_date", 1000),
   });
 
   const { data: services = [] } = useQuery({
     queryKey: ["services"],
-    queryFn: () => base44.entities.Service.list(),
+    queryFn: () => entities.Service.list(),
   });
 
   const { data: products = [] } = useQuery({
     queryKey: ["products"],
-    queryFn: () => base44.entities.Product.list(),
+    queryFn: () => entities.Product.list(),
   });
 
   const cutoff = format(subDays(new Date(), parseInt(dateRange)), "yyyy-MM-dd");

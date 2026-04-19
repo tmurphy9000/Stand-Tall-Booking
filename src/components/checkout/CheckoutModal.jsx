@@ -5,7 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, Plus, DollarSign, CreditCard } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
+import { functions } from "@/api/functions";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";
@@ -23,28 +24,28 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
 
   const { data: services = [] } = useQuery({
     queryKey: ["services"],
-    queryFn: () => base44.entities.Service.list(),
+    queryFn: () => entities.Service.list(),
   });
 
   const { data: products = [] } = useQuery({
     queryKey: ["products"],
-    queryFn: () => base44.entities.Product.list(),
+    queryFn: () => entities.Product.list(),
   });
 
   const { data: barbers = [] } = useQuery({
     queryKey: ["barbers"],
-    queryFn: () => base44.entities.Barber.list(),
+    queryFn: () => entities.Barber.list(),
   });
 
   const { data: bookings = [] } = useQuery({
     queryKey: ["bookings"],
-    queryFn: () => base44.entities.Booking.list("-date", 100),
+    queryFn: () => entities.Booking.list("-date", 100),
     enabled: open,
   });
 
   const { data: presetDiscounts = [] } = useQuery({
     queryKey: ["discounts"],
-    queryFn: () => base44.entities.Discount.list(),
+    queryFn: () => entities.Discount.list(),
     enabled: open,
   });
 
@@ -132,7 +133,7 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
   const handleCheckout = async (paymentIntentId = null) => {
     try {
       // Update primary booking
-      await base44.entities.Booking.update(booking.id, {
+      await entities.Booking.update(booking.id, {
         status: "completed",
         payment_method: paymentMethod,
         discount_type: discount.type,
@@ -142,7 +143,7 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
 
       // Update additional bookings
       for (const bookingId of additionalBookings) {
-        await base44.entities.Booking.update(bookingId, {
+        await entities.Booking.update(bookingId, {
           status: "completed",
           payment_method: paymentMethod,
         });
@@ -150,7 +151,7 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
 
       // Record cash transaction if cash payment
       if (paymentMethod === "cash") {
-        await base44.entities.CashTransaction.create({
+        await entities.CashTransaction.create({
           type: "inflow",
           amount: total,
           barber_id: booking.barber_id,
@@ -166,7 +167,7 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
       for (const item of items.filter(i => i.type === "product")) {
         const product = products.find(p => p.id === item.productId);
         if (product) {
-          await base44.entities.Product.update(item.productId, {
+          await entities.Product.update(item.productId, {
             stock_quantity: Math.max(0, (product.stock_quantity || 0) - 1),
             total_units_sold: (product.total_units_sold || 0) + 1,
             total_revenue: (product.total_revenue || 0) + item.price,
@@ -285,7 +286,7 @@ function CheckoutContent({
 
       setProcessing(true);
       try {
-        const { data: { clientSecret } } = await base44.functions.invoke("createStripePayment", {
+        const { data: { clientSecret } } = await functions.invoke("createStripePayment", {
           amount: Math.round(total * 100),
           description: `Checkout: ${booking.client_name}`,
           metadata: { booking_id: booking.id }

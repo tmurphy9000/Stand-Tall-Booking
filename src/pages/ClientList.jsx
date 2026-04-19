@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
 import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -15,13 +15,13 @@ export default function ClientList() {
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
-    queryFn: () => base44.entities.Client.list("-last_visit"),
+    queryFn: () => entities.Client.list("-last_visit"),
     enabled: search.length > 0,
   });
 
   const { data: reviews = [] } = useQuery({
     queryKey: ["reviews"],
-    queryFn: () => base44.entities.Review.list(),
+    queryFn: () => entities.Review.list(),
   });
 
   const filteredClients = search.length > 0 ? clients.filter(c => {

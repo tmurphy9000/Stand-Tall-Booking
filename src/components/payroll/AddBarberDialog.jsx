@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   Dialog,
@@ -35,10 +35,10 @@ export default function AddBarberDialog({ open, onOpenChange }) {
 
   const createBarberMutation = useMutation({
     mutationFn: async () => {
-      const barber = await base44.entities.Barber.create(formData);
+      const barber = await entities.Barber.create(formData);
       
       if (sensitiveData.full_legal_name) {
-        await base44.entities.BarberSensitiveInfo.create({
+        await entities.BarberSensitiveInfo.create({
           barber_id: barber.id,
           ...sensitiveData,
         });

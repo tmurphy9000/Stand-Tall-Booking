@@ -3,13 +3,11 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { Calendar, Package, BarChart3, Banknote, Settings, Scissors, DollarSign, ChevronLeft, ChevronRight, Users, Lock, Monitor, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { base44 } from "@/api/base44Client";
 import NotificationBell from "./components/notifications/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { useViewMode } from "./lib/ViewModeContext";
-
 import { usePermissions } from "./components/permissions/usePermissions";
 
 const tabs = [
@@ -28,14 +26,9 @@ const settingsTab = { name: "Settings", icon: Settings, page: "Settings" };
 
 export default function Layout({ children, currentPageName }) {
   const showTabs = !["ClientList"].includes(currentPageName);
-  const [user, setUser] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { hasFullAccess, currentBarber } = usePermissions();
+  const { hasFullAccess, currentBarber, user } = usePermissions();
   const { isMobile, setIsMobile } = useViewMode();
-
-  useEffect(() => {
-    base44.auth.me().then(setUser).catch(() => setUser(null));
-  }, []);
 
   return (
     <div className="min-h-screen bg-[#FAFAF8] flex">
@@ -47,7 +40,7 @@ export default function Layout({ children, currentPageName }) {
         )}>
           {/* Logo */}
           <Link to={createPageUrl("Calendar")} className={cn("flex flex-col items-center py-4 border-b border-white/10 flex-shrink-0", sidebarCollapsed && "opacity-0")}>
-            <img 
+            <img
               src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6993eba91209ee0a1089f355/fd9cfe023_6f5fd5cc-8fc9-4041-9d87-c24e77a3bc58.png"
               alt="Stand Tall Barbershop"
               className="w-24 h-24 rounded-lg"
@@ -78,10 +71,10 @@ export default function Layout({ children, currentPageName }) {
                 <span className="text-[9px] text-[#FAFAF8]/80 text-center leading-tight">{user.full_name}</span>
               </div>
             ) : (
-              <Button 
-                size="sm" 
+              <Button
+                size="sm"
                 className="w-full h-8 text-xs bg-[#B0BFA4] hover:bg-[#8B9A7E]"
-                onClick={() => base44.auth.redirectToLogin()}
+                onClick={() => window.location.href = '/barber-login'}
               >
                 Sign In
               </Button>
@@ -173,7 +166,7 @@ export default function Layout({ children, currentPageName }) {
               </div>
             )}
           </div>
-          </nav>
+        </nav>
       )}
 
       {/* Collapse Toggle Button */}

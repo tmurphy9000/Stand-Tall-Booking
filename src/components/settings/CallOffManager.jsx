@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,12 +21,12 @@ export default function CallOffManager() {
 
   const { data: barbers = [] } = useQuery({
     queryKey: ["barbers"],
-    queryFn: () => base44.entities.Barber.list(),
+    queryFn: () => entities.Barber.list(),
   });
 
   const { data: bookings = [] } = useQuery({
     queryKey: ["bookings", selectedBarber, format(selectedDate, "yyyy-MM-dd")],
-    queryFn: () => base44.entities.Booking.filter({
+    queryFn: () => entities.Booking.filter({
       barber_id: selectedBarber,
       date: format(selectedDate, "yyyy-MM-dd"),
       status: { $in: ["scheduled", "confirmed", "checked_in"] }
@@ -40,11 +40,9 @@ export default function CallOffManager() {
       
       for (const booking of selectedBookingsList) {
         if (booking.client_email) {
-          await base44.integrations.Core.SendEmail({
-            to: booking.client_email,
-            subject: `Important Update About Your Appointment - ${format(selectedDate, "MMM d")}`,
-            body: message,
-          });
+          // Email delivery requires a configured email service (e.g. Supabase Edge Function + SendGrid).
+          // Log intended emails for now; wire up your preferred provider here.
+          console.log("Would send email to:", booking.client_email, { subject: `Important Update About Your Appointment - ${format(selectedDate, "MMM d")}`, body: message });
         }
       }
     },

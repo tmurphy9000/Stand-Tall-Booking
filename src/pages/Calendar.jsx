@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, addDays, startOfWeek } from "date-fns";
 import CalendarHeader from "../components/calendar/CalendarHeader";
@@ -36,17 +36,17 @@ export default function CalendarPage() {
 
   const { data: barbers = [], isLoading: barbersLoading } = useQuery({
     queryKey: ["barbers"],
-    queryFn: () => base44.entities.Barber.list(),
+    queryFn: () => entities.Barber.list(),
   });
 
   const { data: services = [] } = useQuery({
     queryKey: ["services"],
-    queryFn: () => base44.entities.Service.list(),
+    queryFn: () => entities.Service.list(),
   });
 
   const { data: shopSettingsArr = [] } = useQuery({
     queryKey: ["shopSettings"],
-    queryFn: () => base44.entities.ShopSettings.list(),
+    queryFn: () => entities.ShopSettings.list(),
   });
   const shopSettings = shopSettingsArr[0] || {};
 
@@ -59,25 +59,25 @@ export default function CalendarPage() {
   const { data: bookings = [], isLoading: bookingsLoading, isFetching: bookingsFetching } = useQuery({
     queryKey: ["bookings", dateRange[0], dateRange[dateRange.length - 1]],
     queryFn: async () => {
-      const all = await base44.entities.Booking.list("-date", 500);
+      const all = await entities.Booking.list("-date", 500);
       return all.filter(b => b.date >= dateRange[0] && b.date <= dateRange[dateRange.length - 1]);
     },
   });
 
   const { data: cashTransactions = [] } = useQuery({
     queryKey: ["cashTransactions"],
-    queryFn: () => base44.entities.CashTransaction.list("-date", 500),
+    queryFn: () => entities.CashTransaction.list("-date", 500),
   });
 
   const createBooking = useMutation({
-    mutationFn: (data) => base44.entities.Booking.create(data),
+    mutationFn: (data) => entities.Booking.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
     },
   });
 
   const handleCreateBooking = async (data) => {
-    await base44.entities.Booking.create(data);
+    await entities.Booking.create(data);
     queryClient.invalidateQueries({ queryKey: ["bookings"] });
     setShowBookingForm(false);
     setShowQuickBooking(false);
@@ -87,7 +87,7 @@ export default function CalendarPage() {
     // bookingsData may be one or many — always treat as array
     const items = Array.isArray(bookingsData) ? bookingsData : [bookingsData];
     for (const item of items) {
-      await base44.entities.Booking.create(item);
+      await entities.Booking.create(item);
     }
     queryClient.invalidateQueries({ queryKey: ["bookings"] });
     setShowBookingForm(false);
@@ -95,7 +95,7 @@ export default function CalendarPage() {
   };
 
   const updateBooking = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Booking.update(id, data),
+    mutationFn: ({ id, data }) => entities.Booking.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bookings"] }),
   });
 
@@ -156,7 +156,7 @@ export default function CalendarPage() {
   };
 
   const deleteBooking = useMutation({
-    mutationFn: (id) => base44.entities.Booking.delete(id),
+    mutationFn: (id) => entities.Booking.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["bookings"] }),
   });
 
@@ -172,10 +172,10 @@ export default function CalendarPage() {
       return;
     }
     if (action === "delete_block_all" && extra?.repeat_group_id) {
-      const allBookings = await base44.entities.Booking.list("-date", 1000);
+      const allBookings = await entities.Booking.list("-date", 1000);
       const groupBookings = allBookings.filter(b => b.repeat_group_id === extra.repeat_group_id);
       for (const b of groupBookings) {
-        await base44.entities.Booking.delete(b.id);
+        await entities.Booking.delete(b.id);
       }
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       return;
@@ -185,11 +185,11 @@ export default function CalendarPage() {
     if (action === "no_show" || action === "late") {
       const booking = bookings.find(b => b.id === bookingId);
       if (booking?.client_id) {
-        const clients = await base44.entities.Client.filter({ id: booking.client_id });
+        const clients = await entities.Client.filter({ id: booking.client_id });
         const client = clients[0];
         if (client) {
           const field = action === "no_show" ? "no_show_count" : "late_count";
-          await base44.entities.Client.update(client.id, {
+          await entities.Client.update(client.id, {
             [field]: (client[field] || 0) + 1
           });
         }

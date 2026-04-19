@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { X, Plus, DollarSign, CreditCard } from "lucide-react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
+import { functions } from "@/api/functions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";
@@ -35,26 +36,26 @@ function QuickCheckoutContent() {
 
   const { data: services = [] } = useQuery({
     queryKey: ["services"],
-    queryFn: () => base44.entities.Service.list(),
+    queryFn: () => entities.Service.list(),
   });
 
   const { data: products = [] } = useQuery({
     queryKey: ["products"],
-    queryFn: () => base44.entities.Product.list(),
+    queryFn: () => entities.Product.list(),
   });
 
   const { data: barbers = [] } = useQuery({
     queryKey: ["barbers"],
-    queryFn: () => base44.entities.Barber.list(),
+    queryFn: () => entities.Barber.list(),
   });
 
   const updateProductMutation = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Product.update(id, data),
+    mutationFn: ({ id, data }) => entities.Product.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["products"] }),
   });
 
   const createCashTransactionMutation = useMutation({
-    mutationFn: (data) => base44.entities.CashTransaction.create(data),
+    mutationFn: (data) => entities.CashTransaction.create(data),
   });
 
   const addService = (serviceId) => {
@@ -133,7 +134,7 @@ function QuickCheckoutContent() {
 
       setProcessing(true);
       try {
-        const { data: { clientSecret } } = await base44.functions.invoke("createStripePayment", {
+        const { data: { clientSecret } } = await functions.invoke("createStripePayment", {
           amount: Math.round(total * 100),
           description: `Quick Checkout: ${clientName}`,
           metadata: { client_name: clientName }

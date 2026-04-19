@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
 import { toast } from "sonner";
 import { Mail, Loader2, ClipboardEdit, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -29,7 +29,7 @@ const EMPTY_PAYROLL = {
 export default function InviteBarberForm({ open, onClose, onSuccess }) {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
-  const [payrollEntry, setPayrollEntry] = useState("send"); // "manual" | "send"
+  const [payrollEntry, setPayrollEntry] = useState("send");
   const [payroll, setPayroll] = useState(EMPTY_PAYROLL);
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
@@ -45,11 +45,8 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
 
     setLoading(true);
     try {
-      // Invite to app
-      await base44.users.inviteUser(form.email, "user");
-
       // Create barber profile
-      const barberResult = await base44.entities.Barber.create({
+      const barberResult = await entities.Barber.create({
         name: fullName,
         email: form.email,
         phone: form.phone,
@@ -59,24 +56,16 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
       });
 
       // Create password record with temp password
-      const hashPassword = (pwd) => btoa(pwd); // Simple base64 for demo
-      await base44.asServiceRole.entities.BarberPassword.create({
+      const hashPassword = (pwd) => btoa(pwd);
+      await entities.BarberPassword.create({
         barber_id: barberResult.id,
         email: form.email,
         password_hash: hashPassword(form.temp_password),
         is_temp: true,
       });
 
-      // Sync existing barber records by name match and update with user_id
-      await base44.functions.invoke("syncBarberAccounts", {
-        barber_name: fullName,
-        user_id: barberResult.id,
-        email: form.email,
-      });
-
       if (payrollEntry === "manual") {
-        // Save sensitive info directly
-        await base44.entities.BarberSensitiveInfo.create({
+        await entities.BarberSensitiveInfo.create({
           barber_id: form.email,
           full_legal_name: fullName,
           drivers_license_number: payroll.drivers_license_number,
@@ -87,13 +76,11 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
         });
         toast.success(`${fullName} added and payroll info saved.`);
       } else {
-        // Send email with temporary password
-        await base44.integrations.Core.SendEmail({
-          to: form.email,
-          subject: "Welcome to Stand Tall Barbershop — Your Login Details",
-          body: `Hi ${form.first_name},\n\nWelcome to Stand Tall Barbershop! Your account has been created.\n\nTemporary Password: ${form.temp_password}\n\nPlease log in and change your password immediately. You'll also need to complete your payroll information (SSN, bank details, driver's license) so we can set you up on payroll.\n\nIf you have any questions, reach out to your manager.\n\nSee you soon!`,
-        });
-        toast.success(`${fullName} invited! Temporary password sent to ${form.email}.`);
+        // Email sending via Supabase edge functions or external service
+        // For now, show the temp password to share manually
+        toast.success(
+          `${fullName} added! Share their temporary password: ${form.temp_password}`
+        );
       }
 
       setForm(EMPTY_FORM);
@@ -102,7 +89,7 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
       onSuccess?.();
       onClose();
     } catch (error) {
-      toast.error(error.message || "Failed to invite barber");
+      toast.error(error.message || "Failed to add barber");
     } finally {
       setLoading(false);
     }
@@ -126,59 +113,34 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-gray-500">First Name *</Label>
-                <Input
-                  value={form.first_name}
-                  onChange={e => set("first_name", e.target.value)}
-                  placeholder="John"
-                />
+                <Input value={form.first_name} onChange={e => set("first_name", e.target.value)} placeholder="John" />
               </div>
               <div>
                 <Label className="text-xs text-gray-500">Last Name *</Label>
-                <Input
-                  value={form.last_name}
-                  onChange={e => set("last_name", e.target.value)}
-                  placeholder="Doe"
-                />
+                <Input value={form.last_name} onChange={e => set("last_name", e.target.value)} placeholder="Doe" />
               </div>
             </div>
 
             <div>
               <Label className="text-xs text-gray-500">Phone Number</Label>
-              <Input
-                type="tel"
-                value={form.phone}
-                onChange={e => set("phone", e.target.value)}
-                placeholder="(555) 000-0000"
-              />
+              <Input type="tel" value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="(555) 000-0000" />
             </div>
 
             <div>
               <Label className="text-xs text-gray-500">Email (Login) *</Label>
-              <Input
-                type="email"
-                value={form.email}
-                onChange={e => set("email", e.target.value)}
-                placeholder="barber@example.com"
-              />
+              <Input type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="barber@example.com" />
             </div>
 
             <div>
               <Label className="text-xs text-gray-500">Temporary Password *</Label>
-              <Input
-                type="password"
-                value={form.temp_password}
-                onChange={e => set("temp_password", e.target.value)}
-                placeholder="Create a temporary password"
-              />
+              <Input type="password" value={form.temp_password} onChange={e => set("temp_password", e.target.value)} placeholder="Create a temporary password" />
               <p className="text-xs text-gray-400 mt-1">They'll be asked to change this on first login</p>
             </div>
 
             <div>
               <Label className="text-xs text-gray-500">Role</Label>
               <Select value={form.role} onValueChange={v => set("role", v)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="service_provider">Service Provider (Barber)</SelectItem>
                   <SelectItem value="manager">Manager</SelectItem>
@@ -205,8 +167,8 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
                 )}
               >
                 <Send className="w-5 h-5" />
-                <span>Email the Barber</span>
-                <span className="text-xs font-normal text-center">They fill it in themselves via email</span>
+                <span>Share Manually</span>
+                <span className="text-xs font-normal text-center">Share temp password directly</span>
               </button>
 
               <button
@@ -252,33 +214,15 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
               </div>
             </div>
           )}
-
-          {payrollEntry === "send" && (
-            <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-700">
-              An email will be sent to <strong>{form.email || "the barber"}</strong> asking them to log in and complete their payroll information.
-            </div>
-          )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={loading}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="bg-[#8B9A7E] hover:bg-[#6B7A5E] text-white"
-          >
+          <Button variant="outline" onClick={onClose} disabled={loading}>Cancel</Button>
+          <Button onClick={handleSubmit} disabled={loading} className="bg-[#8B9A7E] hover:bg-[#6B7A5E] text-white">
             {loading ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Saving...
-              </>
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Saving...</>
             ) : (
-              <>
-                <Mail className="w-4 h-4 mr-2" />
-                {payrollEntry === "send" ? "Invite & Send Email" : "Add Barber"}
-              </>
+              <><Mail className="w-4 h-4 mr-2" />Add Barber</>
             )}
           </Button>
         </DialogFooter>

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Input } from "@/components/ui/input";
@@ -34,56 +34,56 @@ export default function SettingsPage() {
 
   const { data: barbers = [], isLoading: barbersLoading } = useQuery({
     queryKey: ["barbers"],
-    queryFn: () => base44.entities.Barber.list(),
+    queryFn: () => entities.Barber.list(),
   });
 
   const { data: services = [], isLoading: servicesLoading } = useQuery({
     queryKey: ["services"],
-    queryFn: () => base44.entities.Service.list(),
+    queryFn: () => entities.Service.list(),
   });
 
   const { data: settingsArr = [], isLoading: settingsLoading } = useQuery({
     queryKey: ["shopSettings"],
-    queryFn: () => base44.entities.ShopSettings.list(),
+    queryFn: () => entities.ShopSettings.list(),
   });
   const settings = settingsArr[0] || {};
 
   const createBarber = useMutation({
-    mutationFn: (data) => base44.entities.Barber.create(data),
+    mutationFn: (data) => entities.Barber.create(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["barbers"] }),
   });
 
   const updateBarber = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Barber.update(id, data),
+    mutationFn: ({ id, data }) => entities.Barber.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["barbers"] }),
   });
 
   const deleteBarber = useMutation({
-    mutationFn: (id) => base44.entities.Barber.delete(id),
+    mutationFn: (id) => entities.Barber.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["barbers"] }),
   });
 
   const createService = useMutation({
-    mutationFn: (data) => base44.entities.Service.create(data),
+    mutationFn: (data) => entities.Service.create(data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["services"] }),
   });
 
   const updateService = useMutation({
-    mutationFn: ({ id, data }) => base44.entities.Service.update(id, data),
+    mutationFn: ({ id, data }) => entities.Service.update(id, data),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["services"] }),
   });
 
   const deleteService = useMutation({
-    mutationFn: (id) => base44.entities.Service.delete(id),
+    mutationFn: (id) => entities.Service.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["services"] }),
   });
 
   const saveSettings = useMutation({
     mutationFn: async (data) => {
       if (settings.id) {
-        return base44.entities.ShopSettings.update(settings.id, data);
+        return entities.ShopSettings.update(settings.id, data);
       }
-      return base44.entities.ShopSettings.create(data);
+      return entities.ShopSettings.create(data);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["shopSettings"] }),
   });

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
 import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
@@ -23,13 +23,13 @@ export default function PastPayrollReports({ open, onClose }) {
 
   const { data: barbers = [] } = useQuery({
     queryKey: ["barbers"],
-    queryFn: () => base44.entities.Barber.list(),
+    queryFn: () => entities.Barber.list(),
     enabled: open,
   });
 
   const { data: bookings = [], isLoading: bookingsLoading } = useQuery({
     queryKey: ["past-payroll-bookings", startDate, endDate],
-    queryFn: () => base44.entities.Booking.filter({
+    queryFn: () => entities.Booking.filter({
       status: "completed",
       date: { $gte: startDate, $lte: endDate }
     }),
@@ -38,7 +38,7 @@ export default function PastPayrollReports({ open, onClose }) {
 
   const { data: cashTx = [], isLoading: cashLoading } = useQuery({
     queryKey: ["past-payroll-cash", startDate, endDate],
-    queryFn: () => base44.entities.CashTransaction.list("-created_date", 1000),
+    queryFn: () => entities.CashTransaction.list("-created_date", 1000),
     enabled: open,
   });
 

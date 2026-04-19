@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { base44 } from "@/api/base44Client";
+import { functions } from "@/api/functions";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,12 +42,10 @@ export default function ChangePassword() {
       toast.error("All fields are required");
       return;
     }
-
     if (newPassword !== confirmPassword) {
       toast.error("New passwords don't match");
       return;
     }
-
     if (newPassword.length < 6) {
       toast.error("Password must be at least 6 characters");
       return;
@@ -55,7 +53,7 @@ export default function ChangePassword() {
 
     setLoading(true);
     try {
-      const response = await base44.functions.invoke("changeBarberPassword", {
+      await functions.invoke("changeBarberPassword", {
         barber_id: barber.barber_id,
         old_password: oldPassword,
         new_password: newPassword,
@@ -90,7 +88,6 @@ export default function ChangePassword() {
           </p>
 
           <form onSubmit={handleChangePassword} className="space-y-4">
-            {/* Current Password */}
             <div>
               <Label className="text-sm text-gray-700">Current Password</Label>
               <div className="relative mt-1">
@@ -111,7 +108,6 @@ export default function ChangePassword() {
               </div>
             </div>
 
-            {/* New Password */}
             <div>
               <Label className="text-sm text-gray-700">New Password</Label>
               <Input
@@ -124,7 +120,6 @@ export default function ChangePassword() {
               />
             </div>
 
-            {/* Confirm Password */}
             <div>
               <Label className="text-sm text-gray-700">Confirm Password</Label>
               <Input
@@ -137,17 +132,13 @@ export default function ChangePassword() {
               />
             </div>
 
-            {/* Submit Button */}
             <Button
               type="submit"
               disabled={loading}
               className="w-full bg-[#8B9A7E] hover:bg-[#6B7A5E] text-white h-10 mt-6"
             >
               {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Updating...
-                </>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Updating...</>
               ) : (
                 "Update Password"
               )}

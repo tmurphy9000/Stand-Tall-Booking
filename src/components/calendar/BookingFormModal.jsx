@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, addMinutes, parse, addDays, addWeeks, addMonths } from "date-fns";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
 import { useQuery } from "@tanstack/react-query";
 
 export default function BookingFormModal({ open, onClose, onSave, barbers, services, prefill, bookings = [] }) {
@@ -33,12 +33,12 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
 
   const { data: clients = [], refetch: refetchClients } = useQuery({
     queryKey: ["clients"],
-    queryFn: () => base44.entities.Client.list(),
+    queryFn: () => entities.Client.list(),
   });
 
   const { data: timeOffRequests = [] } = useQuery({
     queryKey: ["timeOffRequests"],
-    queryFn: () => base44.entities.TimeOffRequest.filter({ status: "approved" }),
+    queryFn: () => entities.TimeOffRequest.filter({ status: "approved" }),
   });
 
   const isBarberAvailable = (barberId, date) => {
@@ -102,11 +102,11 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
     
     try {
       // Keep the newer account (current form), delete the older one
-      await base44.entities.Client.delete(duplicateClient.id);
+      await entities.Client.delete(duplicateClient.id);
       
       // If the current form doesn't have a client_id, create new client with merged data
       if (!form.client_id) {
-        const mergedClient = await base44.entities.Client.create({
+        const mergedClient = await entities.Client.create({
           name: form.client_name,
           email: form.client_email || duplicateClient.email,
           phone: form.client_phone || duplicateClient.phone,
@@ -186,7 +186,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
     let finalClientId = form.client_id;
     if (!isBlockTime && !form.client_id && form.client_name && form.client_email) {
       try {
-        const newClient = await base44.entities.Client.create({
+        const newClient = await entities.Client.create({
           name: form.client_name,
           email: form.client_email,
           phone: form.client_phone || "",

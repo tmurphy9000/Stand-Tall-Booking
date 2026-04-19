@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { base44 } from "@/api/base44Client";
+import { entities } from "@/api/entities";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, subDays } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -17,16 +17,16 @@ export default function CashTrackerPage() {
 
   const { data: transactions = [], isLoading } = useQuery({
     queryKey: ["cash-transactions"],
-    queryFn: () => base44.entities.CashTransaction.list("-created_date", 500),
+    queryFn: () => entities.CashTransaction.list("-created_date", 500),
   });
 
   const { data: barbers = [] } = useQuery({
     queryKey: ["barbers"],
-    queryFn: () => base44.entities.Barber.list(),
+    queryFn: () => entities.Barber.list(),
   });
 
   const createTx = useMutation({
-    mutationFn: (data) => base44.entities.CashTransaction.create(data),
+    mutationFn: (data) => entities.CashTransaction.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cash-transactions"] });
       setShowWithdrawal(false);
