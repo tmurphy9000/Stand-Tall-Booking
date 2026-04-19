@@ -4,24 +4,20 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, User, Phone, Mail, Star, Plus, ArrowLeft, List } from "lucide-react";
+import { Search, User, Phone, Mail, Star, ArrowLeft } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { usePermissions } from "../components/permissions/usePermissions";
-import AddClientDialog from "../components/client/AddClientDialog";
 import { toast } from "sonner";
 
 export default function ClientList() {
   const [search, setSearch] = useState("");
-  const [showAllClients, setShowAllClients] = useState(false);
-  const [showAddDialog, setShowAddDialog] = useState(false);
   const { hasFullAccess } = usePermissions();
-  const queryClient = useQueryClient();
 
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
     queryFn: () => base44.entities.Client.list("-last_visit"),
-    enabled: showAllClients || search.length > 0,
+    enabled: search.length > 0,
   });
 
   const { data: reviews = [] } = useQuery({
@@ -29,17 +25,7 @@ export default function ClientList() {
     queryFn: () => base44.entities.Review.list(),
   });
 
-  const createClient = useMutation({
-    mutationFn: (data) => base44.entities.Client.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["clients"] });
-      setShowAddDialog(false);
-      toast.success("Client added successfully");
-    },
-  });
-
-  const filteredClients = (showAllClients || search.length > 0) ? clients.filter(c => {
-    if (!search) return true;
+  const filteredClients = search.length > 0 ? clients.filter(c => {
     const searchLower = search.toLowerCase();
     const nameMatch = c.name?.toLowerCase().includes(searchLower);
     if (!hasFullAccess) return nameMatch;
@@ -70,14 +56,7 @@ export default function ClientList() {
               <p className="text-gray-600 text-sm">Manage and view all clients</p>
             </div>
           </div>
-          <Button
-            onClick={() => setShowAddDialog(true)}
-            className="bg-[#8B9A7E] hover:bg-[#6B7A5E] gap-2"
-            size="sm"
-          >
-            <Plus className="w-4 h-4" />
-            Add Client
-          </Button>
+
         </div>
 
         <div className="mb-6 flex gap-3">
@@ -90,23 +69,14 @@ export default function ClientList() {
               className="pl-10"
             />
           </div>
-          <Button
-            variant={showAllClients ? "default" : "outline"}
-            className={showAllClients ? "bg-[#8B9A7E] hover:bg-[#6B7A5E] gap-2" : "gap-2"}
-            onClick={() => setShowAllClients(!showAllClients)}
-          >
-            <List className="w-4 h-4" />
-            {showAllClients ? "Showing All" : "Show All"}
-          </Button>
         </div>
 
         <div className="grid gap-3">
           {filteredClients.map(client => {
             const rating = getClientRating(client.id);
             return (
-              <Link key={client.id} to={`${createPageUrl("ClientDetails")}?id=${client.id}`}>
-                <Card className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-4">
+              <Card key={client.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         {client.photo_url ? (
@@ -153,21 +123,20 @@ export default function ClientList() {
                         )}
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              </Link>
+                </CardContent>
+              </Card>
             );
           })}
         </div>
 
-        {!showAllClients && search.length === 0 && (
+        {search.length === 0 && (
           <Card>
             <CardContent className="p-12 text-center">
-              <p className="text-gray-500 mb-2">Search for a client by name or click "Show All" to load the full list</p>
+              <p className="text-gray-500 mb-2">Search for a client by name to view their details</p>
             </CardContent>
           </Card>
         )}
-        {(showAllClients || search.length > 0) && filteredClients.length === 0 && (
+        {search.length > 0 && filteredClients.length === 0 && (
           <Card>
             <CardContent className="p-12 text-center">
               <p className="text-gray-500">No clients found</p>
@@ -175,12 +144,6 @@ export default function ClientList() {
           </Card>
         )}
       </div>
-
-      <AddClientDialog
-        open={showAddDialog}
-        onClose={() => setShowAddDialog(false)}
-        onSave={(data) => createClient.mutate(data)}
-      />
     </div>
   );
 }
