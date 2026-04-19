@@ -2,15 +2,12 @@ import React, { useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, Mail, Phone } from "lucide-react";
-import ClientSignIn from "../components/booking/ClientSignIn";
-import ClientRegister from "../components/booking/ClientRegister";
+import ClientIdentification from "../components/booking/ClientIdentification";
 import AppointmentBooking from "../components/booking/AppointmentBooking";
 import BookingConfirmation from "../components/booking/BookingConfirmation";
 
 export default function PublicBooking() {
-  const [step, setStep] = useState("signin"); // signin, register, booking, confirmation
+  const [step, setStep] = useState("identify"); // identify, booking, confirmation
   const [client, setClient] = useState(null);
   const [booking, setBooking] = useState(null);
 
@@ -19,19 +16,14 @@ export default function PublicBooking() {
     queryFn: () => base44.entities.ShopSettings.list(),
   });
 
-  const handleSignInSuccess = (foundClient) => {
+  const handleIdentifySuccess = (foundClient) => {
     setClient(foundClient);
     setStep("booking");
   };
 
-  const handleRegisterSuccess = (newClient) => {
-    setClient(newClient);
-    setStep("booking");
-  };
-
-  const handleBackToSignIn = () => {
+  const handleBackToIdentify = () => {
     setClient(null);
-    setStep("signin");
+    setStep("identify");
   };
 
   const handleBookingSuccess = (bookingData) => {
@@ -59,31 +51,21 @@ export default function PublicBooking() {
 
         {/* Step Indicator */}
         <div className="flex justify-center gap-2 mb-6">
-          <div className={`h-2 w-12 rounded-full ${["signin", "register"].includes(step) ? "bg-[#C9A94E]" : "bg-gray-200"}`} />
+          <div className={`h-2 w-12 rounded-full ${step === "identify" ? "bg-[#C9A94E]" : "bg-gray-200"}`} />
           <div className={`h-2 w-12 rounded-full ${step === "booking" ? "bg-[#C9A94E]" : "bg-gray-200"}`} />
           <div className={`h-2 w-12 rounded-full ${step === "confirmation" ? "bg-[#C9A94E]" : "bg-gray-200"}`} />
         </div>
 
         {/* Content */}
-        {step === "signin" && (
-          <ClientSignIn 
-            onSuccess={handleSignInSuccess} 
-            onNeedRegister={() => setStep("register")}
-          />
-        )}
-
-        {step === "register" && (
-          <ClientRegister 
-            onSuccess={handleRegisterSuccess}
-            onBack={handleBackToSignIn}
-          />
+        {step === "identify" && (
+          <ClientIdentification onSuccess={handleIdentifySuccess} />
         )}
 
         {step === "booking" && client && (
           <AppointmentBooking 
             client={client}
             onSuccess={handleBookingSuccess}
-            onBack={handleBackToSignIn}
+            onBack={handleBackToIdentify}
           />
         )}
 
