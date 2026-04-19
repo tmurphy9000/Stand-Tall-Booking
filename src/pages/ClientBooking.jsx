@@ -110,6 +110,12 @@ export default function ClientBooking() {
       return;
     }
 
+    // Email and phone required for online bookings
+    if (!client.email || !client.phone) {
+      toast.error("Email and phone number are required to book online");
+      return;
+    }
+
     const service = services.find(s => s.id === selectedService);
     const barber = barbers.find(b => b.id === selectedBarber);
     
