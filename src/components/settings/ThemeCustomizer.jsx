@@ -63,6 +63,9 @@ function applyColors(colors) {
   root.style.setProperty("--accent", hexToHsl(colors.accent));
   root.style.setProperty("--sidebar-background", hexToHsl(colors.sidebar));
   root.style.setProperty("--sidebar-primary", hexToHsl(colors.sidebarAccent));
+  // Directly set body and main content background to override hardcoded Tailwind classes
+  document.body.style.backgroundColor = colors.background;
+  document.body.style.color = colors.foreground;
 }
 
 export default function ThemeCustomizer() {

@@ -24,6 +24,8 @@ try {
     applyVar("--accent", saved.accent);
     applyVar("--sidebar-background", saved.sidebar);
     applyVar("--sidebar-primary", saved.sidebarAccent);
+    document.body.style.backgroundColor = saved.background;
+    document.body.style.color = saved.foreground;
   }
 } catch {}
 
