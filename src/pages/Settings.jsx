@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff, Tag, Monitor, Cpu, CreditCard, Bell } from "lucide-react";
+import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff, Tag, Monitor, Cpu, CreditCard, Bell, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import BarberManager from "../components/settings/BarberManager";
 import ServiceManager from "../components/settings/ServiceManager";
@@ -22,6 +22,7 @@ import DisplaySettings from "../components/settings/DisplaySettings";
 import HardwareSettings from "../components/settings/HardwareSettings";
 import SubscriptionManager from "../components/settings/SubscriptionManager";
 import ClientNotificationsSettings from "../components/settings/ClientNotificationsSettings";
+import PolicySettings from "../components/settings/PolicySettings";
 import { usePermissions } from "../components/permissions/usePermissions";
 
 export default function SettingsPage() {
@@ -105,6 +106,7 @@ export default function SettingsPage() {
     { value: "display", label: "Display", icon: Monitor },
     { value: "hardware", label: "Hardware", icon: Cpu },
     { value: "client_notifications", label: "Notifications", icon: Bell },
+    { value: "policies", label: "Policies", icon: FileText },
     ...(hasFullAccess ? [
       { value: "calloff", label: "Call-Off", icon: PhoneOff },
       { value: "payroll", label: "Payroll", icon: DollarSign },
@@ -202,6 +204,7 @@ export default function SettingsPage() {
         {activeTab === "display" && <DisplaySettings />}
         {activeTab === "hardware" && <HardwareSettings />}
         {activeTab === "client_notifications" && <ClientNotificationsSettings />}
+        {activeTab === "policies" && <PolicySettings />}
         {hasFullAccess && activeTab === "calloff" && <CallOffManager />}
         {hasFullAccess && activeTab === "payroll" && <PayrollManager />}
 
