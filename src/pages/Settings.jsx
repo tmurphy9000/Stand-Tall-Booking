@@ -111,7 +111,7 @@ export default function SettingsPage() {
     ...(hasFullAccess ? [
       { value: "payroll", label: "Payroll", icon: DollarSign },
     ] : []),
-    ...(isAdmin ? [{ value: "permissions", label: "Access", icon: Shield }] : []),
+    ...(isAdmin ? [{ value: "permissions", label: "Permissions", icon: Shield }] : []),
     ...(isAdmin ? [{ value: "subscription", label: "Subscription", icon: CreditCard }] : []),
     ...(hasFullAccess ? [{ value: "calloff", label: "Call-Off", icon: PhoneOff }] : []),
   ];
