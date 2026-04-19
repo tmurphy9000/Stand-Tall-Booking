@@ -34,6 +34,11 @@ export default function RunPayrollPage() {
     queryFn: () => base44.entities.CashTransaction.list("-created_date", 1000),
   });
 
+  const { data: products = [], isLoading: productsLoading } = useQuery({
+    queryKey: ["products-all"],
+    queryFn: () => base44.entities.Product.list(),
+  });
+
   const { startDate, endDate } = useMemo(() => {
     if (dateRange === "custom") {
       return {
@@ -129,7 +134,7 @@ export default function RunPayrollPage() {
     );
   }
 
-  const isLoading = bookingsLoading || barbersLoading || cashLoading;
+  const isLoading = bookingsLoading || barbersLoading || cashLoading || productsLoading;
 
   return (
     <div className="p-4 max-w-6xl mx-auto space-y-4">
@@ -267,6 +272,22 @@ export default function RunPayrollPage() {
             const totalTips = payrollData.reduce((sum, d) => sum + d.tips, 0);
             const netRevenue = grossRevenue - totalCommission;
 
+            // Product sales: cash inflows in date range with no barber_id (shop/retail sales)
+            const productSaleTx = cashTx.filter(tx =>
+              tx.type === "inflow" &&
+              !tx.barber_id &&
+              tx.date >= startDate &&
+              tx.date <= endDate
+            );
+            const totalProductSales = productSaleTx.reduce((sum, tx) => sum + (tx.amount || 0), 0);
+
+            // Tax collected: average tax rate across taxable products weighted by revenue
+            const taxableProducts = products.filter(p => p.tax_enabled !== false);
+            const avgTaxRate = taxableProducts.length > 0
+              ? taxableProducts.reduce((sum, p) => sum + (p.tax_rate || 7.5), 0) / taxableProducts.length
+              : 7.5;
+            const totalRetailTaxCollected = totalProductSales * (avgTaxRate / 100);
+
             return (
               <Card className="border-2 border-[#0A0A0A] mt-4">
                 <CardHeader>
@@ -303,6 +324,16 @@ export default function RunPayrollPage() {
                     <div className="bg-gray-50 rounded-lg p-3">
                       <p className="text-xs text-gray-500">Total Tips</p>
                       <p className="text-lg font-semibold mt-1">${totalTips.toFixed(2)}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-500">Total Product Sales</p>
+                      <p className="text-lg font-semibold mt-1">${totalProductSales.toFixed(2)}</p>
+                      <p className="text-[10px] text-gray-400">retail only</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-lg p-3">
+                      <p className="text-xs text-gray-500">Retail Tax Collected</p>
+                      <p className="text-lg font-semibold mt-1">${totalRetailTaxCollected.toFixed(2)}</p>
+                      <p className="text-[10px] text-gray-400">est. avg {avgTaxRate.toFixed(1)}% rate</p>
                     </div>
                   </div>
                 </CardContent>
