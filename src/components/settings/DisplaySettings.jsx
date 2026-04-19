@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import ThemeCustomizer from "./ThemeCustomizer";
 
 const STORAGE_KEY = "calendar_show_working_only";
 const TIP_PREFS_KEY = "tip_display_preferences";
@@ -71,6 +72,8 @@ export default function DisplaySettings() {
           <Switch checked={showWorkingOnly} onCheckedChange={handleToggle} />
         </div>
       </div>
+
+      <ThemeCustomizer />
 
       {/* Tip Preferences */}
       <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
