@@ -130,27 +130,6 @@ export default function PolicySettings() {
         {settings.noshow_enabled && (
           <div className="px-5 py-5 space-y-4">
             <div>
-              <Label className="text-xs text-gray-500 mb-1.5 block">Grace Period After Appointment Time</Label>
-              <Select
-                value={String(settings.noshow_hours)}
-                onValueChange={v => set("noshow_hours", parseInt(v))}
-              >
-                <SelectTrigger className="w-56">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="max-h-60">
-                  {HOUR_OPTIONS.map(opt => (
-                    <SelectItem key={opt.value} value={String(opt.value)}>
-                      {opt.value === 0 ? "No grace period" : `${opt.value} hour${opt.value > 1 ? "s" : ""} grace period`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-gray-400 mt-1.5">
-                Mark as no-show after this window passes.
-              </p>
-            </div>
-            <div>
               <Label className="text-xs text-gray-500 mb-1.5 block">Policy Text</Label>
               <Textarea
                 value={settings.noshow_policy_text}
