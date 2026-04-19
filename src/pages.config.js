@@ -50,11 +50,7 @@
 import AdminReporting from './pages/AdminReporting';
 import Calendar from './pages/Calendar';
 import CashTracker from './pages/CashTracker';
-import ClientBooking from './pages/ClientBooking';
-import ClientDetails from './pages/ClientDetails';
-import ClientHistory from './pages/ClientHistory';
 import ClientList from './pages/ClientList';
-import ClientPortal from './pages/ClientPortal';
 import Inventory from './pages/Inventory';
 import Payroll from './pages/Payroll';
 import QuickCheckout from './pages/QuickCheckout';
@@ -69,11 +65,7 @@ export const PAGES = {
     "AdminReporting": AdminReporting,
     "Calendar": Calendar,
     "CashTracker": CashTracker,
-    "ClientBooking": ClientBooking,
-    "ClientDetails": ClientDetails,
-    "ClientHistory": ClientHistory,
     "ClientList": ClientList,
-    "ClientPortal": ClientPortal,
     "Inventory": Inventory,
     "Payroll": Payroll,
     "QuickCheckout": QuickCheckout,
