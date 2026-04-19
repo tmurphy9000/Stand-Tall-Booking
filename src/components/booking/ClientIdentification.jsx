@@ -20,13 +20,15 @@ export default function ClientIdentification({ onSuccess }) {
   const [birthday, setBirthday] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPhone, setRegPhone] = useState("");
+  const [useEmail, setUseEmail] = useState(false);
 
   const handleIdentify = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!email && !phone) {
-      setError("Please enter your email or phone number");
+    const searchValue = useEmail ? email : phone;
+    if (!searchValue) {
+      setError(`Please enter your ${useEmail ? "email" : "phone number"}`);
       return;
     }
 
@@ -35,15 +37,15 @@ export default function ClientIdentification({ onSuccess }) {
       const clients = await base44.entities.Client.filter({});
       const existing = clients.find(
         (c) =>
-          (email && c.email?.toLowerCase() === email.toLowerCase()) ||
-          (phone && c.phone === phone)
+          (useEmail && c.email?.toLowerCase() === email.toLowerCase()) ||
+          (!useEmail && c.phone === phone)
       );
 
       if (existing) {
         onSuccess(existing);
       } else {
-        setRegEmail(email || "");
-        setRegPhone(phone || "");
+        setRegEmail(useEmail ? email : "");
+        setRegPhone(!useEmail ? phone : "");
         setStep("register");
       }
     } catch (err) {
@@ -96,7 +98,7 @@ export default function ClientIdentification({ onSuccess }) {
               Get Started
             </h2>
             <p className="text-sm text-gray-500 mb-6">
-              Enter your email or phone to find your account
+              Enter your phone number to find your account
             </p>
 
             {error && (
@@ -109,32 +111,14 @@ export default function ClientIdentification({ onSuccess }) {
             <form onSubmit={handleIdentify} className="space-y-4">
               <div>
                 <Label className="text-sm text-gray-700 flex items-center gap-2">
-                  <Mail className="w-4 h-4" /> Email
-                </Label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  disabled={loading}
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <p className="text-center text-sm text-gray-400">or</p>
-              </div>
-
-              <div>
-                <Label className="text-sm text-gray-700 flex items-center gap-2">
-                  <Phone className="w-4 h-4" /> Phone
+                  <Phone className="w-4 h-4" /> Phone Number
                 </Label>
                 <Input
                   type="tel"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   placeholder="(555) 123-4567"
-                  disabled={loading}
+                  disabled={loading || useEmail}
                   className="mt-1"
                 />
               </div>
@@ -142,7 +126,7 @@ export default function ClientIdentification({ onSuccess }) {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#8B9A7E] hover:bg-[#6B7A5E] text-white h-10 mt-6"
+                className="w-full bg-[#8B9A7E] hover:bg-[#6B7A5E] text-white h-10"
               >
                 {loading ? (
                   <>
@@ -153,6 +137,30 @@ export default function ClientIdentification({ onSuccess }) {
                   "Continue"
                 )}
               </Button>
+
+              <button
+                type="button"
+                onClick={() => setUseEmail(!useEmail)}
+                className="w-full text-sm text-[#8B9A7E] hover:text-[#6B7A5E] font-medium py-2"
+              >
+                {useEmail ? "Use phone instead" : "Use email instead"}
+              </button>
+
+              {useEmail && (
+                <div>
+                  <Label className="text-sm text-gray-700 flex items-center gap-2">
+                    <Mail className="w-4 h-4" /> Email Address
+                  </Label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
+                    disabled={loading}
+                    className="mt-1"
+                  />
+                </div>
+              )}
             </form>
           </CardContent>
         </Card>
