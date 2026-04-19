@@ -140,6 +140,24 @@ export default function RunPayrollPage() {
     <div className="p-4 max-w-6xl mx-auto space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-[#0A0A0A]">Run Payroll</h1>
+        <Button
+          size="lg"
+          className="bg-[#8B9A7E] hover:bg-[#6B7A5E] text-white gap-2"
+          onClick={handleSubmitPayroll}
+          disabled={isSubmitting || payrollData.length === 0 || isLoading}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            <>
+              <Send className="w-4 h-4" />
+              Submit to Gusto
+            </>
+          )}
+        </Button>
       </div>
 
       {/* Date Range Selection */}
