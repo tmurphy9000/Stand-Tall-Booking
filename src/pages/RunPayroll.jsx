@@ -16,6 +16,7 @@ export default function RunPayrollPage() {
   const [dateRange, setDateRange] = useState("30");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
+  const [payDate, setPayDate] = useState(format(new Date(), "yyyy-MM-dd"));
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { data: bookings = [], isLoading: bookingsLoading } = useQuery({
@@ -101,6 +102,7 @@ export default function RunPayrollPage() {
         payrollData,
         startDate,
         endDate,
+        payDate,
       });
 
       if (response.data.success) {
@@ -181,9 +183,19 @@ export default function RunPayrollPage() {
             )}
           </div>
 
+          <div className="flex-1">
+            <Label className="text-xs text-gray-500">Pay Date</Label>
+            <Input
+              type="date"
+              value={payDate}
+              onChange={(e) => setPayDate(e.target.value)}
+            />
+          </div>
+
           <div className="bg-[#8B9A7E]/10 rounded-lg p-3">
             <p className="text-sm text-gray-600">
-              Pay Period: <span className="font-semibold">{format(new Date(startDate), "MMM d, yyyy")}</span> - <span className="font-semibold">{format(new Date(endDate), "MMM d, yyyy")}</span>
+              Pay Period: <span className="font-semibold">{format(new Date(startDate), "MMM d, yyyy")}</span> – <span className="font-semibold">{format(new Date(endDate), "MMM d, yyyy")}</span>
+              {payDate && <> &nbsp;·&nbsp; Pay Date: <span className="font-semibold">{format(new Date(payDate), "MMM d, yyyy")}</span></>}
             </p>
           </div>
         </CardContent>
