@@ -45,9 +45,6 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
 
     setLoading(true);
     try {
-      // Invite to app
-      await base44.users.inviteUser(form.email, "user");
-
       // Create barber profile
       const barberResult = await base44.entities.Barber.create({
         name: fullName,
@@ -58,20 +55,11 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
         online_bookable: true,
       });
 
-      // Create password record with temp password
-      const hashPassword = (pwd) => btoa(pwd); // Simple base64 for demo
-      await base44.asServiceRole.entities.BarberPassword.create({
+      // Create password record via Edge Function (barber_password table is service-role only)
+      await base44.functions.invoke("createBarberPassword", {
         barber_id: barberResult.id,
         email: form.email,
-        password_hash: hashPassword(form.temp_password),
-        is_temp: true,
-      });
-
-      // Sync existing barber records by name match and update with user_id
-      await base44.functions.invoke("syncBarberAccounts", {
-        barber_name: fullName,
-        user_id: barberResult.id,
-        email: form.email,
+        temp_password: form.temp_password,
       });
 
       if (payrollEntry === "manual") {

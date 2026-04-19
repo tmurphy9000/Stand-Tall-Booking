@@ -212,5 +212,7 @@ const integrations = {
 
 // ---------------------------------------------------------------------------
 // Unified client export — drop-in API-shape replacement for `base44`
+// Exported as both `supabaseClient` and `base44` so existing imports work.
 // ---------------------------------------------------------------------------
 export const supabaseClient = { entities, auth, functions, integrations };
+export const base44 = supabaseClient;
