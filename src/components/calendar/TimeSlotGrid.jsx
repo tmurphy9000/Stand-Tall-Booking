@@ -24,17 +24,26 @@ function generateTimeSlots(startHour = 8, endHour = 21) {
 }
 
 function isSlotBookable(time, barberHours, shopHours, dayName) {
-  if (!shopHours || !shopHours[dayName] || shopHours[dayName].closed) return false;
-  const shopStart = shopHours[dayName]?.start || "08:00";
-  const shopEnd = shopHours[dayName]?.end || "21:00";
-  if (time < shopStart || time >= shopEnd) return false;
-
-  if (barberHours && barberHours[dayName]) {
-    if (barberHours[dayName].off) return false;
-    const bStart = barberHours[dayName].start || shopStart;
-    const bEnd = barberHours[dayName].end || shopEnd;
-    if (time < bStart || time >= bEnd) return false;
+  // Enforce shop hours only when they are explicitly configured for this day
+  if (shopHours?.[dayName]) {
+    if (shopHours[dayName].closed) return false;
+    const shopStart = shopHours[dayName].start || "08:00";
+    const shopEnd = shopHours[dayName].end || "21:00";
+    if (time < shopStart || time >= shopEnd) return false;
   }
+
+  // Enforce barber hours when configured
+  if (barberHours?.[dayName]) {
+    const day = barberHours[dayName];
+    if (day.off || day.closed) return false;
+    const bStart = day.start || "08:00";
+    const bEnd = day.end || "21:00";
+    if (time < bStart || time >= bEnd) return false;
+  } else if (barberHours && Object.keys(barberHours).length > 0) {
+    // Barber has a schedule but this day is not in it — treat as day off
+    return false;
+  }
+
   return true;
 }
 
