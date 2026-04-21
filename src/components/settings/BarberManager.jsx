@@ -12,6 +12,16 @@ import BarberServiceDurations from "./BarberServiceDurations";
 import ServiceManager from "./ServiceManager";
 import { toast } from "sonner";
 
+const ALL_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+const DEFAULT_DAY = { start: "09:00", end: "18:00", off: false };
+
+function initHours(savedHours) {
+  return ALL_DAYS.reduce((acc, day) => {
+    acc[day] = { ...DEFAULT_DAY, ...(savedHours?.[day] || {}) };
+    return acc;
+  }, {});
+}
+
 export default function BarberManager({ barbers, services = [], onCreate, onUpdate, onDelete, onCreateService, onUpdateService, onDeleteService }) {
   const [showForm, setShowForm] = useState(false);
   const [showHours, setShowHours] = useState(null);
@@ -85,7 +95,7 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
               </div>
               <p className="text-[10px] text-gray-400 mb-2">Services: {b.service_commission_rate || 50}% • Products: {b.product_commission_rate || 10}%</p>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="h-9 px-3 gap-1.5 text-xs" onClick={() => { setShowHours(b); setDraftHours(b.hours || {}); setDraftBlocked(b.bookings_blocked || false); }}>
+                <Button variant="outline" size="sm" className="h-9 px-3 gap-1.5 text-xs" onClick={() => { setShowHours(b); setDraftHours(initHours(b.hours)); setDraftBlocked(b.bookings_blocked || false); }}>
                   <Clock className="w-4 h-4" /> Hours
                 </Button>
                 <Button variant="outline" size="sm" className="h-9 px-3 gap-1.5 text-xs text-[#8B9A7E] border-[#8B9A7E]/30 hover:bg-[#8B9A7E]/10" onClick={() => setShowDurations(b)}>

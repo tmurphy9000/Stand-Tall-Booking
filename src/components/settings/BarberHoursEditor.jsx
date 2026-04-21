@@ -70,8 +70,8 @@ export default function BarberHoursEditor({ hours = {}, onChange, bookingsBlocke
               <span className="text-xs font-medium capitalize">{day.slice(0, 3)}</span>
             </div>
             <Switch
-              checked={!dayHours.off}
-              onCheckedChange={(v) => updateDay(day, "off", !v)}
+              checked={dayHours.off !== true}
+              onCheckedChange={(isOn) => updateDay(day, "off", !isOn)}
             />
             {!dayHours.off ? (
               <>
