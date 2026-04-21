@@ -6,14 +6,18 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Pencil, Clock, Camera, Trash2, CheckCircle, XCircle, Timer, Scissors } from "lucide-react";
+import { Plus, Pencil, Clock, Camera, Trash2, CheckCircle, XCircle, Timer, Scissors, Loader2 } from "lucide-react";
 import BarberHoursEditor from "./BarberHoursEditor";
 import BarberServiceDurations from "./BarberServiceDurations";
 import ServiceManager from "./ServiceManager";
+import { toast } from "sonner";
 
 export default function BarberManager({ barbers, services = [], onCreate, onUpdate, onDelete, onCreateService, onUpdateService, onDeleteService }) {
   const [showForm, setShowForm] = useState(false);
   const [showHours, setShowHours] = useState(null);
+  const [draftHours, setDraftHours] = useState({});
+  const [draftBlocked, setDraftBlocked] = useState(false);
+  const [savingHours, setSavingHours] = useState(false);
   const [showDurations, setShowDurations] = useState(null);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({
@@ -81,7 +85,7 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
               </div>
               <p className="text-[10px] text-gray-400 mb-2">Services: {b.service_commission_rate || 50}% • Products: {b.product_commission_rate || 10}%</p>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="h-9 px-3 gap-1.5 text-xs" onClick={() => setShowHours(b)}>
+                <Button variant="outline" size="sm" className="h-9 px-3 gap-1.5 text-xs" onClick={() => { setShowHours(b); setDraftHours(b.hours || {}); setDraftBlocked(b.bookings_blocked || false); }}>
                   <Clock className="w-4 h-4" /> Hours
                 </Button>
                 <Button variant="outline" size="sm" className="h-9 px-3 gap-1.5 text-xs text-[#8B9A7E] border-[#8B9A7E]/30 hover:bg-[#8B9A7E]/10" onClick={() => setShowDurations(b)}>
@@ -196,18 +200,35 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
           </DialogHeader>
           {showHours && (
             <BarberHoursEditor
-              hours={showHours.hours || {}}
-              onChange={(h) => {
-                onUpdate(showHours.id, { hours: h });
-                setShowHours({ ...showHours, hours: h });
-              }}
-              bookingsBlocked={showHours.bookings_blocked || false}
-              onBlockBookingsChange={(blocked) => {
-                onUpdate(showHours.id, { bookings_blocked: blocked });
-                setShowHours({ ...showHours, bookings_blocked: blocked });
-              }}
+              hours={draftHours}
+              onChange={setDraftHours}
+              bookingsBlocked={draftBlocked}
+              onBlockBookingsChange={setDraftBlocked}
             />
           )}
+          <DialogFooter className="pt-2">
+            <Button variant="outline" onClick={() => setShowHours(null)}>Cancel</Button>
+            <Button
+              className="bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white gap-2"
+              disabled={savingHours}
+              onClick={async () => {
+                setSavingHours(true);
+                try {
+                  await onUpdate(showHours.id, { hours: draftHours, bookings_blocked: draftBlocked });
+                  toast.success("Hours saved");
+                  setShowHours(null);
+                } catch (err) {
+                  toast.error("Failed to save hours");
+                  console.error(err);
+                } finally {
+                  setSavingHours(false);
+                }
+              }}
+            >
+              {savingHours && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Save Hours
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

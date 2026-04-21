@@ -158,7 +158,7 @@ export default function SettingsPage() {
             barbers={barbers}
             services={services}
             onCreate={(data) => createBarber.mutate(data)}
-            onUpdate={(id, data) => updateBarber.mutate({ id, data })}
+            onUpdate={(id, data) => updateBarber.mutateAsync({ id, data })}
             onDelete={(id) => deleteBarber.mutate(id)}
             onCreateService={(data) => createService.mutate(data)}
             onUpdateService={(id, data) => updateService.mutate({ id, data })}
