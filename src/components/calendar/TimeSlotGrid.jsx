@@ -24,24 +24,26 @@ function generateTimeSlots(startHour = 8, endHour = 21) {
 }
 
 function isSlotBookable(time, barberHours, shopHours, dayName) {
-  // Enforce shop hours only when they are explicitly configured for this day
-  if (shopHours?.[dayName]) {
-    if (shopHours[dayName].closed) return false;
+  // No hours configured → barber is unavailable
+  if (!barberHours || Object.keys(barberHours).length === 0) return false;
+
+  // Day not in barber's schedule → day off
+  const dayHours = barberHours[dayName];
+  if (!dayHours) return false;
+
+  // Explicitly marked off
+  if (dayHours.off || dayHours.closed) return false;
+
+  // Outside barber's working window
+  const bStart = dayHours.start || "09:00";
+  const bEnd = dayHours.end || "18:00";
+  if (time < bStart || time >= bEnd) return false;
+
+  // Optionally narrow by shop hours if configured
+  if (shopHours?.[dayName] && !shopHours[dayName].closed) {
     const shopStart = shopHours[dayName].start || "08:00";
     const shopEnd = shopHours[dayName].end || "21:00";
     if (time < shopStart || time >= shopEnd) return false;
-  }
-
-  // Enforce barber hours when configured
-  if (barberHours?.[dayName]) {
-    const day = barberHours[dayName];
-    if (day.off || day.closed) return false;
-    const bStart = day.start || "08:00";
-    const bEnd = day.end || "21:00";
-    if (time < bStart || time >= bEnd) return false;
-  } else if (barberHours && Object.keys(barberHours).length > 0) {
-    // Barber has a schedule but this day is not in it — treat as day off
-    return false;
   }
 
   return true;
