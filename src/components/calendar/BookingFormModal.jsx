@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { format, addMinutes, parse, addDays, addWeeks, addMonths } from "date-fns";
 import { entities } from "@/api/entities";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 export default function BookingFormModal({ open, onClose, onSave, barbers, services, prefill, bookings = [] }) {
   const [form, setForm] = useState({
@@ -156,7 +157,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
     return form.start_time < start || form.start_time >= end;
   };
 
-  const doSave = (bookingData) => {
+  const doSave = async (bookingData) => {
     if (!Array.isArray(bookingData)) {
       // Determine visit type for non-block bookings
       if (!isBlockTime) {
@@ -176,11 +177,11 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
         bookingData.visit_type = visit_type;
       }
     }
-    onSave(bookingData);
+    await onSave(bookingData);
   };
 
   const handleSave = async () => {
-    if (!form.client_name || !form.barber_id || !form.service_id) return;
+    if (!form.client_name || !form.barber_id || (!isBlockTime && !form.service_id)) return;
 
     // Auto-create client if doesn't exist and not a blocked time
     let finalClientId = form.client_id;
@@ -234,7 +235,12 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
       return;
     }
 
-    doSave(bookingData);
+    try {
+      await doSave(bookingData);
+    } catch (err) {
+      console.error("Failed to save booking:", err);
+      toast.error("Failed to save booking: " + (err.message || "Unknown error"));
+    }
   };
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
@@ -332,7 +338,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
             </div>
             <div>
               <Label className="text-xs text-gray-500">Time</Label>
-              <Input type="time" value={form.start_time} onChange={e => set("start_time", e.target.value)} step="900" />
+              <Input type="time" value={form.start_time} onChange={e => set("start_time", e.target.value)} step="300" />
             </div>
           </div>
 
@@ -422,7 +428,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
             <Button variant="outline" onClick={() => { setShowOutsideHoursWarning(false); setPendingSave(null); }}>
               No, Cancel
             </Button>
-            <Button className="bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white" onClick={() => { setShowOutsideHoursWarning(false); doSave(pendingSave); setPendingSave(null); }}>
+            <Button className="bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white" onClick={async () => { setShowOutsideHoursWarning(false); try { await doSave(pendingSave); } catch (err) { toast.error("Failed to save booking: " + (err.message || "Unknown error")); } setPendingSave(null); }}>
               Continue
             </Button>
           </DialogFooter>

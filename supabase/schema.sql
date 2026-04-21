@@ -75,6 +75,7 @@ create table if not exists public.bookings (
   price           numeric(10,2) default 0,
   final_price     numeric(10,2),
   visit_type      text,                    -- NR | RR | RNR | NNR | walk-in | call-in
+  notes           text,
   cancel_reason   text,
   repeat_group_id uuid,
   created_date    timestamptz default now()
