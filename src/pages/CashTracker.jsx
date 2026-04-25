@@ -8,9 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowDownLeft, ArrowUpRight, Minus, Plus, Search, Loader2, Wallet } from "lucide-react";
 import WithdrawalForm from "../components/cash/WithdrawalForm";
+import CashInForm from "../components/cash/CashInForm";
 
 export default function CashTrackerPage() {
   const [showWithdrawal, setShowWithdrawal] = useState(false);
+  const [showCashIn, setShowCashIn] = useState(false);
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("all");
   const queryClient = useQueryClient();
@@ -30,6 +32,7 @@ export default function CashTrackerPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cash-transactions"] });
       setShowWithdrawal(false);
+      setShowCashIn(false);
     },
   });
 
@@ -78,7 +81,7 @@ export default function CashTrackerPage() {
       {/* Actions */}
       <div className="grid grid-cols-2 gap-3">
         <Button
-          onClick={() => createTx.mutate({ type: "inflow", amount: 0, date: todayStr, time: format(new Date(), "HH:mm"), note: "Manual entry" })}
+          onClick={() => setShowCashIn(true)}
           variant="outline"
           className="h-12 border-green-200 text-green-700 hover:bg-green-50"
         >
@@ -148,11 +151,20 @@ export default function CashTrackerPage() {
         </div>
       )}
 
+      <CashInForm
+        open={showCashIn}
+        onClose={() => setShowCashIn(false)}
+        onSave={(data) => createTx.mutate(data)}
+        barbers={barbers}
+        saving={createTx.isPending}
+      />
+
       <WithdrawalForm
         open={showWithdrawal}
         onClose={() => setShowWithdrawal(false)}
         onSave={(data) => createTx.mutate(data)}
         barbers={barbers}
+        saving={createTx.isPending}
       />
     </div>
   );
