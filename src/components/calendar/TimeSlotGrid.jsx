@@ -59,6 +59,7 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
     scheduled: "bg-purple-100 border-purple-500 text-purple-800",
     confirmed: "bg-green-100 border-green-500 text-green-800",
     checked_in: "bg-yellow-100 border-yellow-500 text-yellow-800",
+    late: "bg-amber-100 border-amber-500 text-amber-800",
     completed: "bg-gray-200 border-gray-400 text-gray-600",
     cancelled: "bg-red-50 border-red-300 text-red-400 line-through",
     no_show: "bg-orange-50 border-orange-300 text-orange-500",

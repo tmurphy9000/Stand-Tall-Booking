@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { entities } from "@/api/entities";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +32,9 @@ export default function SettingsPage() {
   const { isAdmin, hasFullAccess } = usePermissions();
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [activeTab, setActiveTab] = useState("barbers");
+  const [draftHours, setDraftHours] = useState(null);
+  const [draftProductTax, setDraftProductTax] = useState(null);
+  const [draftServiceTax, setDraftServiceTax] = useState(null);
 
   const { data: barbers = [], isLoading: barbersLoading } = useQuery({
     queryKey: ["barbers"],
@@ -85,7 +89,10 @@ export default function SettingsPage() {
       }
       return entities.ShopSettings.create(data);
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["shopSettings"] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["shopSettings"] });
+      toast.success("Settings saved");
+    },
   });
 
   const isLoading = barbersLoading || servicesLoading || settingsLoading;
@@ -176,29 +183,58 @@ export default function SettingsPage() {
         )}
 
         {activeTab === "hours" && (
-          <ShopHoursEditor
-            hours={settings.operating_hours || {}}
-            onChange={(hours) => saveSettings.mutate({ ...settings, operating_hours: hours })}
-          />
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold">Shop Hours</h2>
+              <Button
+                size="sm"
+                className="h-8 bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white gap-2"
+                disabled={saveSettings.isPending || draftHours === null}
+                onClick={() => saveSettings.mutate({ ...settings, operating_hours: draftHours })}
+              >
+                {saveSettings.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                Save Hours
+              </Button>
+            </div>
+            <ShopHoursEditor
+              hours={draftHours ?? (settings.operating_hours || {})}
+              onChange={setDraftHours}
+            />
+          </div>
         )}
 
         {activeTab === "shop" && (
           <div className="space-y-4 max-w-md">
-            <h2 className="text-sm font-semibold">Tax Rates</h2>
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold">Tax Rates</h2>
+              <Button
+                size="sm"
+                className="h-8 bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white gap-2"
+                disabled={saveSettings.isPending || (draftProductTax === null && draftServiceTax === null)}
+                onClick={() => saveSettings.mutate({
+                  ...settings,
+                  ...(draftProductTax !== null && { default_tax_rate: draftProductTax }),
+                  ...(draftServiceTax !== null && { default_service_tax_rate: draftServiceTax }),
+                })}
+              >
+                {saveSettings.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                Save
+              </Button>
+            </div>
             <div>
               <Label className="text-xs text-gray-500">Default Retail Product Tax Rate %</Label>
               <Input
                 type="number"
-                value={settings.default_tax_rate || 7.5}
-                onChange={e => saveSettings.mutate({ ...settings, default_tax_rate: parseFloat(e.target.value) || 7.5 })}
+                value={draftProductTax ?? (settings.default_tax_rate || 7.5)}
+                onChange={e => setDraftProductTax(parseFloat(e.target.value) || 0)}
               />
             </div>
             <div>
               <Label className="text-xs text-gray-500">Default Service Tax Rate %</Label>
               <Input
                 type="number"
-                value={settings.default_service_tax_rate ?? 0}
-                onChange={e => saveSettings.mutate({ ...settings, default_service_tax_rate: parseFloat(e.target.value) || 0 })}
+                value={draftServiceTax ?? (settings.default_service_tax_rate ?? 0)}
+                onChange={e => setDraftServiceTax(parseFloat(e.target.value) || 0)}
               />
             </div>
           </div>

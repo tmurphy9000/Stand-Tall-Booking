@@ -132,8 +132,8 @@ export default function CalendarPage() {
     // If no hours configured at all, show the barber (assume always working)
     if (!b.hours || Object.keys(b.hours).length === 0) return true;
     const dayHours = b.hours?.[dayName];
-    // Hide if the day entry doesn't exist or is explicitly marked off/closed
-    if (!dayHours) return false;
+    // Day not explicitly configured → assume working
+    if (!dayHours) return true;
     if (dayHours.off === true || dayHours.closed === true) return false;
     return true;
   });
@@ -198,8 +198,7 @@ export default function CalendarPage() {
         updateBooking.mutate({ id: bookingId, data: { status: "no_show" } });
         return;
       }
-      // "late" just records on the client, keeps booking status as-is (checked_in)
-      updateBooking.mutate({ id: bookingId, data: { status: "checked_in" } });
+      updateBooking.mutate({ id: bookingId, data: { status: "late" } });
       return;
     }
 

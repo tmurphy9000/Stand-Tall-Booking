@@ -49,6 +49,7 @@
  */
 import AdminReporting from './pages/AdminReporting';
 import Calendar from './pages/Calendar';
+import ClientDetails from './pages/ClientDetails';
 import CashTracker from './pages/CashTracker';
 import ClientList from './pages/ClientList';
 import Inventory from './pages/Inventory';
@@ -65,6 +66,7 @@ export const PAGES = {
     "AdminReporting": AdminReporting,
     "Calendar": Calendar,
     "CashTracker": CashTracker,
+    "ClientDetails": ClientDetails,
     "ClientList": ClientList,
     "Inventory": Inventory,
     "Payroll": Payroll,

@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const STORAGE_KEY = "calendar_show_working_only";
 const TIP_PREFS_KEY = "tip_display_preferences";
@@ -37,21 +39,20 @@ export default function DisplaySettings() {
 
   const handleToggle = (val) => {
     setShowWorkingOnly(val);
-    localStorage.setItem(STORAGE_KEY, String(val));
   };
 
   const toggleTip = (value) => {
     setSelectedTips((prev) => {
-      let next;
-      if (prev.includes(value)) {
-        next = prev.filter((v) => v !== value);
-      } else {
-        if (prev.length >= 3) return prev; // max 3
-        next = [...prev, value];
-      }
-      localStorage.setItem(TIP_PREFS_KEY, JSON.stringify(next));
-      return next;
+      if (prev.includes(value)) return prev.filter((v) => v !== value);
+      if (prev.length >= 3) return prev;
+      return [...prev, value];
     });
+  };
+
+  const handleSave = () => {
+    localStorage.setItem(STORAGE_KEY, String(showWorkingOnly));
+    localStorage.setItem(TIP_PREFS_KEY, JSON.stringify(selectedTips));
+    toast.success("Display settings saved");
   };
 
   return (
@@ -126,6 +127,16 @@ export default function DisplaySettings() {
         <p className="text-xs text-gray-400">
           {selectedTips.length}/3 percentage tips selected
         </p>
+      </div>
+
+      <div className="flex justify-end">
+        <Button
+          size="sm"
+          className="h-8 bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white"
+          onClick={handleSave}
+        >
+          Save Display Settings
+        </Button>
       </div>
     </div>
   );

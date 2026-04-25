@@ -74,7 +74,8 @@ export default function ClientList() {
           {filteredClients.map(client => {
             const rating = getClientRating(client.id);
             return (
-              <Card key={client.id} className="hover:shadow-md transition-shadow">
+              <Link key={client.id} to={`/ClientDetails?id=${client.id}`} className="block">
+              <Card className="hover:shadow-md transition-shadow cursor-pointer">
                 <CardContent className="p-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -124,6 +125,7 @@ export default function ClientList() {
                     </div>
                 </CardContent>
               </Card>
+              </Link>
             );
           })}
         </div>

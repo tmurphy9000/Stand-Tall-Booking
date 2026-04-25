@@ -185,14 +185,23 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
 
     // Auto-create client if doesn't exist and not a blocked time
     let finalClientId = form.client_id;
-    if (!isBlockTime && !form.client_id && form.client_name && form.client_email) {
+    if (!isBlockTime && !form.client_id && form.client_name) {
       try {
-        const newClient = await entities.Client.create({
-          name: form.client_name,
-          email: form.client_email,
-          phone: form.client_phone || "",
-        });
-        finalClientId = newClient.id;
+        // Reuse existing client if email or phone matches
+        const existing = clients.find(c =>
+          (form.client_email && c.email === form.client_email) ||
+          (form.client_phone && c.phone === form.client_phone)
+        );
+        if (existing) {
+          finalClientId = existing.id;
+        } else if (form.client_email || form.client_phone) {
+          const newClient = await entities.Client.create({
+            name: form.client_name,
+            email: form.client_email || "",
+            phone: form.client_phone || "",
+          });
+          finalClientId = newClient.id;
+        }
       } catch (error) {
         console.error("Error creating client:", error);
       }
