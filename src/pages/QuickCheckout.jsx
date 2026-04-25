@@ -24,6 +24,7 @@ export default function QuickCheckoutPage() {
 
 function QuickCheckoutContent() {
   const [clientName, setClientName] = useState("");
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [items, setItems] = useState([]);
   const [discount, setDiscount] = useState({ type: "none", value: 0 });
   const [tip, setTip] = useState(0);
@@ -47,6 +48,11 @@ function QuickCheckoutContent() {
   const { data: barbers = [] } = useQuery({
     queryKey: ["barbers"],
     queryFn: () => entities.Barber.list(),
+  });
+
+  const { data: clients = [] } = useQuery({
+    queryKey: ["clients"],
+    queryFn: () => entities.Client.list(),
   });
 
   const updateProductMutation = useMutation({
@@ -224,14 +230,30 @@ function QuickCheckoutContent() {
         <h1 className="text-3xl font-bold text-[#0A0A0A] mb-6">Quick Checkout</h1>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 space-y-4">
-          {/* Client Name */}
-          <div>
+          {/* Client Name with autocomplete */}
+          <div className="relative">
             <Label>Client Name (Optional)</Label>
             <Input
               value={clientName}
-              onChange={(e) => setClientName(e.target.value)}
+              onChange={(e) => { setClientName(e.target.value); setShowClientDropdown(true); }}
+              onFocus={() => setShowClientDropdown(true)}
+              onBlur={() => setTimeout(() => setShowClientDropdown(false), 200)}
               placeholder="Enter client name (optional)"
             />
+            {showClientDropdown && clientName.length > 0 && clients.filter(c => c.name.toLowerCase().includes(clientName.toLowerCase())).length > 0 && (
+              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-auto">
+                {clients.filter(c => c.name.toLowerCase().includes(clientName.toLowerCase())).slice(0, 6).map(c => (
+                  <button
+                    key={c.id}
+                    onMouseDown={() => { setClientName(c.name); setShowClientDropdown(false); }}
+                    className="w-full px-3 py-2 text-left hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                  >
+                    <div className="font-medium text-sm">{c.name}</div>
+                    <div className="text-xs text-gray-500">{c.phone || c.email}</div>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Items List */}
@@ -285,7 +307,7 @@ function QuickCheckoutContent() {
                   <SelectValue placeholder="Select service" />
                 </SelectTrigger>
                 <SelectContent>
-                  {services.filter(s => s.is_active).map(s => (
+                  {services.map(s => (
                     <SelectItem key={s.id} value={s.id} className="text-sm">
                       {s.name} - ${s.price}
                     </SelectItem>
@@ -301,7 +323,7 @@ function QuickCheckoutContent() {
                   <SelectValue placeholder="Select product" />
                 </SelectTrigger>
                 <SelectContent>
-                  {products.filter(p => p.is_active).map(p => (
+                  {products.map(p => (
                     <SelectItem key={p.id} value={p.id} className="text-sm">
                       {p.name} - ${p.retail_price}
                     </SelectItem>

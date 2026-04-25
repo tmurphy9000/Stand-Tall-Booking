@@ -210,11 +210,11 @@ export default function SettingsPage() {
               <Button
                 size="sm"
                 className="h-8 bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white gap-2"
-                disabled={saveSettings.isPending || (draftProductTax === null && draftServiceTax === null)}
+                disabled={saveSettings.isPending}
                 onClick={() => saveSettings.mutate({
                   ...settings,
-                  ...(draftProductTax !== null && { default_tax_rate: draftProductTax }),
-                  ...(draftServiceTax !== null && { default_service_tax_rate: draftServiceTax }),
+                  default_tax_rate: draftProductTax ?? (settings.default_tax_rate ?? 0),
+                  default_service_tax_rate: draftServiceTax ?? (settings.default_service_tax_rate ?? 0),
                 })}
               >
                 {saveSettings.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
@@ -222,20 +222,24 @@ export default function SettingsPage() {
               </Button>
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Default Retail Product Tax Rate %</Label>
+              <Label className="text-xs text-gray-500">Product / Merch Tax Rate %</Label>
               <Input
                 type="number"
-                value={draftProductTax ?? (settings.default_tax_rate || 7.5)}
+                step="0.01"
+                value={draftProductTax ?? (settings.default_tax_rate ?? 0)}
                 onChange={e => setDraftProductTax(parseFloat(e.target.value) || 0)}
               />
+              <p className="text-[10px] text-gray-400 mt-1">Applied to retail products sold at checkout</p>
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Default Service Tax Rate %</Label>
+              <Label className="text-xs text-gray-500">Service Tax Rate %</Label>
               <Input
                 type="number"
+                step="0.01"
                 value={draftServiceTax ?? (settings.default_service_tax_rate ?? 0)}
                 onChange={e => setDraftServiceTax(parseFloat(e.target.value) || 0)}
               />
+              <p className="text-[10px] text-gray-400 mt-1">Applied to services at checkout (usually 0%)</p>
             </div>
           </div>
         )}

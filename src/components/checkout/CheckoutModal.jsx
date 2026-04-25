@@ -141,9 +141,6 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
       // Update primary booking
       await entities.Booking.update(booking.id, {
         status: "completed",
-        payment_method: paymentMethod,
-        discount_type: discount.type,
-        discount_value: discount.value,
         final_price: total,
       });
 
@@ -151,18 +148,16 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
       for (const bookingId of additionalBookings) {
         await entities.Booking.update(bookingId, {
           status: "completed",
-          payment_method: paymentMethod,
         });
       }
 
-      // Record cash transaction if cash payment
-      if (paymentMethod === "cash") {
+      // Record cash transaction
+      if (paymentMethod === "cash" || paymentMethod === "other") {
         await entities.CashTransaction.create({
           type: "inflow",
           amount: total,
           barber_id: booking.barber_id,
           barber_name: booking.barber_name,
-          booking_id: booking.id,
           note: `Checkout: ${booking.client_name} - ${items.map(i => i.name).join(", ")}`,
           date: new Date().toISOString().split('T')[0],
           time: new Date().toTimeString().slice(0, 5),
@@ -386,7 +381,7 @@ function CheckoutContent({
                   <SelectValue placeholder="Select product" />
                 </SelectTrigger>
                 <SelectContent>
-                  {products.filter(p => p.is_active).map(p => (
+                  {products.map(p => (
                     <SelectItem key={p.id} value={p.id} className="text-xs">
                       {p.name} - ${p.retail_price}
                     </SelectItem>
@@ -402,7 +397,7 @@ function CheckoutContent({
                   <SelectValue placeholder="Select service" />
                 </SelectTrigger>
                 <SelectContent>
-                  {services.filter(s => s.is_active).map(s => (
+                  {services.map(s => (
                     <SelectItem key={s.id} value={s.id} className="text-xs">
                       {s.name} - ${s.price}
                     </SelectItem>
