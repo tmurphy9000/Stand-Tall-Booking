@@ -54,64 +54,109 @@ Deno.serve(async (req) => {
   }
 
   const { name, email, phone, permission_level, temp_password } = body;
-  console.log("[inviteBarber] Creating barber:", { name, email, phone, permission_level });
+  console.log("[inviteBarber] Inviting barber:", { name, email, phone, permission_level });
 
   if (!name || !email || !temp_password) {
     console.error("[inviteBarber] Missing required fields:", { name: !!name, email: !!email, temp_password: !!temp_password });
     return json({ error: "name, email, and temp_password are required" });
   }
 
-  // Step 1: Create the barber record
-  const { data: barber, error: barberError } = await supabaseAdmin
-    .from("barbers")
-    .insert({
-      name,
-      email,
-      phone: phone || null,
-      permission_level: permission_level || "service_provider",
-      is_active: true,
-      online_bookable: true,
-    })
-    .select()
-    .single();
+  // Step 1: Resolve auth user — create if new, find existing if already registered.
+  // Auth is done first so there is nothing to roll back if it fails.
+  let authUserId: string;
 
-  if (barberError) {
-    console.error("[inviteBarber] Failed to insert barber record:", barberError);
-    return json({ error: `Failed to create barber record: ${barberError.message}` });
-  }
-  console.log("[inviteBarber] Barber record created:", barber.id);
-
-  // Step 2: Create the Supabase Auth user
-  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+  const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
     email,
     password: temp_password,
     email_confirm: true,
   });
 
-  if (authError) {
-    console.error("[inviteBarber] Failed to create auth user:", authError);
-    // Rollback: delete the barber record we just created
-    const { error: rollbackError } = await supabaseAdmin.from("barbers").delete().eq("id", barber.id);
-    if (rollbackError) {
-      console.error("[inviteBarber] Rollback failed:", rollbackError);
-    } else {
-      console.log("[inviteBarber] Rolled back barber record:", barber.id);
+  if (createError) {
+    const alreadyExists =
+      createError.message.toLowerCase().includes("already been registered") ||
+      createError.message.toLowerCase().includes("already registered") ||
+      createError.message.toLowerCase().includes("already exists") ||
+      createError.message.toLowerCase().includes("duplicate");
+
+    if (!alreadyExists) {
+      console.error("[inviteBarber] Failed to create auth user:", createError.message);
+      return json({ error: `Failed to create auth account: ${createError.message}` });
     }
-    return json({ error: `Failed to create auth user: ${authError.message}` });
-  }
-  console.log("[inviteBarber] Auth user created:", authData.user.id);
 
-  // Step 3: Link the auth user ID to the barber record
-  const { error: linkError } = await supabaseAdmin
+    console.log("[inviteBarber] Auth user already exists, looking up by email:", email);
+    const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+    if (listError) {
+      console.error("[inviteBarber] Failed to list auth users:", listError.message);
+      return json({ error: `Could not look up existing auth user: ${listError.message}` });
+    }
+
+    const existing = listData.users.find((u) => u.email === email);
+    if (!existing) {
+      console.error("[inviteBarber] Auth user said it exists but could not be found in list");
+      return json({ error: "Auth user already registered but could not be retrieved. Contact support." });
+    }
+
+    authUserId = existing.id;
+    console.log("[inviteBarber] Found existing auth user:", authUserId);
+  } else {
+    authUserId = createData.user.id;
+    console.log("[inviteBarber] Created new auth user:", authUserId);
+  }
+
+  // Step 2: Resolve barber record — update if already exists, create (with user_id) if not.
+  const { data: existingBarber, error: lookupError } = await supabaseAdmin
     .from("barbers")
-    .update({ user_id: authData.user.id })
-    .eq("id", barber.id);
+    .select("id, user_id")
+    .eq("email", email)
+    .maybeSingle();
 
-  if (linkError) {
-    console.error("[inviteBarber] Failed to link user_id to barber:", linkError);
-    return json({ error: `Failed to link auth user to barber: ${linkError.message}` });
+  if (lookupError) {
+    console.error("[inviteBarber] Failed to look up barber record:", lookupError.message);
+    return json({ error: `Failed to look up barber record: ${lookupError.message}` });
   }
-  console.log("[inviteBarber] Successfully linked auth user to barber");
 
-  return json({ success: true, barber_id: barber.id });
+  let barberId: string;
+
+  if (existingBarber) {
+    barberId = existingBarber.id;
+    if (existingBarber.user_id !== authUserId) {
+      console.log("[inviteBarber] Barber record exists, linking auth user_id:", authUserId);
+      const { error: linkError } = await supabaseAdmin
+        .from("barbers")
+        .update({ user_id: authUserId })
+        .eq("id", barberId);
+      if (linkError) {
+        console.error("[inviteBarber] Failed to link user_id to existing barber:", linkError.message);
+        return json({ error: `Failed to link auth user to barber: ${linkError.message}` });
+      }
+    } else {
+      console.log("[inviteBarber] Barber record already linked correctly, no update needed");
+    }
+  } else {
+    console.log("[inviteBarber] Creating new barber record with user_id:", authUserId);
+    const { data: newBarber, error: barberError } = await supabaseAdmin
+      .from("barbers")
+      .insert({
+        name,
+        email,
+        phone: phone || null,
+        permission_level: permission_level || "service_provider",
+        is_active: true,
+        online_bookable: true,
+        user_id: authUserId,
+      })
+      .select("id")
+      .single();
+
+    if (barberError) {
+      console.error("[inviteBarber] Failed to create barber record:", barberError.message);
+      return json({ error: `Failed to create barber record: ${barberError.message}` });
+    }
+
+    barberId = newBarber.id;
+    console.log("[inviteBarber] Barber record created:", barberId);
+  }
+
+  console.log("[inviteBarber] Done. barber_id:", barberId, "auth user_id:", authUserId);
+  return json({ success: true, barber_id: barberId });
 });
