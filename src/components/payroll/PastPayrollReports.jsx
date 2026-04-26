@@ -29,10 +29,10 @@ export default function PastPayrollReports({ open, onClose }) {
 
   const { data: bookings = [], isLoading: bookingsLoading } = useQuery({
     queryKey: ["past-payroll-bookings", startDate, endDate],
-    queryFn: () => entities.Booking.filter({
-      status: "completed",
-      date: { $gte: startDate, $lte: endDate }
-    }),
+    queryFn: async () => {
+      const all = await entities.Booking.filter({ status: "completed" });
+      return all.filter(b => b.date >= startDate && b.date <= endDate);
+    },
     enabled: open,
   });
 
@@ -49,8 +49,9 @@ export default function PastPayrollReports({ open, onClose }) {
       .filter(b => b.is_active !== false)
       .map(barber => {
         const barberBookings = bookings.filter(b => b.barber_id === barber.id);
-        const serviceRevenue = barberBookings.reduce((sum, b) => sum + (b.final_price || b.price || 0), 0);
-        const serviceCommission = serviceRevenue * ((barber.service_commission_rate || 50) / 100);
+        const serviceRevenue = barberBookings.reduce((sum, b) => sum + (b.final_price ?? b.price ?? 0), 0);
+        const commissionRate = barber.service_commission_rate ?? 50;
+        const serviceCommission = serviceRevenue * (commissionRate / 100);
 
         const tips = cashTx
           .filter(tx =>
@@ -61,7 +62,8 @@ export default function PastPayrollReports({ open, onClose }) {
           )
           .reduce((sum, tx) => sum + (tx.amount || 0), 0);
 
-        const productCommission = tips * ((barber.product_commission_rate || 10) / 100);
+        const productCommissionRate = barber.product_commission_rate ?? 10;
+        const productCommission = tips * (productCommissionRate / 100);
         const totalEarnings = serviceCommission + productCommission + tips;
 
         return {
@@ -184,7 +186,7 @@ export default function PastPayrollReports({ open, onClose }) {
                                 {barber.bookings.map(b => (
                                   <div key={b.id} className="flex justify-between bg-white border rounded px-2 py-1">
                                     <span>{b.date} — {b.service_name}</span>
-                                    <span className="font-medium">${(b.final_price || b.price || 0).toFixed(2)}</span>
+                                    <span className="font-medium">${(b.final_price ?? b.price ?? 0).toFixed(2)}</span>
                                   </div>
                                 ))}
                               </div>
