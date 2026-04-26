@@ -36,19 +36,29 @@ export default function PayrollPage() {
     .filter(b => b.is_active !== false)
     .map(barber => {
       const barberBookings = bookings.filter(b => b.barber_id === barber.id);
-      const serviceRevenue = barberBookings.reduce((sum, b) => sum + (b.final_price ?? b.price ?? 0), 0);
+
+      // Service revenue = original booking price; product revenue tracked separately
+      const serviceRevenue = barberBookings.reduce((sum, b) => sum + (b.price ?? 0), 0);
+      const productRevenue = barberBookings.reduce((sum, b) => sum + (b.product_revenue ?? 0), 0);
       const tips = barberBookings.reduce((sum, b) => sum + (b.tip ?? 0), 0);
-      // ?? preserves explicit 0% commission rates
-      const commissionRate = barber.service_commission_rate ?? 50;
-      const serviceCommission = serviceRevenue * (commissionRate / 100);
-      const totalEarnings = serviceCommission + tips;
+
+      // ?? preserves explicit 0% rates
+      const serviceCommissionRate = barber.service_commission_rate ?? 50;
+      const productCommissionRate = barber.product_commission_rate ?? 10;
+
+      const serviceCommission = serviceRevenue * (serviceCommissionRate / 100);
+      const productCommission = productRevenue * (productCommissionRate / 100);
+      const totalEarnings = serviceCommission + productCommission + tips;
 
       return {
         id: barber.id,
         name: barber.name,
-        commissionRate,
+        serviceCommissionRate,
+        productCommissionRate,
         serviceRevenue,
+        productRevenue,
         serviceCommission,
+        productCommission,
         tips,
         totalEarnings,
         completedServices: barberBookings.length,
@@ -142,15 +152,19 @@ export default function PayrollPage() {
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <h3 className="font-semibold text-[#0A0A0A]">{barber.name}</h3>
                         <span className="text-[10px] px-2 py-0.5 bg-[#8B9A7E]/10 text-[#8B9A7E] rounded-full font-medium">
-                          {barber.commissionRate}% commission
+                          {barber.serviceCommissionRate}% svc
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full font-medium">
+                          {barber.productCommissionRate}% prod
                         </span>
                       </div>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        {barber.completedServices} completed service{barber.completedServices !== 1 ? "s" : ""}
-                        {barber.serviceRevenue > 0 && ` · $${barber.serviceRevenue.toFixed(2)} revenue`}
+                        {barber.completedServices} service{barber.completedServices !== 1 ? "s" : ""}
+                        {barber.serviceRevenue > 0 && ` · $${barber.serviceRevenue.toFixed(2)} svc`}
+                        {barber.productRevenue > 0 && ` · $${barber.productRevenue.toFixed(2)} prod`}
                         {barber.tips > 0 && ` · $${barber.tips.toFixed(2)} tips`}
                       </p>
                     </div>
@@ -159,9 +173,7 @@ export default function PayrollPage() {
                         <div className="text-2xl font-bold text-[#8B9A7E]">
                           ${barber.totalEarnings.toFixed(2)}
                         </div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">
-                          commission + tips
-                        </div>
+                        <div className="text-[10px] text-gray-400 mt-0.5">total earnings</div>
                       </div>
                       {isExpanded
                         ? <ChevronUp className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -173,29 +185,51 @@ export default function PayrollPage() {
 
                 {isExpanded && (
                   <div className="border-t border-gray-100 px-5 pb-5 pt-3 space-y-3">
-                    <div className="grid grid-cols-4 gap-3 text-xs">
+                    {/* Services row */}
+                    <div className="grid grid-cols-3 gap-3 text-xs">
                       <div className="bg-gray-50 rounded-lg p-3">
                         <p className="text-gray-500">Service Revenue</p>
                         <p className="text-lg font-bold mt-1">${barber.serviceRevenue.toFixed(2)}</p>
-                        <p className="text-[10px] text-gray-400">{barber.completedServices} service{barber.completedServices !== 1 ? "s" : ""}</p>
+                        <p className="text-[10px] text-gray-400">{barber.completedServices} booking{barber.completedServices !== 1 ? "s" : ""}</p>
                       </div>
                       <div className="bg-[#8B9A7E]/10 rounded-lg p-3">
-                        <p className="text-gray-500">Commission ({barber.commissionRate}%)</p>
+                        <p className="text-gray-500">Service Commission</p>
                         <p className="text-lg font-bold text-[#8B9A7E] mt-1">${barber.serviceCommission.toFixed(2)}</p>
-                        <p className="text-[10px] text-gray-400">owed to barber</p>
+                        <p className="text-[10px] text-gray-400">{barber.serviceCommissionRate}% of service rev</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-gray-500">Shop Keeps (Svc)</p>
+                        <p className="text-lg font-bold mt-1">${(barber.serviceRevenue - barber.serviceCommission).toFixed(2)}</p>
+                        <p className="text-[10px] text-gray-400">{100 - barber.serviceCommissionRate}% of service rev</p>
+                      </div>
+                    </div>
+
+                    {/* Products row */}
+                    <div className="grid grid-cols-3 gap-3 text-xs">
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-gray-500">Product Revenue</p>
+                        <p className="text-lg font-bold mt-1">${barber.productRevenue.toFixed(2)}</p>
+                        <p className="text-[10px] text-gray-400">products sold</p>
+                      </div>
+                      <div className="bg-purple-50 rounded-lg p-3">
+                        <p className="text-gray-500">Product Commission</p>
+                        <p className="text-lg font-bold text-purple-600 mt-1">${barber.productCommission.toFixed(2)}</p>
+                        <p className="text-[10px] text-gray-400">{barber.productCommissionRate}% of product rev</p>
                       </div>
                       <div className="bg-blue-50 rounded-lg p-3">
                         <p className="text-gray-500">Tips</p>
                         <p className="text-lg font-bold text-blue-600 mt-1">${barber.tips.toFixed(2)}</p>
                         <p className="text-[10px] text-gray-400">100% to barber</p>
                       </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-gray-500">Shop Keeps</p>
-                        <p className="text-lg font-bold mt-1">${(barber.serviceRevenue - barber.serviceCommission).toFixed(2)}</p>
-                        <p className="text-[10px] text-gray-400">{100 - barber.commissionRate}% of revenue</p>
-                      </div>
                     </div>
 
+                    {/* Total row */}
+                    <div className="bg-[#0A0A0A] rounded-lg p-3 flex items-center justify-between text-xs">
+                      <p className="text-gray-400">Total Earnings = service commission + product commission + tips</p>
+                      <p className="text-lg font-bold text-[#8B9A7E]">${barber.totalEarnings.toFixed(2)}</p>
+                    </div>
+
+                    {/* Per-booking list */}
                     {barber.bookings.length > 0 ? (
                       <div>
                         <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">
@@ -206,9 +240,11 @@ export default function PayrollPage() {
                             .slice()
                             .sort((a, b) => a.date.localeCompare(b.date))
                             .map(b => {
-                              const price = b.final_price ?? b.price ?? 0;
+                              const svcPrice = b.price ?? 0;
+                              const prodRev = b.product_revenue ?? 0;
                               const tipAmt = b.tip ?? 0;
-                              const commission = price * barber.commissionRate / 100;
+                              const svcCommission = svcPrice * barber.serviceCommissionRate / 100;
+                              const prodCommission = prodRev * barber.productCommissionRate / 100;
                               return (
                                 <div
                                   key={b.id}
@@ -218,10 +254,13 @@ export default function PayrollPage() {
                                     <span className="font-medium">{b.client_name || "Walk-in"}</span>
                                     <span className="text-gray-400 ml-2">{b.service_name}</span>
                                   </div>
-                                  <div className="flex items-center gap-3 text-right">
+                                  <div className="flex items-center gap-2 text-right flex-wrap justify-end">
                                     <span className="text-gray-400">{b.date}</span>
-                                    <span className="font-semibold text-green-700">${price.toFixed(2)}</span>
-                                    <span className="text-[#8B9A7E]">→ ${commission.toFixed(2)}</span>
+                                    <span className="font-semibold text-green-700">${svcPrice.toFixed(2)}</span>
+                                    <span className="text-[#8B9A7E]">→ ${svcCommission.toFixed(2)}</span>
+                                    {prodRev > 0 && (
+                                      <span className="text-purple-500">+${prodRev.toFixed(2)} prod → ${prodCommission.toFixed(2)}</span>
+                                    )}
                                     {tipAmt > 0 && (
                                       <span className="text-blue-500">+${tipAmt.toFixed(2)} tip</span>
                                     )}

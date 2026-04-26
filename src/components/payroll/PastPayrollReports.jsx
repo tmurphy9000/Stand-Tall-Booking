@@ -42,18 +42,24 @@ export default function PastPayrollReports({ open, onClose }) {
       .filter(b => b.is_active !== false)
       .map(barber => {
         const barberBookings = bookings.filter(b => b.barber_id === barber.id);
-        const serviceRevenue = barberBookings.reduce((sum, b) => sum + (b.final_price ?? b.price ?? 0), 0);
+        const serviceRevenue = barberBookings.reduce((sum, b) => sum + (b.price ?? 0), 0);
+        const productRevenue = barberBookings.reduce((sum, b) => sum + (b.product_revenue ?? 0), 0);
         const tips = barberBookings.reduce((sum, b) => sum + (b.tip ?? 0), 0);
-        const commissionRate = barber.service_commission_rate ?? 50;
-        const serviceCommission = serviceRevenue * (commissionRate / 100);
-        const totalEarnings = serviceCommission + tips;
+        const serviceCommissionRate = barber.service_commission_rate ?? 50;
+        const productCommissionRate = barber.product_commission_rate ?? 10;
+        const serviceCommission = serviceRevenue * (serviceCommissionRate / 100);
+        const productCommission = productRevenue * (productCommissionRate / 100);
+        const totalEarnings = serviceCommission + productCommission + tips;
 
         return {
           id: barber.id,
           name: barber.name,
-          commissionRate,
+          serviceCommissionRate,
+          productCommissionRate,
           serviceRevenue,
+          productRevenue,
           serviceCommission,
+          productCommission,
           tips,
           totalEarnings,
           bookings: barberBookings,
@@ -63,7 +69,7 @@ export default function PastPayrollReports({ open, onClose }) {
   }, [barbers, bookings, startDate, endDate]);
 
   const grandTotal = payrollData.reduce((sum, d) => sum + d.totalEarnings, 0);
-  const grossRevenue = payrollData.reduce((sum, d) => sum + d.serviceRevenue, 0);
+  const grossRevenue = payrollData.reduce((sum, d) => sum + d.serviceRevenue + d.productRevenue, 0);
 
   return (
     <Sheet open={open} onOpenChange={onClose}>
@@ -146,31 +152,51 @@ export default function PastPayrollReports({ open, onClose }) {
                       </button>
 
                       {expandedBarber === barber.id && (
-                        <div className="mt-3 grid grid-cols-3 gap-2 text-xs border-t pt-3">
-                          <div className="bg-gray-50 rounded p-2">
-                            <p className="text-gray-500">Service Commission</p>
-                            <p className="font-semibold mt-1">${barber.serviceCommission.toFixed(2)}</p>
-                            <p className="text-[10px] text-gray-400">from ${barber.serviceRevenue.toFixed(2)}</p>
+                        <div className="mt-3 space-y-2 text-xs border-t pt-3">
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="bg-gray-50 rounded p-2">
+                              <p className="text-gray-500">Service Revenue</p>
+                              <p className="font-semibold mt-1">${barber.serviceRevenue.toFixed(2)}</p>
+                            </div>
+                            <div className="bg-[#8B9A7E]/10 rounded p-2">
+                              <p className="text-gray-500">Svc Commission</p>
+                              <p className="font-semibold text-[#8B9A7E] mt-1">${barber.serviceCommission.toFixed(2)}</p>
+                              <p className="text-[10px] text-gray-400">{barber.serviceCommissionRate}%</p>
+                            </div>
+                            <div className="bg-gray-50 rounded p-2">
+                              <p className="text-gray-500">Shop Keeps (Svc)</p>
+                              <p className="font-semibold mt-1">${(barber.serviceRevenue - barber.serviceCommission).toFixed(2)}</p>
+                              <p className="text-[10px] text-gray-400">{100 - barber.serviceCommissionRate}%</p>
+                            </div>
                           </div>
-                          <div className="bg-blue-50 rounded p-2">
-                            <p className="text-gray-500">Tips</p>
-                            <p className="font-semibold text-blue-600 mt-1">${barber.tips.toFixed(2)}</p>
-                          </div>
-                          <div className="bg-gray-50 rounded p-2">
-                            <p className="text-gray-500">Shop Keeps</p>
-                            <p className="font-semibold mt-1">${(barber.serviceRevenue - barber.serviceCommission).toFixed(2)}</p>
-                            <p className="text-[10px] text-gray-400">{100 - barber.commissionRate}% of revenue</p>
+                          <div className="grid grid-cols-3 gap-2">
+                            <div className="bg-gray-50 rounded p-2">
+                              <p className="text-gray-500">Product Revenue</p>
+                              <p className="font-semibold mt-1">${barber.productRevenue.toFixed(2)}</p>
+                            </div>
+                            <div className="bg-purple-50 rounded p-2">
+                              <p className="text-gray-500">Prod Commission</p>
+                              <p className="font-semibold text-purple-600 mt-1">${barber.productCommission.toFixed(2)}</p>
+                              <p className="text-[10px] text-gray-400">{barber.productCommissionRate}%</p>
+                            </div>
+                            <div className="bg-blue-50 rounded p-2">
+                              <p className="text-gray-500">Tips</p>
+                              <p className="font-semibold text-blue-600 mt-1">${barber.tips.toFixed(2)}</p>
+                            </div>
                           </div>
 
                           {barber.bookings.length > 0 && (
-                            <div className="col-span-3 mt-2">
+                            <div className="mt-1">
                               <p className="text-gray-500 mb-1 font-medium">Services</p>
                               <div className="space-y-1 max-h-40 overflow-y-auto">
                                 {barber.bookings.map(b => (
                                   <div key={b.id} className="flex justify-between bg-white border rounded px-2 py-1">
                                     <span>{b.date} — {b.service_name}</span>
-                                    <span className="font-medium">${(b.final_price ?? b.price ?? 0).toFixed(2)}</span>
-                                    {(b.tip ?? 0) > 0 && <span className="text-blue-500 text-[10px]">+${(b.tip).toFixed(2)} tip</span>}
+                                    <div className="flex gap-2 items-center">
+                                      <span className="font-medium">${(b.price ?? 0).toFixed(2)}</span>
+                                      {(b.product_revenue ?? 0) > 0 && <span className="text-purple-500">+${(b.product_revenue).toFixed(2)} prod</span>}
+                                      {(b.tip ?? 0) > 0 && <span className="text-blue-500">+${(b.tip).toFixed(2)} tip</span>}
+                                    </div>
                                   </div>
                                 ))}
                               </div>

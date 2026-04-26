@@ -139,10 +139,15 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
   const handleCheckout = async (paymentIntentId = null) => {
     try {
       // Update primary booking
+      const productRevenue = items
+        .filter(i => i.type === "product")
+        .reduce((sum, i) => sum + (i.price || 0), 0);
+
       await entities.Booking.update(booking.id, {
         status: "completed",
         final_price: total,
         tip: tip || 0,
+        product_revenue: productRevenue,
       });
 
       // Update additional bookings
