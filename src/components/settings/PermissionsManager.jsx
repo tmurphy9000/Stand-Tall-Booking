@@ -2,7 +2,6 @@ import React from "react";
 import { entities } from "@/api/entities";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -19,14 +18,9 @@ export default function PermissionsManager() {
     queryFn: () => entities.Barber.list(),
   });
 
-  const { data: users = [] } = useQuery({
-    queryKey: ["users"],
-    queryFn: () => entities.User.list(),
-  });
-
   const updatePermission = useMutation({
-    mutationFn: ({ barberId, permission_level, user_id }) => 
-      entities.Barber.update(barberId, { permission_level, user_id }),
+    mutationFn: ({ barberId, permission_level }) =>
+      entities.Barber.update(barberId, { permission_level }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["barbers"] });
       toast.success("Permissions updated");
@@ -78,51 +72,23 @@ export default function PermissionsManager() {
               </div>
             </div>
 
-            <div className="flex flex-col gap-3 pl-4 border-l-2">
-              <div className="flex items-center gap-2">
-                <Select
-                  value={barber.user_id || ""}
-                  onValueChange={(user_id) => {
+            {barber.permission_level !== "owner" && (
+              <div className="flex items-center gap-3 pl-4 border-l-2">
+                <Switch
+                  id={`manager-${barber.id}`}
+                  checked={barber.permission_level === "manager"}
+                  onCheckedChange={(checked) => {
                     updatePermission.mutate({
                       barberId: barber.id,
-                      user_id,
-                      permission_level: barber.permission_level
+                      permission_level: checked ? "manager" : "service_provider",
                     });
                   }}
-                >
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Link user account" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={null}>No user linked</SelectItem>
-                    {users.map(user => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.full_name || user.email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                />
+                <Label htmlFor={`manager-${barber.id}`} className="cursor-pointer">
+                  Manager Permissions
+                </Label>
               </div>
-
-              {barber.permission_level !== "owner" && (
-                <div className="flex items-center gap-3">
-                  <Switch
-                    id={`manager-${barber.id}`}
-                    checked={barber.permission_level === "manager"}
-                    onCheckedChange={(checked) => {
-                      updatePermission.mutate({
-                        barberId: barber.id,
-                        permission_level: checked ? "manager" : "service_provider",
-                        user_id: barber.user_id
-                      });
-                    }}
-                  />
-                  <Label htmlFor={`manager-${barber.id}`} className="cursor-pointer">
-                    Manager Permissions
-                  </Label>
-                </div>
-              )}
-            </div>
+            )}
           </div>
         ))}
       </CardContent>
