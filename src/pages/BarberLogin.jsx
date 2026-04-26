@@ -39,9 +39,11 @@ export default function BarberLogin() {
       <Card className="max-w-md w-full">
         <CardContent className="pt-6">
           <div className="flex justify-center mb-6">
-            <div className="w-16 h-16 bg-[#8B9A7E] rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-2xl">STB</span>
-            </div>
+            <img
+              src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6993eba91209ee0a1089f355/fd9cfe023_6f5fd5cc-8fc9-4041-9d87-c24e77a3bc58.png"
+              alt="Stand Tall Barbershop"
+              className="w-24 h-24 rounded-lg"
+            />
           </div>
 
           <h1 className="text-2xl font-bold text-center text-[#0A0A0A] mb-2">
