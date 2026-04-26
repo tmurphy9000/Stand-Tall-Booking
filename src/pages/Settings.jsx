@@ -91,6 +91,9 @@ export default function SettingsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["shopSettings"] });
+      setDraftHours(null);
+      setDraftProductTax(null);
+      setDraftServiceTax(null);
       toast.success("Settings saved");
     },
   });
@@ -227,7 +230,7 @@ export default function SettingsPage() {
                 type="number"
                 step="0.01"
                 value={draftProductTax ?? (settings.default_tax_rate ?? 0)}
-                onChange={e => setDraftProductTax(parseFloat(e.target.value) || 0)}
+                onChange={e => { const v = parseFloat(e.target.value); setDraftProductTax(isNaN(v) ? 0 : v); }}
               />
               <p className="text-[10px] text-gray-400 mt-1">Applied to retail products sold at checkout</p>
             </div>
@@ -237,7 +240,7 @@ export default function SettingsPage() {
                 type="number"
                 step="0.01"
                 value={draftServiceTax ?? (settings.default_service_tax_rate ?? 0)}
-                onChange={e => setDraftServiceTax(parseFloat(e.target.value) || 0)}
+                onChange={e => { const v = parseFloat(e.target.value); setDraftServiceTax(isNaN(v) ? 0 : v); }}
               />
               <p className="text-[10px] text-gray-400 mt-1">Applied to services at checkout (usually 0%)</p>
             </div>
