@@ -3,7 +3,7 @@ import { entities } from "@/api/entities";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, DollarSign, Calendar, Plus, History, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Calendar, Plus, History, ChevronDown, ChevronUp } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
@@ -25,8 +25,6 @@ export default function PayrollPage() {
   const { data: bookings = [], isLoading: bookingsLoading } = useQuery({
     queryKey: ["payroll-bookings", startDate, endDate],
     queryFn: async () => {
-      // Fetch all completed bookings then filter by date range in JS
-      // (avoids any Supabase compound-filter edge cases)
       const all = await entities.Booking.filter({ status: "completed" });
       return all.filter(b => b.date >= startDate && b.date <= endDate);
     },
@@ -34,7 +32,6 @@ export default function PayrollPage() {
 
   const isLoading = barbersLoading || bookingsLoading;
 
-  // Calculate commission per barber — use ?? so 0% rates are respected
   const payrollData = barbers
     .filter(b => b.is_active !== false)
     .map(barber => {
@@ -43,9 +40,12 @@ export default function PayrollPage() {
       const serviceRevenue = barberBookings.reduce(
         (sum, b) => sum + (b.final_price ?? b.price ?? 0), 0
       );
-      // Use ?? not || so an explicit 0% commission rate is honoured
+      const tips = barberBookings.reduce((sum, b) => sum + (b.tip ?? 0), 0);
+
+      // ?? so an explicit 0% commission rate is honoured
       const commissionRate = barber.service_commission_rate ?? 50;
       const serviceCommission = serviceRevenue * (commissionRate / 100);
+      const totalEarnings = serviceCommission + tips;
 
       return {
         id: barber.id,
@@ -53,7 +53,8 @@ export default function PayrollPage() {
         commissionRate,
         serviceRevenue,
         serviceCommission,
-        totalCommission: serviceCommission,
+        tips,
+        totalEarnings,
         completedServices: barberBookings.length,
         bookings: barberBookings,
       };
@@ -67,7 +68,7 @@ export default function PayrollPage() {
     );
   }
 
-  const grandTotal = payrollData.reduce((sum, b) => sum + b.totalCommission, 0);
+  const grandTotal = payrollData.reduce((sum, b) => sum + b.totalEarnings, 0);
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -119,7 +120,7 @@ export default function PayrollPage() {
       {/* Summary Card */}
       <Card className="mb-6 bg-gradient-to-br from-[#8B9A7E]/10 to-[#B0BFA4]/10 border-[#8B9A7E]/20">
         <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-gray-600">Total Commissions Due</CardTitle>
+          <CardTitle className="text-sm font-medium text-gray-600">Total Earnings Due</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold text-[#0A0A0A]">
@@ -139,9 +140,12 @@ export default function PayrollPage() {
             <Card key={barber.id} className="border-gray-200 hover:shadow-md transition-shadow">
               <CardContent className="p-0">
                 {/* Clickable header row */}
-                <button
-                  className="w-full text-left p-5"
-                  onClick={() => setExpandedBarber(isExpanded ? null : barber.id)}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  className="w-full text-left p-5 cursor-pointer select-none"
+                  onClick={() => setExpandedBarber(prev => prev === barber.id ? null : barber.id)}
+                  onKeyDown={e => { if (e.key === "Enter" || e.key === " ") setExpandedBarber(prev => prev === barber.id ? null : barber.id); }}
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -154,15 +158,16 @@ export default function PayrollPage() {
                       <p className="text-xs text-gray-500 mt-0.5">
                         {barber.completedServices} completed service{barber.completedServices !== 1 ? "s" : ""}
                         {barber.serviceRevenue > 0 && ` · $${barber.serviceRevenue.toFixed(2)} revenue`}
+                        {barber.tips > 0 && ` · $${barber.tips.toFixed(2)} tips`}
                       </p>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right">
                         <div className="text-2xl font-bold text-[#8B9A7E]">
-                          ${barber.totalCommission.toFixed(2)}
+                          ${barber.totalEarnings.toFixed(2)}
                         </div>
                         <div className="text-[10px] text-gray-400 mt-0.5">
-                          {barber.commissionRate}% of ${barber.serviceRevenue.toFixed(2)}
+                          commission + tips
                         </div>
                       </div>
                       {isExpanded
@@ -171,12 +176,12 @@ export default function PayrollPage() {
                       }
                     </div>
                   </div>
-                </button>
+                </div>
 
-                {/* Expanded booking breakdown */}
+                {/* Expanded breakdown */}
                 {isExpanded && (
                   <div className="border-t border-gray-100 px-5 pb-5 pt-3 space-y-3">
-                    <div className="grid grid-cols-3 gap-3 text-xs">
+                    <div className="grid grid-cols-4 gap-3 text-xs">
                       <div className="bg-gray-50 rounded-lg p-3">
                         <p className="text-gray-500">Service Revenue</p>
                         <p className="text-lg font-bold mt-1">${barber.serviceRevenue.toFixed(2)}</p>
@@ -186,6 +191,11 @@ export default function PayrollPage() {
                         <p className="text-gray-500">Commission ({barber.commissionRate}%)</p>
                         <p className="text-lg font-bold text-[#8B9A7E] mt-1">${barber.serviceCommission.toFixed(2)}</p>
                         <p className="text-[10px] text-gray-400">owed to barber</p>
+                      </div>
+                      <div className="bg-blue-50 rounded-lg p-3">
+                        <p className="text-gray-500">Tips</p>
+                        <p className="text-lg font-bold text-blue-600 mt-1">${barber.tips.toFixed(2)}</p>
+                        <p className="text-[10px] text-gray-400">100% to barber</p>
                       </div>
                       <div className="bg-gray-50 rounded-lg p-3">
                         <p className="text-gray-500">Shop Keeps</p>
@@ -201,27 +211,32 @@ export default function PayrollPage() {
                         </p>
                         <div className="space-y-1 max-h-48 overflow-y-auto">
                           {barber.bookings
+                            .slice()
                             .sort((a, b) => a.date.localeCompare(b.date))
-                            .map(b => (
-                              <div
-                                key={b.id}
-                                className="flex items-center justify-between bg-white border border-gray-100 rounded px-3 py-2 text-xs"
-                              >
-                                <div>
-                                  <span className="font-medium">{b.client_name || "Walk-in"}</span>
-                                  <span className="text-gray-400 ml-2">{b.service_name}</span>
+                            .map(b => {
+                              const price = b.final_price ?? b.price ?? 0;
+                              const tipAmt = b.tip ?? 0;
+                              const commission = price * barber.commissionRate / 100;
+                              return (
+                                <div
+                                  key={b.id}
+                                  className="flex items-center justify-between bg-white border border-gray-100 rounded px-3 py-2 text-xs"
+                                >
+                                  <div>
+                                    <span className="font-medium">{b.client_name || "Walk-in"}</span>
+                                    <span className="text-gray-400 ml-2">{b.service_name}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3 text-right">
+                                    <span className="text-gray-400">{b.date}</span>
+                                    <span className="font-semibold text-green-700">${price.toFixed(2)}</span>
+                                    <span className="text-[#8B9A7E]">→ ${commission.toFixed(2)}</span>
+                                    {tipAmt > 0 && (
+                                      <span className="text-blue-500">+${tipAmt.toFixed(2)} tip</span>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-3 text-right">
-                                  <span className="text-gray-400">{b.date}</span>
-                                  <span className="font-semibold text-green-700">
-                                    ${(b.final_price ?? b.price ?? 0).toFixed(2)}
-                                  </span>
-                                  <span className="text-[#8B9A7E]">
-                                    → ${((b.final_price ?? b.price ?? 0) * barber.commissionRate / 100).toFixed(2)}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
+                              );
+                            })}
                         </div>
                       </div>
                     ) : (

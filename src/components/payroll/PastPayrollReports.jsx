@@ -2,7 +2,6 @@ import React, { useState, useMemo } from "react";
 import { entities } from "@/api/entities";
 import { useQuery } from "@tanstack/react-query";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
@@ -36,13 +35,7 @@ export default function PastPayrollReports({ open, onClose }) {
     enabled: open,
   });
 
-  const { data: cashTx = [], isLoading: cashLoading } = useQuery({
-    queryKey: ["past-payroll-cash", startDate, endDate],
-    queryFn: () => entities.CashTransaction.list("-created_date", 1000),
-    enabled: open,
-  });
-
-  const isLoading = bookingsLoading || cashLoading;
+  const isLoading = bookingsLoading;
 
   const payrollData = useMemo(() => {
     return barbers
@@ -50,35 +43,24 @@ export default function PastPayrollReports({ open, onClose }) {
       .map(barber => {
         const barberBookings = bookings.filter(b => b.barber_id === barber.id);
         const serviceRevenue = barberBookings.reduce((sum, b) => sum + (b.final_price ?? b.price ?? 0), 0);
+        const tips = barberBookings.reduce((sum, b) => sum + (b.tip ?? 0), 0);
         const commissionRate = barber.service_commission_rate ?? 50;
         const serviceCommission = serviceRevenue * (commissionRate / 100);
-
-        const tips = cashTx
-          .filter(tx =>
-            tx.type === "inflow" &&
-            tx.barber_id === barber.id &&
-            tx.date >= startDate &&
-            tx.date <= endDate
-          )
-          .reduce((sum, tx) => sum + (tx.amount || 0), 0);
-
-        const productCommissionRate = barber.product_commission_rate ?? 10;
-        const productCommission = tips * (productCommissionRate / 100);
-        const totalEarnings = serviceCommission + productCommission + tips;
+        const totalEarnings = serviceCommission + tips;
 
         return {
           id: barber.id,
           name: barber.name,
+          commissionRate,
           serviceRevenue,
           serviceCommission,
-          productCommission,
           tips,
           totalEarnings,
           bookings: barberBookings,
         };
       })
       .sort((a, b) => b.totalEarnings - a.totalEarnings);
-  }, [barbers, bookings, cashTx, startDate, endDate]);
+  }, [barbers, bookings, startDate, endDate]);
 
   const grandTotal = payrollData.reduce((sum, d) => sum + d.totalEarnings, 0);
   const grossRevenue = payrollData.reduce((sum, d) => sum + d.serviceRevenue, 0);
@@ -170,13 +152,14 @@ export default function PastPayrollReports({ open, onClose }) {
                             <p className="font-semibold mt-1">${barber.serviceCommission.toFixed(2)}</p>
                             <p className="text-[10px] text-gray-400">from ${barber.serviceRevenue.toFixed(2)}</p>
                           </div>
-                          <div className="bg-gray-50 rounded p-2">
-                            <p className="text-gray-500">Product Commission</p>
-                            <p className="font-semibold mt-1">${barber.productCommission.toFixed(2)}</p>
+                          <div className="bg-blue-50 rounded p-2">
+                            <p className="text-gray-500">Tips</p>
+                            <p className="font-semibold text-blue-600 mt-1">${barber.tips.toFixed(2)}</p>
                           </div>
                           <div className="bg-gray-50 rounded p-2">
-                            <p className="text-gray-500">Tips</p>
-                            <p className="font-semibold mt-1">${barber.tips.toFixed(2)}</p>
+                            <p className="text-gray-500">Shop Keeps</p>
+                            <p className="font-semibold mt-1">${(barber.serviceRevenue - barber.serviceCommission).toFixed(2)}</p>
+                            <p className="text-[10px] text-gray-400">{100 - barber.commissionRate}% of revenue</p>
                           </div>
 
                           {barber.bookings.length > 0 && (

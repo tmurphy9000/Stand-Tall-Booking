@@ -135,10 +135,8 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
       // Update primary booking
       await entities.Booking.update(booking.id, {
         status: "completed",
-        payment_method: paymentMethod,
-        discount_type: discount.type,
-        discount_value: discount.value,
         final_price: total,
+        tip: tip || 0,
       });
 
       // Update additional bookings
