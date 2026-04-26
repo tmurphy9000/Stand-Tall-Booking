@@ -118,7 +118,7 @@ export default function SettingsPage() {
     ...(hasFullAccess ? [
       { value: "payroll", label: "Payroll", icon: DollarSign },
     ] : []),
-    ...(isAdmin ? [{ value: "permissions", label: "Permissions", icon: Shield }] : []),
+    ...(hasFullAccess ? [{ value: "permissions", label: "Permissions", icon: Shield }] : []),
     ...(isAdmin ? [{ value: "subscription", label: "Subscription", icon: CreditCard }] : []),
     ...(hasFullAccess ? [{ value: "calloff", label: "Call-Off", icon: PhoneOff }] : []),
   ];
@@ -255,11 +255,10 @@ export default function SettingsPage() {
 
         {isAdmin && activeTab === "subscription" && <SubscriptionManager />}
 
-        {isAdmin && activeTab === "permissions" && (
+        {hasFullAccess && activeTab === "permissions" && (
           <div className="space-y-4">
             <PermissionsManager />
             <RolePermissionsManager />
-            <AdminPasswordManager settings={settings} />
           </div>
         )}
       </div>

@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { entities } from "@/api/entities";
-import { auth } from "@/api/auth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { usePermissions } from "@/components/permissions/usePermissions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -29,11 +29,7 @@ const PERMISSIONS = [
 
 export default function RolePermissionsManager() {
   const queryClient = useQueryClient();
-  const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    auth.me().then(setUser).catch(() => setUser(null));
-  }, []);
+  const { hasFullAccess } = usePermissions();
 
   const { data: rolePermissions = [] } = useQuery({
     queryKey: ["role-permissions"],
@@ -76,10 +72,7 @@ export default function RolePermissionsManager() {
     }
   };
 
-  // Only show for admin, owner, or manager
-  if (user && !["admin", "owner", "manager"].includes(user.role)) {
-    return null;
-  }
+  if (!hasFullAccess) return null;
 
   const roles = ["service_provider", "manager", "owner"];
 
