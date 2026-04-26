@@ -107,7 +107,7 @@ export default function Layout({ children, currentPageName }) {
                     <button
                       key={tab.page}
                       onClick={() => toast.error("Access Denied", {
-                        description: "You don't have permission to access this page",
+                        description: "You don't have permission to access this. Contact your owner or manager.",
                         icon: <Lock className="w-4 h-4" />
                       })}
                       className="flex flex-col items-center gap-1 py-2 px-2 transition-all relative text-[#FAFAF8]/60 hover:text-[#FAFAF8]/90"
@@ -144,7 +144,7 @@ export default function Layout({ children, currentPageName }) {
             {currentBarber?.permission_level === "service_provider" ? (
               <button
                 onClick={() => toast.error("Access Denied", {
-                  description: "You don't have permission to access settings",
+                  description: "You don't have permission to access this. Contact your owner or manager.",
                   icon: <Lock className="w-4 h-4" />
                 })}
                 className="flex flex-col items-center gap-1 py-2 px-2 transition-all relative text-[#FAFAF8]/60 hover:text-[#FAFAF8]/90 w-full"

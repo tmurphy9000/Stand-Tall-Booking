@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, parseISO } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, TrendingUp, Users, DollarSign, Repeat } from "lucide-react";
+import { Loader2, TrendingUp, Users, DollarSign, Repeat, Lock } from "lucide-react";
 import { RevenueChart, ServiceBreakdownChart, BarberPerformanceChart, RetentionChart, StaffPerformanceChart, ClientLifetimeValueChart, ServicePopularityChart, NoShowRatesChart, VisitTypeChart } from "../components/reports/ReportCharts";
 import { Button } from "@/components/ui/button";
 import { Download, FileText } from "lucide-react";
@@ -356,13 +356,12 @@ export default function ReportsPage() {
 
   if (!hasFullAccess) {
     return (
-      <div className="p-6">
-        <Card className="max-w-md mx-auto mt-12">
-          <CardContent className="p-8 text-center">
-            <p className="text-gray-600">You don't have permission to access reports.</p>
-            <p className="text-sm text-gray-400 mt-2">Contact an owner or manager for access.</p>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center space-y-2">
+          <Lock className="w-8 h-8 text-gray-400 mx-auto" />
+          <p className="font-medium text-gray-700">Access Denied</p>
+          <p className="text-sm text-gray-500">Contact your owner or manager.</p>
+        </div>
       </div>
     );
   }

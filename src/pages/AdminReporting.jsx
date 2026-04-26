@@ -1,19 +1,30 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { entities } from "@/api/entities";
 import { useQuery } from "@tanstack/react-query";
 import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, parseISO } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, TrendingUp, Users, DollarSign, Repeat } from "lucide-react";
+import { Loader2, TrendingUp, Users, DollarSign, Repeat, Lock } from "lucide-react";
 import { RevenueChart, ServiceBreakdownChart, BarberPerformanceChart, RetentionChart, StaffPerformanceChart, ClientLifetimeValueChart, ServicePopularityChart, NoShowRatesChart } from "../components/reports/ReportCharts";
 import { Button } from "@/components/ui/button";
 import { Download, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent } from "@/components/ui/card";
+import { usePermissions } from "../components/permissions/usePermissions";
 
 export default function AdminReportingPage() {
   const [dateRange, setDateRange] = useState("30");
   const [barberFilter, setBarberFilter] = useState("all");
+  const { hasFullAccess } = usePermissions();
+
+  useEffect(() => {
+    if (!hasFullAccess) {
+      toast.error("Access Denied", {
+        description: "You don't have permission to access this. Contact your owner or manager.",
+        icon: <Lock className="w-4 h-4" />,
+      });
+    }
+  }, [hasFullAccess]);
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["bookings-all"],
@@ -272,6 +283,18 @@ export default function AdminReportingPage() {
     window.URL.revokeObjectURL(url);
     toast.success("Report exported to CSV");
   };
+
+  if (!hasFullAccess) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center space-y-2">
+          <Lock className="w-8 h-8 text-gray-400 mx-auto" />
+          <p className="font-medium text-gray-700">Access Denied</p>
+          <p className="text-sm text-gray-500">Contact your owner or manager.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 space-y-4">

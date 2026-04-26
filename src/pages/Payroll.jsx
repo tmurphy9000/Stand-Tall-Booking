@@ -1,16 +1,28 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { entities } from "@/api/entities";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, Plus, History, ChevronDown, ChevronUp } from "lucide-react";
+import { Loader2, Calendar, Plus, History, ChevronDown, ChevronUp, Lock } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { toast } from "sonner";
 import AddBarberDialog from "../components/payroll/AddBarberDialog";
 import PastPayrollReports from "../components/payroll/PastPayrollReports";
+import { usePermissions } from "../components/permissions/usePermissions";
 
 export default function PayrollPage() {
+  const { hasFullAccess } = usePermissions();
+
+  useEffect(() => {
+    if (!hasFullAccess) {
+      toast.error("Access Denied", {
+        description: "You don't have permission to access this. Contact your owner or manager.",
+        icon: <Lock className="w-4 h-4" />,
+      });
+    }
+  }, [hasFullAccess]);
   const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -65,6 +77,18 @@ export default function PayrollPage() {
         bookings: barberBookings,
       };
     });
+
+  if (!hasFullAccess) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="text-center space-y-2">
+          <Lock className="w-8 h-8 text-gray-400 mx-auto" />
+          <p className="font-medium text-gray-700">Access Denied</p>
+          <p className="text-sm text-gray-500">Contact your owner or manager.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
