@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { entities } from "@/api/entities";
+import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { Mail, Loader2, ClipboardEdit, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -45,24 +46,19 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
 
     setLoading(true);
     try {
-      // Create barber profile
-      const barberResult = await entities.Barber.create({
-        name: fullName,
-        email: form.email,
-        phone: form.phone,
-        permission_level: form.role,
-        is_active: true,
-        online_bookable: true,
+      // Create barber record + Supabase Auth user via edge function
+      const { data, error } = await supabase.functions.invoke("inviteBarber", {
+        body: {
+          name: fullName,
+          email: form.email,
+          phone: form.phone,
+          permission_level: form.role,
+          temp_password: form.temp_password,
+        },
       });
 
-      // Create password record with temp password
-      const hashPassword = (pwd) => btoa(pwd);
-      await entities.BarberPassword.create({
-        barber_id: barberResult.id,
-        email: form.email,
-        password_hash: hashPassword(form.temp_password),
-        is_temp: true,
-      });
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
 
       if (payrollEntry === "manual") {
         await entities.BarberSensitiveInfo.create({
@@ -76,11 +72,7 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
         });
         toast.success(`${fullName} added and payroll info saved.`);
       } else {
-        // Email sending via Supabase edge functions or external service
-        // For now, show the temp password to share manually
-        toast.success(
-          `${fullName} added! Share their temporary password: ${form.temp_password}`
-        );
+        toast.success(`${fullName} added! Share their temporary password: ${form.temp_password}`);
       }
 
       setForm(EMPTY_FORM);
