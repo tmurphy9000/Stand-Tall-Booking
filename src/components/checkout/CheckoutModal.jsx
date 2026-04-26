@@ -18,7 +18,7 @@ const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : 
 export default function CheckoutModal({ open, onClose, booking, onComplete }) {
   const [items, setItems] = useState([]);
   const [discount, setDiscount] = useState({ type: "none", value: 0 });
-  const [tip, setTip] = useState(0);
+  const [tip, setTip] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [additionalBookings, setAdditionalBookings] = useState([]);
 
@@ -134,7 +134,7 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
     ? subtotal * (parseFloat(discount.value) / 100)
     : discount.type === "fixed" ? parseFloat(discount.value) || 0 : 0;
   
-  const total = subtotal + taxAmount - discountAmount + (tip || 0);
+  const total = subtotal + taxAmount - discountAmount + (parseFloat(tip) || 0);
 
   const handleCheckout = async (paymentIntentId = null) => {
     try {
@@ -146,7 +146,7 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
       await entities.Booking.update(booking.id, {
         status: "completed",
         final_price: total,
-        tip: tip || 0,
+        tip: parseFloat(tip) || 0,
         product_revenue: productRevenue,
       });
 
@@ -495,7 +495,7 @@ function CheckoutContent({
               type="number"
               className="h-8 text-xs"
               value={tip}
-              onChange={(e) => setTip(parseFloat(e.target.value) || 0)}
+              onChange={(e) => setTip(e.target.value)}
               placeholder="0.00"
             />
           </div>
@@ -551,10 +551,10 @@ function CheckoutContent({
                 <span>-${discountAmount.toFixed(2)}</span>
               </div>
             )}
-            {tip > 0 && (
+            {parseFloat(tip) > 0 && (
               <div className="flex justify-between text-sm">
                 <span>Tip:</span>
-                <span>${tip.toFixed(2)}</span>
+                <span>${(parseFloat(tip)).toFixed(2)}</span>
               </div>
             )}
             <div className="flex justify-between text-lg font-bold border-t pt-1">
