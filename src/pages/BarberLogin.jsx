@@ -1,11 +1,10 @@
 import React, { useState } from "react";
-import { functions } from "@/api/functions";
+import { supabase } from "@/lib/supabaseClient";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
-import { toast } from "sonner";
 
 export default function BarberLogin() {
   const [email, setEmail] = useState("");
@@ -24,24 +23,15 @@ export default function BarberLogin() {
     }
 
     setLoading(true);
-    try {
-      const response = await functions.invoke("barberLogin", { email, password });
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
 
-      localStorage.setItem("barber_session", JSON.stringify(response.data));
-      toast.success("Logged in successfully!");
-
-      if (response.data.is_temp) {
-        setTimeout(() => { window.location.href = "/ChangePassword"; }, 500);
-      } else {
-        setTimeout(() => { window.location.href = "/"; }, 500);
-      }
-    } catch (error) {
-      const errorMsg = error.response?.data?.error || "Login failed";
-      setError(errorMsg);
-      toast.error(errorMsg);
-    } finally {
-      setLoading(false);
+    if (authError) {
+      setError("Invalid email or password");
+      return;
     }
+
+    window.location.href = "/";
   };
 
   return (
@@ -80,6 +70,7 @@ export default function BarberLogin() {
                 placeholder="your@email.com"
                 disabled={loading}
                 className="mt-1"
+                autoComplete="email"
               />
             </div>
 
@@ -94,6 +85,7 @@ export default function BarberLogin() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   disabled={loading}
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"

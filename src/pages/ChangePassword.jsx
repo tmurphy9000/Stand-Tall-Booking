@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { functions } from "@/api/functions";
+import { supabase } from "@/lib/supabaseClient";
+import { useAuth } from "@/lib/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,42 +9,21 @@ import { Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function ChangePassword() {
-  const [oldPassword, setOldPassword] = useState("");
+  const { currentBarber, logout } = useAuth();
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPasswords, setShowPasswords] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const barberData = localStorage.getItem("barber_session");
-  const barber = barberData ? JSON.parse(barberData) : null;
-
-  if (!barber) {
-    return (
-      <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center p-4">
-        <Card className="max-w-md w-full">
-          <CardContent className="pt-6 text-center">
-            <p className="text-gray-600">Please log in first.</p>
-            <Button
-              onClick={() => window.location.href = "/barber-login"}
-              className="w-full mt-4 bg-[#8B9A7E] hover:bg-[#6B7A5E]"
-            >
-              Go to Login
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   const handleChangePassword = async (e) => {
     e.preventDefault();
 
-    if (!oldPassword || !newPassword || !confirmPassword) {
+    if (!newPassword || !confirmPassword) {
       toast.error("All fields are required");
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error("New passwords don't match");
+      toast.error("Passwords don't match");
       return;
     }
     if (newPassword.length < 6) {
@@ -52,22 +32,17 @@ export default function ChangePassword() {
     }
 
     setLoading(true);
-    try {
-      await functions.invoke("changeBarberPassword", {
-        barber_id: barber.barber_id,
-        old_password: oldPassword,
-        new_password: newPassword,
-      });
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setLoading(false);
 
-      toast.success("Password changed successfully!");
-      setOldPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to change password");
-    } finally {
-      setLoading(false);
+    if (error) {
+      toast.error(error.message || "Failed to update password");
+      return;
     }
+
+    toast.success("Password updated successfully!");
+    setNewPassword("");
+    setConfirmPassword("");
   };
 
   return (
@@ -83,20 +58,21 @@ export default function ChangePassword() {
           <h1 className="text-2xl font-bold text-center text-[#0A0A0A] mb-2">
             Change Password
           </h1>
-          <p className="text-center text-sm text-gray-500 mb-6">
-            Hi {barber.barber_name}! {barber.is_temp && "(Temporary password active)"}
-          </p>
+          {currentBarber && (
+            <p className="text-center text-sm text-gray-500 mb-6">Hi {currentBarber.name}!</p>
+          )}
 
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div>
-              <Label className="text-sm text-gray-700">Current Password</Label>
+              <Label className="text-sm text-gray-700">New Password</Label>
               <div className="relative mt-1">
                 <Input
                   type={showPasswords ? "text" : "password"}
-                  value={oldPassword}
-                  onChange={(e) => setOldPassword(e.target.value)}
-                  placeholder="Enter your current password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Create a new password"
                   disabled={loading}
+                  autoComplete="new-password"
                 />
                 <button
                   type="button"
@@ -109,18 +85,6 @@ export default function ChangePassword() {
             </div>
 
             <div>
-              <Label className="text-sm text-gray-700">New Password</Label>
-              <Input
-                type={showPasswords ? "text" : "password"}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Create a new password"
-                disabled={loading}
-                className="mt-1"
-              />
-            </div>
-
-            <div>
               <Label className="text-sm text-gray-700">Confirm Password</Label>
               <Input
                 type={showPasswords ? "text" : "password"}
@@ -129,6 +93,7 @@ export default function ChangePassword() {
                 placeholder="Confirm your new password"
                 disabled={loading}
                 className="mt-1"
+                autoComplete="new-password"
               />
             </div>
 
@@ -146,10 +111,7 @@ export default function ChangePassword() {
           </form>
 
           <button
-            onClick={() => {
-              localStorage.removeItem("barber_session");
-              window.location.href = "/barber-login";
-            }}
+            onClick={logout}
             className="w-full mt-3 text-sm text-gray-500 hover:text-gray-700"
           >
             Log Out

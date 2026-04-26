@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
-import { Calendar, Package, BarChart3, Banknote, Settings, Scissors, DollarSign, ChevronLeft, ChevronRight, Users, Lock, Monitor, Smartphone } from "lucide-react";
+import { Calendar, Package, BarChart3, Banknote, Settings, DollarSign, ChevronLeft, ChevronRight, Users, Lock, Monitor, Smartphone, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NotificationBell from "./components/notifications/NotificationBell";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { useViewMode } from "./lib/ViewModeContext";
 import { usePermissions } from "./components/permissions/usePermissions";
+import { useAuth } from "./lib/AuthContext";
 
 const tabs = [
   { name: "Calendar", icon: Calendar, page: "Calendar" },
@@ -28,6 +29,7 @@ export default function Layout({ children, currentPageName }) {
   const showTabs = !["ClientList"].includes(currentPageName);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { hasFullAccess, currentBarber, user } = usePermissions();
+  const { logout } = useAuth();
   const { isMobile, setIsMobile } = useViewMode();
 
   return (
@@ -69,6 +71,14 @@ export default function Layout({ children, currentPageName }) {
                   {user.full_name?.charAt(0) || 'U'}
                 </div>
                 <span className="text-[9px] text-[#FAFAF8]/80 text-center leading-tight">{user.full_name}</span>
+                <button
+                  onClick={logout}
+                  className="mt-1 flex items-center gap-1 text-[9px] text-white/40 hover:text-white/70 transition-colors"
+                  title="Log out"
+                >
+                  <LogOut className="w-3 h-3" />
+                  Log out
+                </button>
               </div>
             ) : (
               <Button
