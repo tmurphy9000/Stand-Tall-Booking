@@ -9,6 +9,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import BarberLogin from './pages/BarberLogin';
 import ChangePassword from './pages/ChangePassword';
+import ClientBooking from './pages/ClientBooking';
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -58,6 +59,7 @@ const AuthenticatedApp = () => {
       ))}
       <Route path="/barber-login" element={<BarberLogin />} />
       <Route path="/ChangePassword" element={<ChangePassword />} />
+      <Route path="/book" element={<ClientBooking />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
