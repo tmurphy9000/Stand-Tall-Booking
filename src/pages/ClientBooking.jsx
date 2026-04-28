@@ -601,12 +601,12 @@ export default function ClientBooking() {
         price: selectedService.price ?? 0,
         final_price: selectedService.price ?? 0,
         status: "scheduled",
-        source: "online",
+        visit_type: "online",
       });
 
       setStep(6);
     } catch (err) {
-      console.error("Booking failed:", err);
+      console.error("Booking failed — message:", err?.message, "| details:", err?.details, "| hint:", err?.hint, "| code:", err?.code);
       alert("Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
