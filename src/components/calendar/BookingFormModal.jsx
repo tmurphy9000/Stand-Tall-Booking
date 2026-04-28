@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,17 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
   const [duplicateClient, setDuplicateClient] = useState(null);
   const [showMergeDialog, setShowMergeDialog] = useState(false);
   const [repeatEnabled, setRepeatEnabled] = useState(false);
@@ -247,7 +258,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <div className="relative">
+          <div className="relative" ref={dropdownRef}>
             <Label className="text-xs text-gray-500">Client Name *</Label>
             <Input 
               value={searchTerm} 
