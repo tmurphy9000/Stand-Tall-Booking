@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { entities } from "@/api/entities";
-import { Loader2, Scissors, ChevronRight, ArrowLeft, Clock, CheckCircle2, User, Calendar, Tag } from "lucide-react";
+import { Loader2, Scissors, ChevronRight, ArrowLeft, Clock, CheckCircle2, User, Calendar, Tag, Copy, Instagram, Facebook, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, addDays, parse, addMinutes } from "date-fns";
 
@@ -14,7 +14,7 @@ const fadeSlide = {
   transition: { duration: 0.22, ease: "easeOut" },
 };
 
-function StepHeader({ stepLabel, title, onBack, progress }) {
+function StepHeader({ stepLabel, title, onBack, progress, logoUrl }) {
   return (
     <>
       <div className="sticky top-0 z-10 flex items-center gap-4 px-6 py-4 border-b border-white/10" style={{ background: "#0A0A0A" }}>
@@ -28,7 +28,7 @@ function StepHeader({ stepLabel, title, onBack, progress }) {
           <p className="text-xs text-white/40 uppercase tracking-widest font-semibold">{stepLabel}</p>
           <h2 className="text-white font-bold text-lg leading-tight">{title}</h2>
         </div>
-        <img src={LOGO_URL} alt="" className="w-8 h-8 rounded-lg ml-auto opacity-60" />
+        <img src={logoUrl || LOGO_URL} alt="" className="w-8 h-8 rounded-lg ml-auto opacity-60 object-cover" />
       </div>
       <div className="h-0.5 bg-white/10">
         <div className="h-full bg-[#8B9A7E] transition-all duration-500" style={{ width: `${progress}%` }} />
@@ -39,11 +39,17 @@ function StepHeader({ stepLabel, title, onBack, progress }) {
 
 // ─── Welcome Step ─────────────────────────────────────────────────────────────
 
-function WelcomeStep({ onStart }) {
+const SOCIAL_ICONS = { instagram: Instagram, facebook: Facebook, tiktok: Globe };
+
+function WelcomeStep({ onStart, shopName, logoUrl, socialLinks }) {
+  const displayLogo = logoUrl || LOGO_URL;
+  const displayName = shopName || "Stand Tall Barbershop";
+  const enabledSocials = Object.entries(socialLinks || {}).filter(([, v]) => v?.enabled && v?.url);
+
   return (
     <motion.div {...fadeSlide} className="flex flex-col items-center justify-center min-h-screen px-6 text-center" style={{ background: "#0A0A0A" }}>
-      <img src={LOGO_URL} alt="Stand Tall" className="w-28 h-28 rounded-2xl shadow-2xl mb-8" />
-      <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">Stand Tall Barbershop</h1>
+      <img src={displayLogo} alt={displayName} className="w-28 h-28 rounded-2xl shadow-2xl mb-8 object-cover" />
+      <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">{displayName}</h1>
       <p className="text-white/50 text-lg mb-10 max-w-sm">
         Book your next cut online — no calls, no waiting.
       </p>
@@ -57,6 +63,21 @@ function WelcomeStep({ onStart }) {
         Book an Appointment
         <ChevronRight className="w-5 h-5" />
       </button>
+      {enabledSocials.length > 0 && (
+        <div className="flex items-center gap-4 mt-10">
+          {enabledSocials.map(([key, { url }]) => {
+            const Icon = SOCIAL_ICONS[key] || Globe;
+            return (
+              <a key={key} href={url} target="_blank" rel="noopener noreferrer"
+                className="p-2 rounded-lg text-white/30 hover:text-white transition-colors"
+                style={{ background: "#141414" }}
+              >
+                <Icon className="w-5 h-5" />
+              </a>
+            );
+          })}
+        </div>
+      )}
     </motion.div>
   );
 }
@@ -195,7 +216,7 @@ function isSlotTaken(slotTime, duration, bookings) {
   });
 }
 
-function DateTimeStep({ barber, service, onSelect, onBack }) {
+function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack }) {
   const [selectedDate, setSelectedDate] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -206,7 +227,7 @@ function DateTimeStep({ barber, service, onSelect, onBack }) {
   // Build 14-day range, marking days the barber is off
   const dateRange = useMemo(() => {
     const today = new Date();
-    return Array.from({ length: 60 }, (_, i) => {
+    return Array.from({ length: maxDays }, (_, i) => {
       const d = addDays(today, i);
       const dateStr = format(d, "yyyy-MM-dd");
       const dayName = format(d, "EEEE").toLowerCase();
@@ -483,7 +504,22 @@ function ConfirmStep({ barber, service, date, time, clientName, clientPhone, cli
 
 // ─── Success Screen ────────────────────────────────────────────────────────────
 
-function SuccessStep({ barber, service, date, time, clientName, onReset }) {
+function CopyButton({ text }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+  return (
+    <button onClick={handleCopy} className="ml-2 text-white/30 hover:text-white transition-colors flex-shrink-0" title="Copy">
+      {copied ? <CheckCircle2 className="w-3.5 h-3.5" style={{ color: "#8B9A7E" }} /> : <Copy className="w-3.5 h-3.5" />}
+    </button>
+  );
+}
+
+function SuccessStep({ barber, service, date, time, clientName, shopAddress, shopPhone, onReset }) {
   const dateLabel = format(new Date(date + "T12:00:00"), "EEEE, MMMM d");
   const timeLabel = format(parse(time, "HH:mm", new Date()), "h:mm a");
 
@@ -497,7 +533,7 @@ function SuccessStep({ barber, service, date, time, clientName, onReset }) {
         See you {dateLabel} at {timeLabel} with {barber?.name}.
       </p>
 
-      <div className="rounded-2xl border w-full max-w-sm text-left overflow-hidden mb-8" style={{ borderColor: "#2a2a2a", background: "#111" }}>
+      <div className="rounded-2xl border w-full max-w-sm text-left overflow-hidden mb-4" style={{ borderColor: "#2a2a2a", background: "#111" }}>
         <div className="px-5 py-4 border-b border-white/5">
           <p className="text-white/40 text-xs uppercase tracking-widest font-semibold">Booking Summary</p>
         </div>
@@ -514,6 +550,32 @@ function SuccessStep({ barber, service, date, time, clientName, onReset }) {
           </div>
         ))}
       </div>
+
+      {(shopAddress || shopPhone) && (
+        <div className="rounded-2xl border w-full max-w-sm text-left overflow-hidden mb-8" style={{ borderColor: "#2a2a2a", background: "#111" }}>
+          <div className="px-5 py-4 border-b border-white/5">
+            <p className="text-white/40 text-xs uppercase tracking-widest font-semibold">Location & Contact</p>
+          </div>
+          {shopAddress && (
+            <div className="flex justify-between items-center px-5 py-3 border-b border-white/5">
+              <span className="text-white/40 text-sm">Address</span>
+              <div className="flex items-center">
+                <span className="text-white text-sm font-medium text-right max-w-[180px]">{shopAddress}</span>
+                <CopyButton text={shopAddress} />
+              </div>
+            </div>
+          )}
+          {shopPhone && (
+            <div className="flex justify-between items-center px-5 py-3">
+              <span className="text-white/40 text-sm">Phone</span>
+              <div className="flex items-center">
+                <span className="text-white text-sm font-medium">{shopPhone}</span>
+                <CopyButton text={shopPhone} />
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <button
         onClick={onReset}
@@ -534,6 +596,7 @@ export default function ClientBooking() {
   const [step, setStep] = useState(0);
   const [barbers, setBarbers] = useState([]);
   const [allServices, setAllServices] = useState([]);
+  const [shopSettings, setShopSettings] = useState({});
   const [loading, setLoading] = useState(true);
 
   const [selectedBarber, setSelectedBarber] = useState(null);
@@ -546,10 +609,11 @@ export default function ClientBooking() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    Promise.all([entities.Barber.list(), entities.Service.list()])
-      .then(([allBarbers, svcs]) => {
+    Promise.all([entities.Barber.list(), entities.Service.list(), entities.ShopSettings.list()])
+      .then(([allBarbers, svcs, settingsArr]) => {
         setBarbers(allBarbers.filter((b) => b.is_active !== false && b.online_bookable !== false));
         setAllServices(svcs.filter((s) => s.is_active !== false));
+        setShopSettings(settingsArr[0] || {});
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -624,11 +688,18 @@ export default function ClientBooking() {
     setClientEmail("");
   };
 
+  const logoUrl      = shopSettings.booking_logo_url || null;
+  const shopName     = shopSettings.shop_name     || "";
+  const shopAddress  = shopSettings.shop_address  || "";
+  const shopPhone    = shopSettings.shop_phone    || "";
+  const socialLinks  = shopSettings.social_links  || {};
+  const maxDays      = shopSettings.max_booking_days_ahead || 60;
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "#0A0A0A" }}>
         <div className="flex flex-col items-center gap-4">
-          <img src={LOGO_URL} alt="Stand Tall" className="w-16 h-16 rounded-xl opacity-80" />
+          <img src={logoUrl || LOGO_URL} alt="" className="w-16 h-16 rounded-xl opacity-80 object-cover" />
           <Loader2 className="w-5 h-5 animate-spin" style={{ color: "#8B9A7E" }} />
         </div>
       </div>
@@ -639,7 +710,7 @@ export default function ClientBooking() {
     <div style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
       <AnimatePresence mode="wait">
         {step === 0 && (
-          <WelcomeStep key="welcome" onStart={() => setStep(1)} />
+          <WelcomeStep key="welcome" onStart={() => setStep(1)} shopName={shopName} logoUrl={logoUrl} socialLinks={socialLinks} />
         )}
         {step === 1 && (
           <BarberStep
@@ -663,6 +734,7 @@ export default function ClientBooking() {
             key="datetime"
             barber={selectedBarber}
             service={selectedService}
+            maxDays={maxDays}
             onSelect={(date, time) => { setSelectedDate(date); setSelectedTime(time); setStep(4); }}
             onBack={() => setStep(2)}
           />
@@ -705,6 +777,8 @@ export default function ClientBooking() {
             date={selectedDate}
             time={selectedTime}
             clientName={clientName}
+            shopAddress={shopAddress}
+            shopPhone={shopPhone}
             onReset={handleReset}
           />
         )}
