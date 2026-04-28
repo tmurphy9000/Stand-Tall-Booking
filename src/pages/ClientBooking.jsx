@@ -560,7 +560,7 @@ function SuccessStep({ barber, service, date, time, clientName, shopAddress, sho
       {(shopAddress || (showShopPhone && shopPhone) || (showShopEmail && shopEmail)) && (
         <div className="rounded-2xl border w-full max-w-sm text-left overflow-hidden mb-8" style={{ borderColor: "#2a2a2a", background: "#111" }}>
           <div className="px-5 py-4 border-b border-white/5">
-            <p className="text-white/40 text-xs uppercase tracking-widest font-semibold">Location & Contact</p>
+            <p className="text-white/40 text-xs uppercase tracking-widest font-semibold">Shop Location & Contact</p>
           </div>
           {shopAddress && (
             <div className="flex justify-between items-center px-5 py-3 border-b border-white/5">
