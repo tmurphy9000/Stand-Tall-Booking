@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { entities } from "@/api/entities";
-import { Loader2, Scissors, ChevronRight, ArrowLeft } from "lucide-react";
+import { Loader2, Scissors, ChevronRight, ArrowLeft, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const LOGO_URL =
@@ -12,6 +12,29 @@ const fadeSlide = {
   exit: { opacity: 0, y: -16 },
   transition: { duration: 0.22, ease: "easeOut" },
 };
+
+function StepHeader({ stepLabel, title, onBack, progress }) {
+  return (
+    <>
+      <div className="sticky top-0 z-10 flex items-center gap-4 px-6 py-4 border-b border-white/10" style={{ background: "#0A0A0A" }}>
+        <button
+          onClick={onBack}
+          className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <p className="text-xs text-white/40 uppercase tracking-widest font-semibold">{stepLabel}</p>
+          <h2 className="text-white font-bold text-lg leading-tight">{title}</h2>
+        </div>
+        <img src={LOGO_URL} alt="" className="w-8 h-8 rounded-lg ml-auto opacity-60" />
+      </div>
+      <div className="h-0.5 bg-white/10">
+        <div className="h-full bg-[#8B9A7E] transition-all duration-500" style={{ width: `${progress}%` }} />
+      </div>
+    </>
+  );
+}
 
 // ─── Welcome Step ─────────────────────────────────────────────────────────────
 
@@ -42,27 +65,7 @@ function WelcomeStep({ onStart }) {
 function BarberStep({ barbers, onSelect, onBack }) {
   return (
     <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
-      {/* Header */}
-      <div className="sticky top-0 z-10 flex items-center gap-4 px-6 py-4 border-b border-white/10" style={{ background: "#0A0A0A" }}>
-        <button
-          onClick={onBack}
-          className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <div>
-          <p className="text-xs text-white/40 uppercase tracking-widest font-semibold">Step 1 of 5</p>
-          <h2 className="text-white font-bold text-lg leading-tight">Choose Your Barber</h2>
-        </div>
-        <img src={LOGO_URL} alt="" className="w-8 h-8 rounded-lg ml-auto opacity-60" />
-      </div>
-
-      {/* Progress bar */}
-      <div className="h-0.5 bg-white/10">
-        <div className="h-full bg-[#8B9A7E] transition-all duration-500" style={{ width: "20%" }} />
-      </div>
-
-      {/* Barber grid */}
+      <StepHeader stepLabel="Step 1 of 5" title="Choose Your Barber" onBack={onBack} progress={20} />
       <div className="px-6 py-8">
         <p className="text-white/40 text-sm mb-6">
           {barbers.length === 0
@@ -76,34 +79,82 @@ function BarberStep({ barbers, onSelect, onBack }) {
               onClick={() => onSelect(barber)}
               className="group flex items-center gap-4 p-5 rounded-2xl border text-left transition-all"
               style={{ background: "#141414", borderColor: "#2a2a2a" }}
-              onMouseEnter={e => {
-                e.currentTarget.style.borderColor = "#8B9A7E";
-                e.currentTarget.style.background = "#1a1f1a";
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.borderColor = "#2a2a2a";
-                e.currentTarget.style.background = "#141414";
-              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#8B9A7E"; e.currentTarget.style.background = "#1a1f1a"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.background = "#141414"; }}
             >
-              {/* Avatar */}
-              <div
-                className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden flex items-center justify-center"
-                style={{ background: "#1f2a1f" }}
-              >
-                {barber.photo_url ? (
-                  <img src={barber.photo_url} alt={barber.name} className="w-full h-full object-cover" />
-                ) : (
-                  <Scissors className="w-7 h-7" style={{ color: "#8B9A7E" }} />
-                )}
+              <div className="w-16 h-16 rounded-xl flex-shrink-0 overflow-hidden flex items-center justify-center" style={{ background: "#1f2a1f" }}>
+                {barber.photo_url
+                  ? <img src={barber.photo_url} alt={barber.name} className="w-full h-full object-cover" />
+                  : <Scissors className="w-7 h-7" style={{ color: "#8B9A7E" }} />}
               </div>
-
-              {/* Info */}
               <div className="flex-1 min-w-0">
                 <p className="text-white font-semibold text-base truncate">{barber.name}</p>
                 <p className="text-white/40 text-xs mt-0.5">Available for booking</p>
               </div>
-
               <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-[#8B9A7E] transition-colors flex-shrink-0" />
+            </button>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Service Step ─────────────────────────────────────────────────────────────
+
+function ServiceStep({ services, barber, onSelect, onBack }) {
+  const displayDuration = (svc) => {
+    const mins = barber?.service_durations?.[svc.id] ?? svc.duration ?? 30;
+    return mins >= 60
+      ? `${Math.floor(mins / 60)}h${mins % 60 ? ` ${mins % 60}m` : ""}`
+      : `${mins}m`;
+  };
+
+  return (
+    <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
+      <StepHeader stepLabel="Step 2 of 5" title="Choose a Service" onBack={onBack} progress={40} />
+      <div className="px-6 py-8">
+        <p className="text-white/40 text-sm mb-6">
+          {services.length === 0
+            ? "No services available."
+            : `Booking with ${barber?.name} — select a service below.`}
+        </p>
+        <div className="flex flex-col gap-3 max-w-xl mx-auto">
+          {services.map((svc) => (
+            <button
+              key={svc.id}
+              onClick={() => onSelect(svc)}
+              className="group flex items-center gap-4 p-5 rounded-2xl border text-left transition-all"
+              style={{ background: "#141414", borderColor: "#2a2a2a" }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = "#8B9A7E"; e.currentTarget.style.background = "#1a1f1a"; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.background = "#141414"; }}
+            >
+              {/* Icon */}
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0" style={{ background: "#1f2a1f" }}>
+                <Scissors className="w-5 h-5" style={{ color: "#8B9A7E" }} />
+              </div>
+
+              {/* Details */}
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-semibold text-base truncate">{svc.name}</p>
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="flex items-center gap-1 text-white/40 text-xs">
+                    <Clock className="w-3 h-3" />
+                    {displayDuration(svc)}
+                  </span>
+                  {svc.description && (
+                    <span className="text-white/30 text-xs truncate">{svc.description}</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Price */}
+              <div className="text-right flex-shrink-0">
+                <p className="text-white font-bold text-lg">
+                  {svc.price > 0 ? `$${Number(svc.price).toFixed(0)}` : "—"}
+                </p>
+                <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-[#8B9A7E] transition-colors ml-auto mt-1" />
+              </div>
             </button>
           ))}
         </div>
@@ -117,17 +168,29 @@ function BarberStep({ barbers, onSelect, onBack }) {
 export default function ClientBooking() {
   const [step, setStep] = useState(0);
   const [barbers, setBarbers] = useState([]);
+  const [allServices, setAllServices] = useState([]);
   const [loading, setLoading] = useState(true);
+
   const [selectedBarber, setSelectedBarber] = useState(null);
+  const [selectedService, setSelectedService] = useState(null);
 
   useEffect(() => {
-    entities.Barber.list()
-      .then((all) =>
-        setBarbers(all.filter((b) => b.is_active !== false && b.online_bookable !== false))
-      )
+    Promise.all([entities.Barber.list(), entities.Service.list()])
+      .then(([allBarbers, svcs]) => {
+        setBarbers(allBarbers.filter((b) => b.is_active !== false && b.online_bookable !== false));
+        setAllServices(svcs.filter((s) => s.is_active !== false));
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+
+  // Services available for the selected barber
+  const availableServices = useMemo(() => {
+    if (!selectedBarber) return allServices;
+    const ids = selectedBarber.available_services;
+    if (!ids || ids.length === 0) return allServices;
+    return allServices.filter((s) => ids.includes(s.id));
+  }, [selectedBarber, allServices]);
 
   if (loading) {
     return (
@@ -150,12 +213,17 @@ export default function ClientBooking() {
           <BarberStep
             key="barber"
             barbers={barbers}
-            onSelect={(barber) => {
-              setSelectedBarber(barber);
-              // Next steps will be wired up here
-              console.log("Selected barber:", barber.name);
-            }}
+            onSelect={(barber) => { setSelectedBarber(barber); setSelectedService(null); setStep(2); }}
             onBack={() => setStep(0)}
+          />
+        )}
+        {step === 2 && (
+          <ServiceStep
+            key="service"
+            services={availableServices}
+            barber={selectedBarber}
+            onSelect={(svc) => { setSelectedService(svc); setStep(3); }}
+            onBack={() => setStep(1)}
           />
         )}
       </AnimatePresence>
