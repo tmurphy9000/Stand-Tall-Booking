@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { entities } from "@/api/entities";
-import { Loader2, Scissors, ChevronRight, ArrowLeft, Clock } from "lucide-react";
+import { Loader2, Scissors, ChevronRight, ArrowLeft, Clock, CheckCircle2, User, Calendar, Tag } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, addDays, parse, addMinutes } from "date-fns";
 
@@ -429,6 +429,105 @@ function ClientInfoStep({ name, phone, email, onChange, onNext, onBack }) {
   );
 }
 
+// ─── Confirm Step ─────────────────────────────────────────────────────────────
+
+function ConfirmStep({ barber, service, date, time, clientName, clientPhone, clientEmail, onConfirm, onBack, submitting }) {
+  const duration = barber?.service_durations?.[service?.id] ?? service?.duration ?? 30;
+  const endTime = format(addMinutes(parse(time, "HH:mm", new Date()), duration), "h:mm a");
+  const startLabel = format(parse(time, "HH:mm", new Date()), "h:mm a");
+  const dateLabel = format(new Date(date + "T12:00:00"), "EEEE, MMMM d, yyyy");
+
+  const row = (icon, label, value) => (
+    <div className="flex items-start gap-4 py-4 border-b border-white/5 last:border-0">
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: "#1f2a1f" }}>
+        {icon}
+      </div>
+      <div>
+        <p className="text-white/40 text-xs uppercase tracking-widest font-semibold">{label}</p>
+        <p className="text-white font-medium mt-0.5">{value}</p>
+      </div>
+    </div>
+  );
+
+  return (
+    <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
+      <StepHeader stepLabel="Step 5 of 5" title="Confirm Booking" onBack={onBack} progress={100} />
+
+      <div className="px-6 py-8 max-w-md mx-auto">
+        <div className="rounded-2xl border overflow-hidden mb-6" style={{ borderColor: "#2a2a2a", background: "#111" }}>
+          {row(<Scissors className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Barber", barber?.name)}
+          {row(<Tag className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Service", `${service?.name}${service?.price > 0 ? ` — $${Number(service.price).toFixed(0)}` : ""}`)}
+          {row(<Calendar className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Date & Time", `${dateLabel} · ${startLabel} – ${endTime}`)}
+          {row(<User className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Client", [clientName, clientPhone, clientEmail].filter(Boolean).join(" · "))}
+        </div>
+
+        <button
+          onClick={onConfirm}
+          disabled={submitting}
+          className="w-full py-4 rounded-xl font-semibold text-white text-base transition-all flex items-center justify-center gap-2"
+          style={{ background: submitting ? "#4a5a44" : "#8B9A7E", cursor: submitting ? "not-allowed" : "pointer" }}
+          onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = "#6B7A5E"; }}
+          onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = "#8B9A7E"; }}
+        >
+          {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+          {submitting ? "Booking…" : "Confirm Booking"}
+        </button>
+
+        <p className="text-white/20 text-xs text-center mt-4">
+          By confirming you agree to our cancellation policy.
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Success Screen ────────────────────────────────────────────────────────────
+
+function SuccessStep({ barber, service, date, time, clientName, onReset }) {
+  const dateLabel = format(new Date(date + "T12:00:00"), "EEEE, MMMM d");
+  const timeLabel = format(parse(time, "HH:mm", new Date()), "h:mm a");
+
+  return (
+    <motion.div {...fadeSlide} className="flex flex-col items-center justify-center min-h-screen px-6 text-center" style={{ background: "#0A0A0A" }}>
+      <div className="mb-6" style={{ color: "#8B9A7E" }}>
+        <CheckCircle2 className="w-20 h-20 mx-auto" />
+      </div>
+      <h1 className="text-3xl font-bold text-white mb-2">You're booked!</h1>
+      <p className="text-white/50 mb-8 max-w-xs">
+        See you {dateLabel} at {timeLabel} with {barber?.name}.
+      </p>
+
+      <div className="rounded-2xl border w-full max-w-sm text-left overflow-hidden mb-8" style={{ borderColor: "#2a2a2a", background: "#111" }}>
+        <div className="px-5 py-4 border-b border-white/5">
+          <p className="text-white/40 text-xs uppercase tracking-widest font-semibold">Booking Summary</p>
+        </div>
+        {[
+          ["Client", clientName],
+          ["Barber", barber?.name],
+          ["Service", service?.name],
+          ["Date", dateLabel],
+          ["Time", timeLabel],
+        ].map(([label, value]) => (
+          <div key={label} className="flex justify-between items-center px-5 py-3 border-b border-white/5 last:border-0">
+            <span className="text-white/40 text-sm">{label}</span>
+            <span className="text-white text-sm font-medium">{value}</span>
+          </div>
+        ))}
+      </div>
+
+      <button
+        onClick={onReset}
+        className="px-8 py-3 rounded-xl font-semibold text-sm transition-all"
+        style={{ background: "#141414", border: "1px solid #2a2a2a", color: "#fff" }}
+        onMouseEnter={e => (e.currentTarget.style.borderColor = "#8B9A7E")}
+        onMouseLeave={e => (e.currentTarget.style.borderColor = "#2a2a2a")}
+      >
+        Book Another Appointment
+      </button>
+    </motion.div>
+  );
+}
+
 // ─── Root Component ───────────────────────────────────────────────────────────
 
 export default function ClientBooking() {
@@ -444,6 +543,7 @@ export default function ClientBooking() {
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [clientEmail, setClientEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     Promise.all([entities.Barber.list(), entities.Service.list()])
@@ -462,6 +562,67 @@ export default function ClientBooking() {
     if (!ids || ids.length === 0) return allServices;
     return allServices.filter((s) => ids.includes(s.id));
   }, [selectedBarber, allServices]);
+
+  const handleConfirm = async () => {
+    setSubmitting(true);
+    try {
+      // Find or create client
+      let clientId = null;
+      if (clientPhone || clientEmail) {
+        const all = await entities.Client.list();
+        const existing = all.find(c =>
+          (clientPhone && (c.phone || "").replace(/\D/g, "") === clientPhone.replace(/\D/g, "")) ||
+          (clientEmail && c.email?.toLowerCase() === clientEmail.toLowerCase())
+        );
+        if (existing) {
+          clientId = existing.id;
+        } else {
+          const created = await entities.Client.create({ name: clientName, phone: clientPhone, email: clientEmail });
+          clientId = created.id;
+        }
+      }
+
+      const duration = selectedBarber?.service_durations?.[selectedService?.id] ?? selectedService?.duration ?? 30;
+      const endTime = format(addMinutes(parse(selectedTime, "HH:mm", new Date()), duration), "HH:mm");
+
+      await entities.Booking.create({
+        barber_id: selectedBarber.id,
+        barber_name: selectedBarber.name,
+        service_id: selectedService.id,
+        service_name: selectedService.name,
+        client_id: clientId,
+        client_name: clientName,
+        client_phone: clientPhone,
+        client_email: clientEmail,
+        date: selectedDate,
+        start_time: selectedTime,
+        end_time: endTime,
+        duration,
+        price: selectedService.price ?? 0,
+        final_price: selectedService.price ?? 0,
+        status: "scheduled",
+        source: "online",
+      });
+
+      setStep(6);
+    } catch (err) {
+      console.error("Booking failed:", err);
+      alert("Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleReset = () => {
+    setStep(0);
+    setSelectedBarber(null);
+    setSelectedService(null);
+    setSelectedDate(null);
+    setSelectedTime(null);
+    setClientName("");
+    setClientPhone("");
+    setClientEmail("");
+  };
 
   if (loading) {
     return (
@@ -519,6 +680,32 @@ export default function ClientBooking() {
             }}
             onNext={() => setStep(5)}
             onBack={() => setStep(3)}
+          />
+        )}
+        {step === 5 && (
+          <ConfirmStep
+            key="confirm"
+            barber={selectedBarber}
+            service={selectedService}
+            date={selectedDate}
+            time={selectedTime}
+            clientName={clientName}
+            clientPhone={clientPhone}
+            clientEmail={clientEmail}
+            onConfirm={handleConfirm}
+            onBack={() => setStep(4)}
+            submitting={submitting}
+          />
+        )}
+        {step === 6 && (
+          <SuccessStep
+            key="success"
+            barber={selectedBarber}
+            service={selectedService}
+            date={selectedDate}
+            time={selectedTime}
+            clientName={clientName}
+            onReset={handleReset}
           />
         )}
       </AnimatePresence>
