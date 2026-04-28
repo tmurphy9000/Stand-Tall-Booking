@@ -473,6 +473,52 @@ function ClientInfoStep({ name, phone, email, onChange, onNext, onBack }) {
   );
 }
 
+// ─── Calendar helpers ─────────────────────────────────────────────────────────
+
+function calendarDates(date, time, duration) {
+  // Returns [startStr, endStr] in YYYYMMDDTHHmmss format (local, no Z)
+  const startDt = new Date(`${date}T${time}:00`);
+  const endDt   = addMinutes(startDt, duration);
+  const fmt = (d) => format(d, "yyyyMMdd'T'HHmmss");
+  return [fmt(startDt), fmt(endDt)];
+}
+
+function googleCalendarUrl({ title, startStr, endStr, location, details }) {
+  const p = new URLSearchParams({
+    action: "TEMPLATE",
+    text: title,
+    dates: `${startStr}/${endStr}`,
+    ...(location && { location }),
+    ...(details  && { details  }),
+  });
+  return `https://calendar.google.com/calendar/render?${p.toString()}`;
+}
+
+function downloadIcs({ title, startStr, endStr, location, details, uid }) {
+  const esc = (s = "") => s.replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Stand Tall Booking//EN",
+    "BEGIN:VEVENT",
+    `UID:${uid}@standtall`,
+    `DTSTAMP:${format(new Date(), "yyyyMMdd'T'HHmmss")}`,
+    `DTSTART:${startStr}`,
+    `DTEND:${endStr}`,
+    `SUMMARY:${esc(title)}`,
+    location ? `LOCATION:${esc(location)}` : null,
+    details  ? `DESCRIPTION:${esc(details)}`  : null,
+    "END:VEVENT",
+    "END:VCALENDAR",
+  ].filter(Boolean).join("\r\n");
+
+  const blob = new Blob([lines], { type: "text/calendar;charset=utf-8" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url; a.download = "appointment.ics"; a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ─── Confirm Step ─────────────────────────────────────────────────────────────
 
 function ConfirmStep({ barber, service, date, time, clientName, clientPhone, clientEmail, onConfirm, onBack, submitting }) {
@@ -546,6 +592,12 @@ function SuccessStep({ barber, service, date, time, clientName, shopAddress, sho
   const dateLabel = format(new Date(date + "T12:00:00"), "EEEE, MMMM d");
   const timeLabel = format(parse(time, "HH:mm", new Date()), "h:mm a");
 
+  const duration    = barber?.service_durations?.[service?.id] ?? service?.duration ?? 30;
+  const title       = `${service?.name} with ${barber?.name}`;
+  const details     = `Booked via Stand Tall Barbershop`;
+  const [startStr, endStr] = calendarDates(date, time, duration);
+  const calArgs     = { title, startStr, endStr, location: shopAddress, details, uid: `${date}-${time}-${barber?.id}` };
+
   return (
     <motion.div {...fadeSlide} className="flex flex-col items-center justify-center min-h-screen px-6 text-center" style={{ background: "#0A0A0A" }}>
       <div className="mb-6" style={{ color: "#8B9A7E" }}>
@@ -608,6 +660,32 @@ function SuccessStep({ barber, service, date, time, clientName, shopAddress, sho
           )}
         </div>
       )}
+
+      {/* Calendar buttons */}
+      <div className="flex flex-col gap-2 w-full max-w-sm mb-4">
+        <a
+          href={googleCalendarUrl(calArgs)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all"
+          style={{ background: "#141414", border: "1px solid #2a2a2a", color: "#fff" }}
+          onMouseEnter={e => (e.currentTarget.style.borderColor = "#8B9A7E")}
+          onMouseLeave={e => (e.currentTarget.style.borderColor = "#2a2a2a")}
+        >
+          <Calendar className="w-4 h-4" style={{ color: "#8B9A7E" }} />
+          Add to Google Calendar
+        </a>
+        <button
+          onClick={() => downloadIcs(calArgs)}
+          className="flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all"
+          style={{ background: "#141414", border: "1px solid #2a2a2a", color: "#fff" }}
+          onMouseEnter={e => (e.currentTarget.style.borderColor = "#8B9A7E")}
+          onMouseLeave={e => (e.currentTarget.style.borderColor = "#2a2a2a")}
+        >
+          <Calendar className="w-4 h-4" style={{ color: "#B0BFA4" }} />
+          Add to Apple Calendar
+        </button>
+      </div>
 
       <button
         onClick={onReset}
