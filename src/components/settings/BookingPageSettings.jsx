@@ -280,6 +280,19 @@ export default function BookingPageSettings() {
         </div>
         <p className="text-xs text-gray-400">Enabled links appear on the booking page welcome screen.</p>
       </section>
+
+      {/* ── Bottom save ── */}
+      <div className="flex justify-end pt-2 border-t border-gray-100">
+        <Button
+          size="sm"
+          className="h-8 bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white gap-2"
+          onClick={handleSave}
+          disabled={save.isPending}
+        >
+          {save.isPending && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+          Save
+        </Button>
+      </div>
     </div>
   );
 }
