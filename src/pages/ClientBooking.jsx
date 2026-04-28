@@ -41,6 +41,12 @@ function StepHeader({ stepLabel, title, onBack, progress, logoUrl }) {
 
 const SOCIAL_ICONS = { instagram: Instagram, facebook: Facebook, tiktok: Globe };
 
+function parseSocialLinks(raw) {
+  if (!raw) return {};
+  if (typeof raw === "string") { try { return JSON.parse(raw); } catch { return {}; } }
+  return raw;
+}
+
 function WelcomeStep({ onStart, shopName, logoUrl, socialLinks }) {
   const displayLogo = logoUrl || LOGO_URL;
   const displayName = shopName || "Stand Tall Barbershop";
@@ -519,7 +525,7 @@ function CopyButton({ text }) {
   );
 }
 
-function SuccessStep({ barber, service, date, time, clientName, shopAddress, shopPhone, onReset }) {
+function SuccessStep({ barber, service, date, time, clientName, shopAddress, shopPhone, showShopPhone, shopEmail, showShopEmail, onReset }) {
   const dateLabel = format(new Date(date + "T12:00:00"), "EEEE, MMMM d");
   const timeLabel = format(parse(time, "HH:mm", new Date()), "h:mm a");
 
@@ -551,7 +557,7 @@ function SuccessStep({ barber, service, date, time, clientName, shopAddress, sho
         ))}
       </div>
 
-      {(shopAddress || shopPhone) && (
+      {(shopAddress || (showShopPhone && shopPhone) || (showShopEmail && shopEmail)) && (
         <div className="rounded-2xl border w-full max-w-sm text-left overflow-hidden mb-8" style={{ borderColor: "#2a2a2a", background: "#111" }}>
           <div className="px-5 py-4 border-b border-white/5">
             <p className="text-white/40 text-xs uppercase tracking-widest font-semibold">Location & Contact</p>
@@ -565,12 +571,21 @@ function SuccessStep({ barber, service, date, time, clientName, shopAddress, sho
               </div>
             </div>
           )}
-          {shopPhone && (
-            <div className="flex justify-between items-center px-5 py-3">
+          {showShopPhone && shopPhone && (
+            <div className="flex justify-between items-center px-5 py-3 border-b border-white/5 last:border-0">
               <span className="text-white/40 text-sm">Phone</span>
               <div className="flex items-center">
                 <span className="text-white text-sm font-medium">{shopPhone}</span>
                 <CopyButton text={shopPhone} />
+              </div>
+            </div>
+          )}
+          {showShopEmail && shopEmail && (
+            <div className="flex justify-between items-center px-5 py-3">
+              <span className="text-white/40 text-sm">Email</span>
+              <div className="flex items-center">
+                <span className="text-white text-sm font-medium">{shopEmail}</span>
+                <CopyButton text={shopEmail} />
               </div>
             </div>
           )}
@@ -688,12 +703,15 @@ export default function ClientBooking() {
     setClientEmail("");
   };
 
-  const logoUrl      = shopSettings.booking_logo_url || null;
-  const shopName     = shopSettings.shop_name     || "";
-  const shopAddress  = shopSettings.shop_address  || "";
-  const shopPhone    = shopSettings.shop_phone    || "";
-  const socialLinks  = shopSettings.social_links  || {};
-  const maxDays      = shopSettings.max_booking_days_ahead || 60;
+  const logoUrl       = shopSettings.booking_logo_url || null;
+  const shopName      = shopSettings.shop_name      || "";
+  const shopAddress   = shopSettings.shop_address   || "";
+  const shopPhone     = shopSettings.shop_phone     || "";
+  const showShopPhone = shopSettings.show_shop_phone !== false;
+  const shopEmail     = shopSettings.shop_email     || "";
+  const showShopEmail = shopSettings.show_shop_email !== false;
+  const socialLinks   = parseSocialLinks(shopSettings.social_links);
+  const maxDays       = shopSettings.max_booking_days_ahead || 60;
 
   if (loading) {
     return (
@@ -779,6 +797,9 @@ export default function ClientBooking() {
             clientName={clientName}
             shopAddress={shopAddress}
             shopPhone={shopPhone}
+            showShopPhone={showShopPhone}
+            shopEmail={shopEmail}
+            showShopEmail={showShopEmail}
             onReset={handleReset}
           />
         )}

@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Upload, Instagram, Facebook, Globe } from "lucide-react";
+import { Loader2, Upload, Instagram, Facebook, Globe, Phone, Mail } from "lucide-react";
 
 const SOCIAL_PLATFORMS = [
   { key: "instagram", label: "Instagram", Icon: Instagram, placeholder: "https://instagram.com/yourshop" },
@@ -29,6 +29,12 @@ function unitToDays(value, unit) {
   return n;
 }
 
+function parseSocialLinks(raw) {
+  if (!raw) return {};
+  if (typeof raw === "string") { try { return JSON.parse(raw); } catch { return {}; } }
+  return raw;
+}
+
 export default function BookingPageSettings() {
   const queryClient = useQueryClient();
 
@@ -38,7 +44,6 @@ export default function BookingPageSettings() {
   });
   const settings = settingsArr[0] || {};
 
-  // Local draft state
   const [windowValue, setWindowValue] = useState(60);
   const [windowUnit, setWindowUnit]   = useState("days");
   const [logoUrl, setLogoUrl]         = useState("");
@@ -46,10 +51,15 @@ export default function BookingPageSettings() {
   const [shopName, setShopName]       = useState("");
   const [shopAddress, setShopAddress] = useState("");
   const [shopPhone, setShopPhone]     = useState("");
+  const [showPhone, setShowPhone]     = useState(true);
   const [shopEmail, setShopEmail]     = useState("");
-  const [social, setSocial]           = useState({ instagram: { enabled: false, url: "" }, facebook: { enabled: false, url: "" }, tiktok: { enabled: false, url: "" } });
+  const [showEmail, setShowEmail]     = useState(true);
+  const [social, setSocial]           = useState({
+    instagram: { enabled: false, url: "" },
+    facebook:  { enabled: false, url: "" },
+    tiktok:    { enabled: false, url: "" },
+  });
 
-  // Sync drafts from DB whenever settings load
   useEffect(() => {
     if (!settings.id) return;
     const { value, unit } = daysToUnit(settings.max_booking_days_ahead ?? 60);
@@ -59,11 +69,14 @@ export default function BookingPageSettings() {
     setShopName(settings.shop_name || "");
     setShopAddress(settings.shop_address || "");
     setShopPhone(settings.shop_phone || "");
+    setShowPhone(settings.show_shop_phone !== false);
     setShopEmail(settings.shop_email || "");
+    setShowEmail(settings.show_shop_email !== false);
+    const links = parseSocialLinks(settings.social_links);
     setSocial({
-      instagram: { enabled: false, url: "", ...(settings.social_links?.instagram || {}) },
-      facebook:  { enabled: false, url: "", ...(settings.social_links?.facebook  || {}) },
-      tiktok:    { enabled: false, url: "", ...(settings.social_links?.tiktok    || {}) },
+      instagram: { enabled: false, url: "", ...(links.instagram || {}) },
+      facebook:  { enabled: false, url: "", ...(links.facebook  || {}) },
+      tiktok:    { enabled: false, url: "", ...(links.tiktok    || {}) },
     });
   }, [settings.id]);
 
@@ -82,11 +95,29 @@ export default function BookingPageSettings() {
   const handleLogoUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("File too large — max 2 MB");
+      e.target.value = "";
+      return;
+    }
+
     setUploading(true);
     try {
-      const path = `booking-logo/${Date.now()}-${file.name}`;
+      const ext = file.name.split(".").pop();
+      const path = `booking-logo/${Date.now()}.${ext}`;
       const { data, error } = await supabase.storage.from("photos").upload(path, file, { upsert: true });
-      if (error) throw error;
+      if (error) {
+        console.error("Logo upload error:", error);
+        if (error.message?.includes("Bucket not found")) {
+          toast.error('Upload failed: "photos" bucket not found. Create it in Supabase Storage and enable public access.');
+        } else if (error.message?.includes("not authorized") || error.statusCode === 403) {
+          toast.error("Upload failed: storage bucket is not public. Enable public access in Supabase Storage → photos → Policies.");
+        } else {
+          toast.error("Upload failed: " + error.message);
+        }
+        return;
+      }
       const { data: { publicUrl } } = supabase.storage.from("photos").getPublicUrl(data.path);
       setLogoUrl(publicUrl);
       toast.success("Logo uploaded — click Save to apply");
@@ -94,6 +125,7 @@ export default function BookingPageSettings() {
       toast.error("Upload failed: " + err.message);
     } finally {
       setUploading(false);
+      e.target.value = "";
     }
   };
 
@@ -101,12 +133,14 @@ export default function BookingPageSettings() {
     save.mutate({
       ...settings,
       max_booking_days_ahead: unitToDays(windowValue, windowUnit),
-      booking_logo_url: logoUrl,
-      shop_name:    shopName,
-      shop_address: shopAddress,
-      shop_phone:   shopPhone,
-      shop_email:   shopEmail,
-      social_links: social,
+      booking_logo_url: logoUrl || null,
+      shop_name:       shopName,
+      shop_address:    shopAddress,
+      shop_phone:      shopPhone,
+      show_shop_phone: showPhone,
+      shop_email:      shopEmail,
+      show_shop_email: showEmail,
+      social_links:    social,
     });
   };
 
@@ -145,9 +179,7 @@ export default function BookingPageSettings() {
             className="w-24"
           />
           <Select value={windowUnit} onValueChange={setWindowUnit}>
-            <SelectTrigger className="w-32 h-9">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="days">Days</SelectItem>
               <SelectItem value="weeks">Weeks</SelectItem>
@@ -178,8 +210,9 @@ export default function BookingPageSettings() {
                 {uploading ? "Uploading…" : "Upload Logo"}
               </div>
             </Label>
-            <input id="logo-upload" type="file" accept="image/*" className="hidden" onChange={handleLogoUpload} disabled={uploading} />
+            <input id="logo-upload" type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleLogoUpload} disabled={uploading} />
             <p className="text-xs text-gray-400 mt-1">Replaces the default logo on the /book page.</p>
+            <p className="text-xs text-gray-300 mt-0.5">Recommended: 200×200px · PNG or JPG · max 2 MB</p>
           </div>
         </div>
       </section>
@@ -187,23 +220,40 @@ export default function BookingPageSettings() {
       {/* ── Shop info ── */}
       <section className="space-y-3">
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Shop Info</h3>
-        <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2">
+        <div className="space-y-3">
+          <div>
             <Label className="text-xs text-gray-500">Shop Name</Label>
             <Input value={shopName} onChange={e => setShopName(e.target.value)} placeholder="Stand Tall Barbershop" className="mt-1" />
           </div>
-          <div className="col-span-2">
+          <div>
             <Label className="text-xs text-gray-500">Address</Label>
             <Input value={shopAddress} onChange={e => setShopAddress(e.target.value)} placeholder="123 Main St, City, ST 00000" className="mt-1" />
           </div>
-          <div>
-            <Label className="text-xs text-gray-500">Phone</Label>
-            <Input value={shopPhone} onChange={e => setShopPhone(e.target.value)} placeholder="(555) 000-0000" className="mt-1" />
+          {/* Phone with visibility toggle */}
+          <div className="flex items-center gap-3">
+            <Switch checked={showPhone} onCheckedChange={setShowPhone} />
+            <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <Input
+              value={shopPhone}
+              onChange={e => setShopPhone(e.target.value)}
+              placeholder="(555) 000-0000"
+              disabled={!showPhone}
+              className="flex-1 text-sm"
+            />
           </div>
-          <div>
-            <Label className="text-xs text-gray-500">Email</Label>
-            <Input value={shopEmail} onChange={e => setShopEmail(e.target.value)} placeholder="info@shop.com" className="mt-1" />
+          {/* Email with visibility toggle */}
+          <div className="flex items-center gap-3">
+            <Switch checked={showEmail} onCheckedChange={setShowEmail} />
+            <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <Input
+              value={shopEmail}
+              onChange={e => setShopEmail(e.target.value)}
+              placeholder="info@shop.com"
+              disabled={!showEmail}
+              className="flex-1 text-sm"
+            />
           </div>
+          <p className="text-xs text-gray-400">Toggle to show or hide phone and email on the booking success screen.</p>
         </div>
       </section>
 
@@ -228,7 +278,7 @@ export default function BookingPageSettings() {
             </div>
           ))}
         </div>
-        <p className="text-xs text-gray-400">Enabled links will appear on the booking page footer.</p>
+        <p className="text-xs text-gray-400">Enabled links appear on the booking page welcome screen.</p>
       </section>
     </div>
   );
