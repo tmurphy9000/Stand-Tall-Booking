@@ -87,10 +87,13 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
     }
   };
 
+  const normalizePhone = (phone) => (phone || "").replace(/\D/g, "");
+
   const checkForDuplicates = (name, phone, email) => {
-    const duplicate = clients.find(c => 
-      c.id !== form.client_id && 
-      ((phone && c.phone === phone) || (email && c.email === email))
+    const duplicate = clients.find(c =>
+      c.id !== form.client_id &&
+      ((phone && normalizePhone(c.phone) === normalizePhone(phone)) ||
+       (email && c.email?.toLowerCase() === email?.toLowerCase()))
     );
     if (duplicate) {
       setDuplicateClient(duplicate);
@@ -100,26 +103,14 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
 
   const handleMergeAccounts = async () => {
     if (!duplicateClient) return;
-    
     try {
-      // Keep the newer account (current form), delete the older one
-      await entities.Client.delete(duplicateClient.id);
-      
-      // If the current form doesn't have a client_id, create new client with merged data
-      if (!form.client_id) {
-        const mergedClient = await entities.Client.create({
-          name: form.client_name,
-          email: form.client_email || duplicateClient.email,
-          phone: form.client_phone || duplicateClient.phone,
-          staff_notes: duplicateClient.staff_notes || "",
-          preferred_barber_ids: duplicateClient.preferred_barber_ids || [],
-          preferred_service_ids: duplicateClient.preferred_service_ids || [],
-          total_visits: duplicateClient.total_visits || 0,
-          total_spent: duplicateClient.total_spent || 0,
-        });
-        setForm(prev => ({ ...prev, client_id: mergedClient.id }));
-      }
-      
+      // Update the existing client record with any new info — preserves booking history
+      await entities.Client.update(duplicateClient.id, {
+        name: form.client_name || duplicateClient.name,
+        email: form.client_email || duplicateClient.email,
+        phone: form.client_phone || duplicateClient.phone,
+      });
+      setForm(prev => ({ ...prev, client_id: duplicateClient.id }));
       await refetchClients();
       setShowMergeDialog(false);
       setDuplicateClient(null);
@@ -187,10 +178,10 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
     let finalClientId = form.client_id;
     if (!isBlockTime && !form.client_id && form.client_name) {
       try {
-        // Reuse existing client if email or phone matches
+        // Reuse existing client if email or phone matches (normalized)
         const existing = clients.find(c =>
-          (form.client_email && c.email === form.client_email) ||
-          (form.client_phone && c.phone === form.client_phone)
+          (form.client_email && c.email?.toLowerCase() === form.client_email.toLowerCase()) ||
+          (form.client_phone && normalizePhone(c.phone) === normalizePhone(form.client_phone))
         );
         if (existing) {
           finalClientId = existing.id;
