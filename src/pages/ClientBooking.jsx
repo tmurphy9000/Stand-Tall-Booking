@@ -332,6 +332,103 @@ function DateTimeStep({ barber, service, onSelect, onBack }) {
   );
 }
 
+// ─── Client Info Step ─────────────────────────────────────────────────────────
+
+function ClientInfoStep({ name, phone, email, onChange, onNext, onBack }) {
+  const [error, setError] = useState("");
+
+  const handleNext = () => {
+    if (!name.trim()) { setError("Please enter your full name."); return; }
+    setError("");
+    onNext();
+  };
+
+  const inputStyle = {
+    width: "100%",
+    background: "#141414",
+    border: "1px solid #2a2a2a",
+    borderRadius: "12px",
+    padding: "12px 16px",
+    color: "#fff",
+    fontSize: "15px",
+    outline: "none",
+  };
+
+  return (
+    <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
+      <StepHeader stepLabel="Step 4 of 5" title="Your Info" onBack={onBack} progress={80} />
+
+      <div className="px-6 py-8 max-w-md mx-auto">
+        <p className="text-white/40 text-sm mb-8">Almost there — just tell us who you are.</p>
+
+        <div className="flex flex-col gap-5">
+          {/* Full Name */}
+          <div>
+            <label className="block text-xs text-white/40 uppercase tracking-widest font-semibold mb-2">
+              Full Name <span style={{ color: "#8B9A7E" }}>*</span>
+            </label>
+            <input
+              type="text"
+              value={name}
+              placeholder="Jane Smith"
+              onChange={e => onChange("name", e.target.value.replace(/\b\w/g, c => c.toUpperCase()))}
+              style={inputStyle}
+              onFocus={e => (e.target.style.borderColor = "#8B9A7E")}
+              onBlur={e => (e.target.style.borderColor = "#2a2a2a")}
+            />
+          </div>
+
+          {/* Phone */}
+          <div>
+            <label className="block text-xs text-white/40 uppercase tracking-widest font-semibold mb-2">
+              Phone Number
+            </label>
+            <input
+              type="tel"
+              value={phone}
+              placeholder="(555) 000-0000"
+              onChange={e => onChange("phone", e.target.value)}
+              style={inputStyle}
+              onFocus={e => (e.target.style.borderColor = "#8B9A7E")}
+              onBlur={e => (e.target.style.borderColor = "#2a2a2a")}
+            />
+          </div>
+
+          {/* Email */}
+          <div>
+            <label className="block text-xs text-white/40 uppercase tracking-widest font-semibold mb-2">
+              Email Address
+            </label>
+            <input
+              type="email"
+              value={email}
+              placeholder="jane@example.com"
+              onChange={e => onChange("email", e.target.value)}
+              style={inputStyle}
+              onFocus={e => (e.target.style.borderColor = "#8B9A7E")}
+              onBlur={e => (e.target.style.borderColor = "#2a2a2a")}
+            />
+          </div>
+
+          {error && (
+            <p className="text-sm" style={{ color: "#f87171" }}>{error}</p>
+          )}
+
+          <button
+            onClick={handleNext}
+            className="w-full py-4 rounded-xl font-semibold text-white text-base mt-2 transition-all"
+            style={{ background: "#8B9A7E" }}
+            onMouseEnter={e => (e.currentTarget.style.background = "#6B7A5E")}
+            onMouseLeave={e => (e.currentTarget.style.background = "#8B9A7E")}
+          >
+            Review Booking
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Root Component ───────────────────────────────────────────────────────────
 
 export default function ClientBooking() {
@@ -344,6 +441,9 @@ export default function ClientBooking() {
   const [selectedService, setSelectedService] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedTime, setSelectedTime] = useState(null);
+  const [clientName, setClientName] = useState("");
+  const [clientPhone, setClientPhone] = useState("");
+  const [clientEmail, setClientEmail] = useState("");
 
   useEffect(() => {
     Promise.all([entities.Barber.list(), entities.Service.list()])
@@ -404,6 +504,21 @@ export default function ClientBooking() {
             service={selectedService}
             onSelect={(date, time) => { setSelectedDate(date); setSelectedTime(time); setStep(4); }}
             onBack={() => setStep(2)}
+          />
+        )}
+        {step === 4 && (
+          <ClientInfoStep
+            key="info"
+            name={clientName}
+            phone={clientPhone}
+            email={clientEmail}
+            onChange={(field, val) => {
+              if (field === "name") setClientName(val);
+              if (field === "phone") setClientPhone(val);
+              if (field === "email") setClientEmail(val);
+            }}
+            onNext={() => setStep(5)}
+            onBack={() => setStep(3)}
           />
         )}
       </AnimatePresence>
