@@ -81,9 +81,10 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
   };
 
   const handleNameChange = (value) => {
-    setSearchTerm(value);
-    set("client_name", value);
-    setShowDropdown(value.length > 0);
+    const capitalized = value.replace(/\b\w/g, c => c.toUpperCase());
+    setSearchTerm(capitalized);
+    set("client_name", capitalized);
+    setShowDropdown(capitalized.length > 0);
   };
 
   const handleContactChange = (field, value) => {
