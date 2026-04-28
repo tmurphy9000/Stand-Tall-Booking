@@ -73,18 +73,10 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
     setSearchTerm(value);
     set("client_name", value);
     setShowDropdown(value.length > 0);
-    
-    // Check for duplicates when phone or email is entered
-    if (form.client_phone || form.client_email) {
-      checkForDuplicates(value, form.client_phone, form.client_email);
-    }
   };
 
   const handleContactChange = (field, value) => {
     set(field, value);
-    if (form.client_name) {
-      checkForDuplicates(form.client_name, field === "client_phone" ? value : form.client_phone, field === "client_email" ? value : form.client_email);
-    }
   };
 
   const normalizePhone = (phone) => (phone || "").replace(/\D/g, "");
@@ -114,8 +106,10 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
       await refetchClients();
       setShowMergeDialog(false);
       setDuplicateClient(null);
+      toast.success("Existing client account linked successfully");
     } catch (error) {
       console.error("Error merging accounts:", error);
+      toast.error("Failed to link client account");
     }
   };
 
@@ -280,11 +274,11 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs text-gray-500">Phone</Label>
-              <Input value={form.client_phone} onChange={e => handleContactChange("client_phone", e.target.value)} placeholder="(555) 123-4567" />
+              <Input value={form.client_phone} onChange={e => handleContactChange("client_phone", e.target.value)} onBlur={() => checkForDuplicates(form.client_name, form.client_phone, form.client_email)} placeholder="(555) 123-4567" />
             </div>
             <div>
               <Label className="text-xs text-gray-500">Email</Label>
-              <Input value={form.client_email} onChange={e => handleContactChange("client_email", e.target.value)} placeholder="email@example.com" />
+              <Input value={form.client_email} onChange={e => handleContactChange("client_email", e.target.value)} onBlur={() => checkForDuplicates(form.client_name, form.client_phone, form.client_email)} placeholder="email@example.com" />
             </div>
           </div>
 
