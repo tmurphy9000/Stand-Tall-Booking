@@ -47,10 +47,16 @@ function parseSocialLinks(raw) {
   return raw;
 }
 
-function WelcomeStep({ onStart, shopName, logoUrl, socialLinks }) {
+function WelcomeStep({ onStart, shopName, logoUrl, shopAddress, shopPhone, showShopPhone, shopEmail, showShopEmail, socialLinks }) {
   const displayLogo = logoUrl || LOGO_URL;
   const displayName = shopName || "Stand Tall Barbershop";
   const enabledSocials = Object.entries(socialLinks || {}).filter(([, v]) => v?.enabled && v?.url);
+
+  const contactRows = [
+    shopAddress                          && { label: shopAddress,  text: shopAddress },
+    showShopPhone && shopPhone           && { label: shopPhone,    text: shopPhone   },
+    showShopEmail && shopEmail           && { label: shopEmail,    text: shopEmail   },
+  ].filter(Boolean);
 
   return (
     <motion.div {...fadeSlide} className="flex flex-col items-center justify-center min-h-screen px-6 text-center" style={{ background: "#0A0A0A" }}>
@@ -69,19 +75,30 @@ function WelcomeStep({ onStart, shopName, logoUrl, socialLinks }) {
         Book an Appointment
         <ChevronRight className="w-5 h-5" />
       </button>
-      {enabledSocials.length > 0 && (
-        <div className="flex items-center gap-4 mt-10">
-          {enabledSocials.map(([key, { url }]) => {
-            const Icon = SOCIAL_ICONS[key] || Globe;
-            return (
-              <a key={key} href={url} target="_blank" rel="noopener noreferrer"
-                className="p-2 rounded-lg text-white/30 hover:text-white transition-colors"
-                style={{ background: "#141414" }}
-              >
-                <Icon className="w-5 h-5" />
-              </a>
-            );
-          })}
+
+      {(contactRows.length > 0 || enabledSocials.length > 0) && (
+        <div className="mt-10 flex flex-col items-center gap-3 w-full max-w-xs">
+          {contactRows.map(({ label, text }) => (
+            <div key={text} className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl" style={{ background: "#141414" }}>
+              <span className="text-white/50 text-sm truncate">{label}</span>
+              <CopyButton text={text} />
+            </div>
+          ))}
+          {enabledSocials.length > 0 && (
+            <div className="flex items-center gap-3 mt-1">
+              {enabledSocials.map(([key, { url }]) => {
+                const Icon = SOCIAL_ICONS[key] || Globe;
+                return (
+                  <a key={key} href={url} target="_blank" rel="noopener noreferrer"
+                    className="p-2 rounded-lg text-white/30 hover:text-white transition-colors"
+                    style={{ background: "#141414" }}
+                  >
+                    <Icon className="w-5 h-5" />
+                  </a>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
     </motion.div>
@@ -728,7 +745,9 @@ export default function ClientBooking() {
     <div style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
       <AnimatePresence mode="wait">
         {step === 0 && (
-          <WelcomeStep key="welcome" onStart={() => setStep(1)} shopName={shopName} logoUrl={logoUrl} socialLinks={socialLinks} />
+          <WelcomeStep key="welcome" onStart={() => setStep(1)} shopName={shopName} logoUrl={logoUrl}
+            shopAddress={shopAddress} shopPhone={shopPhone} showShopPhone={showShopPhone}
+            shopEmail={shopEmail} showShopEmail={showShopEmail} socialLinks={socialLinks} />
         )}
         {step === 1 && (
           <BarberStep
