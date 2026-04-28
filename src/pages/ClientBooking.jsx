@@ -206,7 +206,7 @@ function DateTimeStep({ barber, service, onSelect, onBack }) {
   // Build 14-day range, marking days the barber is off
   const dateRange = useMemo(() => {
     const today = new Date();
-    return Array.from({ length: 14 }, (_, i) => {
+    return Array.from({ length: 60 }, (_, i) => {
       const d = addDays(today, i);
       const dateStr = format(d, "yyyy-MM-dd");
       const dayName = format(d, "EEEE").toLowerCase();
