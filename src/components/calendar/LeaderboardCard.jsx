@@ -1,12 +1,11 @@
 import React, { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trophy, Scissors, Package, ChevronUp, ChevronDown } from "lucide-react";
+import { Trophy, Scissors, Package, ChevronRight } from "lucide-react";
 import { format, startOfDay, startOfWeek, startOfMonth } from "date-fns";
 
-export default function LeaderboardCard({ bookings, cashTransactions, barbers }) {
+export default function LeaderboardCard({ bookings, cashTransactions, barbers, onCollapse }) {
   const [period, setPeriod] = useState("day");
-  const [collapsed, setCollapsed] = useState(false);
 
   const leaderboard = useMemo(() => {
     const now = new Date();
@@ -60,63 +59,61 @@ export default function LeaderboardCard({ bookings, cashTransactions, barbers })
             <CardTitle className="text-sm font-semibold">Performance Leaderboard</CardTitle>
           </div>
           <div className="flex items-center gap-2">
-            {!collapsed && (
-              <Select value={period} onValueChange={setPeriod}>
-                <SelectTrigger className="w-24 h-7 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="day">Today</SelectItem>
-                  <SelectItem value="week">Week</SelectItem>
-                  <SelectItem value="month">Month</SelectItem>
-                </SelectContent>
-              </Select>
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger className="w-24 h-7 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="day">Today</SelectItem>
+                <SelectItem value="week">Week</SelectItem>
+                <SelectItem value="month">Month</SelectItem>
+              </SelectContent>
+            </Select>
+            {onCollapse && (
+              <button
+                onClick={onCollapse}
+                className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                title="Collapse leaderboard"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
             )}
-            <button
-              onClick={() => setCollapsed(c => !c)}
-              className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-              title={collapsed ? "Expand" : "Collapse"}
-            >
-              {collapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
-            </button>
           </div>
         </div>
       </CardHeader>
 
-      {!collapsed && (
-        <CardContent className="space-y-2">
-          {leaderboard.length === 0 ? (
-            <p className="text-xs text-gray-400 text-center py-4">No activity yet</p>
-          ) : (
-            leaderboard.map((entry, idx) => (
-              <div
-                key={entry.name}
-                className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
-              >
-                <div className="w-6 h-6 flex items-center justify-center text-lg">
-                  {medals[idx] || `#${idx + 1}`}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{entry.name}</p>
-                  <div className="flex items-center gap-3 text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <Scissors className="w-3 h-3" />
-                      {entry.services}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Package className="w-3 h-3" />
-                      {entry.products}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-lg font-bold text-[#B0BFA4]">
-                  {entry.total}
+      <CardContent className="space-y-2">
+        {leaderboard.length === 0 ? (
+          <p className="text-xs text-gray-400 text-center py-4">No activity yet</p>
+        ) : (
+          leaderboard.map((entry, idx) => (
+            <div
+              key={entry.name}
+              className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+            >
+              <div className="w-6 h-6 flex items-center justify-center text-lg">
+                {medals[idx] || `#${idx + 1}`}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{entry.name}</p>
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <span className="flex items-center gap-1">
+                    <Scissors className="w-3 h-3" />
+                    {entry.services}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Package className="w-3 h-3" />
+                    {entry.products}
+                  </span>
                 </div>
               </div>
-            ))
-          )}
-        </CardContent>
-      )}
+              <div className="text-lg font-bold text-[#B0BFA4]">
+                {entry.total}
+              </div>
+            </div>
+          ))
+        )}
+      </CardContent>
     </Card>
   );
 }

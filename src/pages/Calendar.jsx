@@ -7,7 +7,7 @@ import TimeSlotGrid from "../components/calendar/TimeSlotGrid";
 import BookingFormModal from "../components/calendar/BookingFormModal";
 import QuickBookingModal from "../components/calendar/QuickBookingModal";
 import BookingContextMenu from "../components/calendar/BookingContextMenu";
-import { Loader2, Sparkles } from "lucide-react";
+import { Loader2, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BarberAssistant from "../components/assistant/BarberAssistant";
 import LeaderboardCard from "../components/calendar/LeaderboardCard";
@@ -30,6 +30,7 @@ export default function CalendarPage() {
   const [initialPinchDistance, setInitialPinchDistance] = useState(null);
   const [initialZoomLevel, setInitialZoomLevel] = useState(1);
   const [showAssistant, setShowAssistant] = useState(false);
+  const [leaderboardCollapsed, setLeaderboardCollapsed] = useState(false);
   const { isMobile } = useViewMode();
 
   const queryClient = useQueryClient();
@@ -435,12 +436,36 @@ export default function CalendarPage() {
 
       {/* Leaderboard Sidebar - hidden in mobile mode */}
       {!isMobile && (
-        <div className="w-80 flex-shrink-0 border-l border-gray-100 overflow-y-auto p-4 bg-white">
-          <LeaderboardCard 
-            bookings={bookings}
-            cashTransactions={cashTransactions}
-            barbers={barbers}
-          />
+        <div
+          className="flex-shrink-0 border-l border-gray-100 bg-white flex flex-col transition-all duration-300 overflow-hidden"
+          style={{ width: leaderboardCollapsed ? "2.5rem" : "20rem" }}
+        >
+          {leaderboardCollapsed ? (
+            <div className="flex flex-col items-center pt-3 gap-3 h-full">
+              <button
+                onClick={() => setLeaderboardCollapsed(false)}
+                className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                title="Expand leaderboard"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span
+                className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest"
+                style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
+              >
+                Leaderboard
+              </span>
+            </div>
+          ) : (
+            <div className="p-4 overflow-y-auto flex-1">
+              <LeaderboardCard
+                bookings={bookings}
+                cashTransactions={cashTransactions}
+                barbers={barbers}
+                onCollapse={() => setLeaderboardCollapsed(true)}
+              />
+            </div>
+          )}
         </div>
       )}
     </div>
