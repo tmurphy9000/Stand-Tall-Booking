@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { entities } from "@/api/entities";
 import { Loader2, Scissors, ChevronRight, ArrowLeft, Clock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { format, addDays, parse, addMinutes } from "date-fns";
 
 const LOGO_URL =
   "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6993eba91209ee0a1089f355/fd9cfe023_6f5fd5cc-8fc9-4041-9d87-c24e77a3bc58.png";
@@ -163,6 +164,174 @@ function ServiceStep({ services, barber, onSelect, onBack }) {
   );
 }
 
+// ─── Date + Time Step ─────────────────────────────────────────────────────────
+
+function generateSlots(start, end, intervalMins) {
+  const slots = [];
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  let cur = sh * 60 + sm;
+  const endMins = eh * 60 + em;
+  while (cur < endMins) {
+    const h = Math.floor(cur / 60);
+    const m = cur % 60;
+    const time = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+    slots.push({ time, label: format(parse(time, "HH:mm", new Date()), "h:mm a") });
+    cur += intervalMins;
+  }
+  return slots;
+}
+
+function isSlotTaken(slotTime, duration, bookings) {
+  const [sh, sm] = slotTime.split(":").map(Number);
+  const slotStart = sh * 60 + sm;
+  const slotEnd = slotStart + duration;
+  return bookings.some((b) => {
+    if (b.status === "cancelled") return false;
+    const [bh, bm] = b.start_time.split(":").map(Number);
+    const bStart = bh * 60 + bm;
+    const bEnd = bStart + (b.duration || 30);
+    return slotStart < bEnd && slotEnd > bStart;
+  });
+}
+
+function DateTimeStep({ barber, service, onSelect, onBack }) {
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [bookings, setBookings] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const scrollRef = useRef(null);
+
+  const serviceDuration = barber?.service_durations?.[service?.id] ?? service?.duration ?? 30;
+
+  // Build 14-day range, marking days the barber is off
+  const dateRange = useMemo(() => {
+    const today = new Date();
+    return Array.from({ length: 14 }, (_, i) => {
+      const d = addDays(today, i);
+      const dateStr = format(d, "yyyy-MM-dd");
+      const dayName = format(d, "EEEE").toLowerCase();
+      const dayHours = barber?.hours?.[dayName];
+      const hasHours = barber?.hours && Object.keys(barber.hours).length > 0;
+      const isOff = hasHours && (!dayHours || dayHours.off || dayHours.closed);
+      return {
+        dateStr,
+        dayLabel: format(d, "EEE"),
+        dayNum: format(d, "d"),
+        monthLabel: format(d, "MMM"),
+        isOff,
+      };
+    });
+  }, [barber]);
+
+  // Fetch bookings whenever the selected date changes
+  useEffect(() => {
+    if (!selectedDate || !barber) return;
+    setLoadingSlots(true);
+    entities.Booking.filter({ barber_id: barber.id, date: selectedDate })
+      .then(setBookings)
+      .catch(console.error)
+      .finally(() => setLoadingSlots(false));
+  }, [selectedDate, barber]);
+
+  // Generate available slots for the selected date
+  const slots = useMemo(() => {
+    if (!selectedDate || !barber) return [];
+    const dayName = format(new Date(selectedDate + "T12:00:00"), "EEEE").toLowerCase();
+    const dayHours = barber.hours?.[dayName];
+    if (!dayHours || dayHours.off || dayHours.closed) return [];
+    const start = dayHours.start || "09:00";
+    const end = dayHours.end || "18:00";
+    return generateSlots(start, end, 30).map((slot) => ({
+      ...slot,
+      taken: isSlotTaken(slot.time, serviceDuration, bookings),
+    }));
+  }, [selectedDate, barber, bookings, serviceDuration]);
+
+  return (
+    <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
+      <StepHeader stepLabel="Step 3 of 5" title="Pick a Date & Time" onBack={onBack} progress={60} />
+
+      <div className="px-6 py-6">
+        {/* Date strip */}
+        <p className="text-white/40 text-xs uppercase tracking-widest mb-3 font-semibold">Select a date</p>
+        <div
+          ref={scrollRef}
+          className="flex gap-2 overflow-x-auto pb-3 -mx-6 px-6"
+          style={{ scrollbarWidth: "none" }}
+        >
+          {dateRange.map(({ dateStr, dayLabel, dayNum, monthLabel, isOff }) => {
+            const isSelected = selectedDate === dateStr;
+            return (
+              <button
+                key={dateStr}
+                disabled={isOff}
+                onClick={() => setSelectedDate(dateStr)}
+                className="flex-shrink-0 flex flex-col items-center w-14 py-3 rounded-xl border transition-all"
+                style={{
+                  background: isSelected ? "#8B9A7E" : "#141414",
+                  borderColor: isSelected ? "#8B9A7E" : "#2a2a2a",
+                  opacity: isOff ? 0.3 : 1,
+                  cursor: isOff ? "not-allowed" : "pointer",
+                }}
+              >
+                <span className={`text-[10px] font-semibold uppercase tracking-wider ${isSelected ? "text-white" : "text-white/40"}`}>
+                  {dayLabel}
+                </span>
+                <span className={`text-xl font-bold mt-0.5 ${isSelected ? "text-white" : "text-white"}`}>
+                  {dayNum}
+                </span>
+                <span className={`text-[10px] ${isSelected ? "text-white/80" : "text-white/30"}`}>
+                  {monthLabel}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Time slots */}
+        {selectedDate && (
+          <div className="mt-8">
+            <p className="text-white/40 text-xs uppercase tracking-widest mb-3 font-semibold">Available times</p>
+            {loadingSlots ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-5 h-5 animate-spin" style={{ color: "#8B9A7E" }} />
+              </div>
+            ) : slots.length === 0 ? (
+              <p className="text-white/30 text-sm text-center py-8">No availability on this day.</p>
+            ) : (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-w-xl mx-auto">
+                {slots.map(({ time, label, taken }) => (
+                  <button
+                    key={time}
+                    disabled={taken}
+                    onClick={() => onSelect(selectedDate, time)}
+                    className="py-3 rounded-xl border text-sm font-medium transition-all"
+                    style={{
+                      background: taken ? "#111" : "#141414",
+                      borderColor: taken ? "#1a1a1a" : "#2a2a2a",
+                      color: taken ? "#333" : "#fff",
+                      cursor: taken ? "not-allowed" : "pointer",
+                      textDecoration: taken ? "line-through" : "none",
+                    }}
+                    onMouseEnter={e => { if (!taken) { e.currentTarget.style.borderColor = "#8B9A7E"; e.currentTarget.style.background = "#1a1f1a"; } }}
+                    onMouseLeave={e => { if (!taken) { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.background = "#141414"; } }}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!selectedDate && (
+          <p className="text-white/20 text-sm text-center mt-12">← Choose a date to see available times</p>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Root Component ───────────────────────────────────────────────────────────
 
 export default function ClientBooking() {
@@ -173,6 +342,8 @@ export default function ClientBooking() {
 
   const [selectedBarber, setSelectedBarber] = useState(null);
   const [selectedService, setSelectedService] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedTime, setSelectedTime] = useState(null);
 
   useEffect(() => {
     Promise.all([entities.Barber.list(), entities.Service.list()])
@@ -222,8 +393,17 @@ export default function ClientBooking() {
             key="service"
             services={availableServices}
             barber={selectedBarber}
-            onSelect={(svc) => { setSelectedService(svc); setStep(3); }}
+            onSelect={(svc) => { setSelectedService(svc); setSelectedDate(null); setSelectedTime(null); setStep(3); }}
             onBack={() => setStep(1)}
+          />
+        )}
+        {step === 3 && (
+          <DateTimeStep
+            key="datetime"
+            barber={selectedBarber}
+            service={selectedService}
+            onSelect={(date, time) => { setSelectedDate(date); setSelectedTime(time); setStep(4); }}
+            onBack={() => setStep(2)}
           />
         )}
       </AnimatePresence>
