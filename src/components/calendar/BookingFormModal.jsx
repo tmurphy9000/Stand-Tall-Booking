@@ -113,14 +113,61 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
         email: form.client_email || duplicateClient.email,
         phone: form.client_phone || duplicateClient.phone,
       });
-      setForm(prev => ({ ...prev, client_id: duplicateClient.id }));
       await refetchClients();
       setShowMergeDialog(false);
-      setDuplicateClient(null);
       toast.success("Existing client account linked successfully");
+      // Proceed with the booking now that the client is resolved
+      const mergedId = duplicateClient.id;
+      setDuplicateClient(null);
+      await buildAndSave(mergedId);
     } catch (error) {
       console.error("Error merging accounts:", error);
       toast.error("Failed to link client account");
+    }
+  };
+
+  const buildAndSave = async (finalClientId) => {
+    const baseBooking = {
+      ...form,
+      client_id: finalClientId,
+      barber_name: selectedBarber?.name || "",
+      service_name: selectedService?.name || form.service_name || "Blocked",
+      duration: serviceDuration,
+      price: servicePrice,
+      end_time: endTime,
+      final_price: finalPrice,
+      status: "scheduled",
+    };
+
+    let bookingData;
+    if (!isBlockTime || !repeatEnabled || !repeatEndDate) {
+      bookingData = baseBooking;
+    } else {
+      const dates = [];
+      let current = new Date(form.date + "T12:00:00");
+      const end = new Date(repeatEndDate + "T12:00:00");
+      while (current <= end) {
+        dates.push(format(current, "yyyy-MM-dd"));
+        if (repeatFrequency === "daily") current = addDays(current, 1);
+        else if (repeatFrequency === "weekly") current = addWeeks(current, 1);
+        else if (repeatFrequency === "biweekly") current = addWeeks(current, 2);
+        else if (repeatFrequency === "monthly") current = addMonths(current, 1);
+      }
+      const repeat_group_id = crypto.randomUUID();
+      bookingData = dates.map(date => ({ ...baseBooking, date, repeat_group_id }));
+    }
+
+    if (isOutsideBookableHours()) {
+      setPendingSave(bookingData);
+      setShowOutsideHoursWarning(true);
+      return;
+    }
+
+    try {
+      await doSave(bookingData);
+    } catch (err) {
+      console.error("Failed to save booking:", err);
+      toast.error("Failed to save booking: " + (err.message || "Unknown error"));
     }
   };
 
@@ -179,73 +226,38 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
   const handleSave = async () => {
     if (!form.client_name || !form.barber_id || (!isBlockTime && !form.service_id)) return;
 
-    // Auto-create client if doesn't exist and not a blocked time
     let finalClientId = form.client_id;
-    if (!isBlockTime && !form.client_id && form.client_name) {
-      try {
-        // Reuse existing client if email or phone matches (normalized)
-        const existing = clients.find(c =>
-          (form.client_email && c.email?.toLowerCase() === form.client_email.toLowerCase()) ||
-          (form.client_phone && normalizePhone(c.phone) === normalizePhone(form.client_phone))
+
+    if (!isBlockTime && !form.client_id) {
+      // Check for a duplicate client on save — show merge dialog if found
+      if (form.client_phone || form.client_email) {
+        const duplicate = clients.find(c =>
+          (form.client_phone && normalizePhone(c.phone) === normalizePhone(form.client_phone)) ||
+          (form.client_email && c.email?.toLowerCase() === form.client_email.toLowerCase())
         );
-        if (existing) {
-          finalClientId = existing.id;
-        } else if (form.client_email || form.client_phone) {
+        if (duplicate) {
+          setDuplicateClient(duplicate);
+          setShowMergeDialog(true);
+          return; // booking proceeds only after user confirms merge
+        }
+      }
+
+      // No duplicate — create a new client record if contact info was provided
+      if (form.client_name && (form.client_email || form.client_phone)) {
+        try {
           const newClient = await entities.Client.create({
             name: form.client_name,
             email: form.client_email || "",
             phone: form.client_phone || "",
           });
           finalClientId = newClient.id;
+        } catch (error) {
+          console.error("Error creating client:", error);
         }
-      } catch (error) {
-        console.error("Error creating client:", error);
       }
     }
 
-    const baseBooking = {
-      ...form,
-      client_id: finalClientId,
-      barber_name: selectedBarber?.name || "",
-      service_name: selectedService?.name || form.service_name || "Blocked",
-      duration: serviceDuration,
-      price: servicePrice,
-      end_time: endTime,
-      final_price: finalPrice,
-      status: "scheduled",
-    };
-
-    let bookingData;
-    if (!isBlockTime || !repeatEnabled || !repeatEndDate) {
-      bookingData = baseBooking;
-    } else {
-      // Generate repeated block bookings
-      const dates = [];
-      let current = new Date(form.date + "T12:00:00");
-      const end = new Date(repeatEndDate + "T12:00:00");
-      while (current <= end) {
-        dates.push(format(current, "yyyy-MM-dd"));
-        if (repeatFrequency === "daily") current = addDays(current, 1);
-        else if (repeatFrequency === "weekly") current = addWeeks(current, 1);
-        else if (repeatFrequency === "biweekly") current = addWeeks(current, 2);
-        else if (repeatFrequency === "monthly") current = addMonths(current, 1);
-      }
-      const repeat_group_id = crypto.randomUUID();
-      bookingData = dates.map(date => ({ ...baseBooking, date, repeat_group_id }));
-    }
-
-    if (isOutsideBookableHours()) {
-      setPendingSave(bookingData);
-      setShowOutsideHoursWarning(true);
-      return;
-    }
-
-    try {
-      await doSave(bookingData);
-    } catch (err) {
-      console.error("Failed to save booking:", err);
-      toast.error("Failed to save booking: " + (err.message || "Unknown error"));
-    }
+    await buildAndSave(finalClientId);
   };
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
@@ -285,11 +297,11 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs text-gray-500">Phone</Label>
-              <Input value={form.client_phone} onChange={e => handleContactChange("client_phone", e.target.value)} onBlur={() => checkForDuplicates(form.client_name, form.client_phone, form.client_email)} placeholder="(555) 123-4567" />
+              <Input value={form.client_phone} onChange={e => handleContactChange("client_phone", e.target.value)} placeholder="(555) 123-4567" />
             </div>
             <div>
               <Label className="text-xs text-gray-500">Email</Label>
-              <Input value={form.client_email} onChange={e => handleContactChange("client_email", e.target.value)} onBlur={() => checkForDuplicates(form.client_name, form.client_phone, form.client_email)} placeholder="email@example.com" />
+              <Input value={form.client_email} onChange={e => handleContactChange("client_email", e.target.value)} placeholder="email@example.com" />
             </div>
           </div>
 
