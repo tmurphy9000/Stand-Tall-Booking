@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { entities } from "@/api/entities";
+import { supabase } from "@/lib/supabaseClient";
 import { Loader2, Scissors, ChevronRight, ArrowLeft, Clock, CheckCircle2, User, Calendar, Tag, Copy, Instagram, Facebook, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, addDays, parse, addMinutes } from "date-fns";
@@ -777,6 +778,25 @@ export default function ClientBooking() {
         status: "scheduled",
         visit_type: "online",
       });
+
+      if (clientEmail) {
+        supabase.functions.invoke("sendBookingConfirmation", {
+          body: {
+            client_name: clientName,
+            client_email: clientEmail,
+            barber_name: selectedBarber.name,
+            service_name: selectedService.name,
+            date: selectedDate,
+            start_time: selectedTime,
+            end_time: endTime,
+            shop_name: shopName || undefined,
+            shop_address: shopAddress || undefined,
+            shop_phone: shopPhone || undefined,
+          },
+        }).then(({ error }) => {
+          if (error) console.warn("[sendBookingConfirmation] invoke error:", error);
+        });
+      }
 
       setStep(6);
     } catch (err) {
