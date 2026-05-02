@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -59,6 +60,8 @@ export default function BookingPageSettings() {
     facebook:  { enabled: false, url: "" },
     tiktok:    { enabled: false, url: "" },
   });
+  const [cancelPolicyEnabled, setCancelPolicyEnabled] = useState(false);
+  const [cancelPolicyText, setCancelPolicyText]       = useState("");
 
   useEffect(() => {
     if (!settings.id) return;
@@ -78,6 +81,8 @@ export default function BookingPageSettings() {
       facebook:  { enabled: false, url: "", ...(links.facebook  || {}) },
       tiktok:    { enabled: false, url: "", ...(links.tiktok    || {}) },
     });
+    setCancelPolicyEnabled(settings.cancellation_policy_enabled === true);
+    setCancelPolicyText(settings.cancellation_policy_text || "");
   }, [settings.id]);
 
   const save = useMutation({
@@ -139,8 +144,10 @@ export default function BookingPageSettings() {
       shop_phone:      shopPhone,
       show_shop_phone: showPhone,
       shop_email:      shopEmail,
-      show_shop_email: showEmail,
-      social_links:    social,
+      show_shop_email:             showEmail,
+      social_links:                social,
+      cancellation_policy_enabled: cancelPolicyEnabled,
+      cancellation_policy_text:    cancelPolicyText || null,
     });
   };
 
@@ -279,6 +286,28 @@ export default function BookingPageSettings() {
           ))}
         </div>
         <p className="text-xs text-gray-400">Enabled links appear on the booking page welcome screen.</p>
+      </section>
+
+      {/* ── Cancellation policy ── */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Cancellation Policy</h3>
+          <Switch checked={cancelPolicyEnabled} onCheckedChange={setCancelPolicyEnabled} />
+        </div>
+        {cancelPolicyEnabled && (
+          <div className="space-y-2">
+            <Textarea
+              value={cancelPolicyText}
+              onChange={e => setCancelPolicyText(e.target.value)}
+              placeholder="e.g. We require at least 24 hours notice for cancellations. Late cancellations may result in a fee."
+              rows={4}
+              className="text-sm resize-none"
+            />
+            <p className="text-xs text-gray-400">
+              Clients will be shown this text on the confirmation step and must check a box before booking.
+            </p>
+          </div>
+        )}
       </section>
 
       {/* ── Bottom save ── */}

@@ -522,25 +522,14 @@ function downloadIcs({ title, startStr, endStr, location, details, uid }) {
 
 // ─── Confirm Step ─────────────────────────────────────────────────────────────
 
-function loadPolicy() {
-  try {
-    const stored = localStorage.getItem("shop_policy_settings");
-    return stored ? JSON.parse(stored) : null;
-  } catch {
-    return null;
-  }
-}
-
-function ConfirmStep({ barber, service, date, time, clientName, clientPhone, clientEmail, onConfirm, onBack, submitting }) {
+function ConfirmStep({ barber, service, date, time, clientName, clientPhone, clientEmail, onConfirm, onBack, submitting, cancelPolicyEnabled, cancelPolicyText }) {
+  const [policyAgreed, setPolicyAgreed] = useState(false);
   const duration = barber?.service_durations?.[service?.id] ?? service?.duration ?? 30;
   const endTime = format(addMinutes(parse(time, "HH:mm", new Date()), duration), "h:mm a");
   const startLabel = format(parse(time, "HH:mm", new Date()), "h:mm a");
   const dateLabel = format(new Date(date + "T12:00:00"), "EEEE, MMMM d, yyyy");
-  const policy = loadPolicy();
-  const showPolicy = policy?.cancellation_enabled && policy?.cancellation_policy_text;
-  const cancelWindow = policy?.cancellation_hours > 0
-    ? `${policy.cancellation_hours} hour${policy.cancellation_hours !== 1 ? "s" : ""} notice required`
-    : null;
+  const showPolicy = cancelPolicyEnabled && cancelPolicyText;
+  const confirmDisabled = submitting || (showPolicy && !policyAgreed);
 
   const row = (icon, label, value) => (
     <div className="flex items-start gap-4 py-4 border-b border-white/5 last:border-0">
@@ -567,34 +556,44 @@ function ConfirmStep({ barber, service, date, time, clientName, clientPhone, cli
         </div>
 
         {showPolicy && (
-          <div className="rounded-xl border mb-6 px-4 py-4" style={{ borderColor: "#2a2a1a", background: "#141408" }}>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-[11px] font-bold uppercase tracking-widest" style={{ color: "#c8a94e" }}>Cancellation Policy</p>
-              {cancelWindow && (
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "#2a2410", color: "#c8a94e" }}>
-                  {cancelWindow}
-                </span>
-              )}
+          <div className="rounded-xl border mb-4" style={{ borderColor: "#2a2a1a", background: "#141408" }}>
+            <p className="text-[11px] font-bold uppercase tracking-widest px-4 pt-4 pb-2" style={{ color: "#c8a94e" }}>Cancellation Policy</p>
+            <div className="px-4 pb-4 max-h-40 overflow-y-auto">
+              <p className="text-white/60 text-sm leading-relaxed whitespace-pre-wrap">{cancelPolicyText}</p>
             </div>
-            <p className="text-white/60 text-sm leading-relaxed">{policy.cancellation_policy_text}</p>
+            <label className="flex items-center gap-3 px-4 py-3 border-t cursor-pointer" style={{ borderColor: "#2a2a1a" }}>
+              <input
+                type="checkbox"
+                checked={policyAgreed}
+                onChange={e => setPolicyAgreed(e.target.checked)}
+                className="w-4 h-4 rounded accent-[#8B9A7E] flex-shrink-0"
+              />
+              <span className="text-white/70 text-sm">I agree to the cancellation policy</span>
+            </label>
           </div>
         )}
 
         <button
           onClick={onConfirm}
-          disabled={submitting}
+          disabled={confirmDisabled}
           className="w-full py-4 rounded-xl font-semibold text-white text-base transition-all flex items-center justify-center gap-2"
-          style={{ background: submitting ? "#4a5a44" : "#8B9A7E", cursor: submitting ? "not-allowed" : "pointer" }}
-          onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = "#6B7A5E"; }}
-          onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = "#8B9A7E"; }}
+          style={{
+            background: confirmDisabled ? "#2e3a2e" : "#8B9A7E",
+            cursor: confirmDisabled ? "not-allowed" : "pointer",
+            opacity: confirmDisabled && !submitting ? 0.5 : 1,
+          }}
+          onMouseEnter={e => { if (!confirmDisabled) e.currentTarget.style.background = "#6B7A5E"; }}
+          onMouseLeave={e => { if (!confirmDisabled) e.currentTarget.style.background = "#8B9A7E"; }}
         >
           {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
           {submitting ? "Booking…" : "Confirm Booking"}
         </button>
 
-        <p className="text-white/20 text-xs text-center mt-4">
-          {showPolicy ? "By confirming you agree to the cancellation policy above." : "By confirming you agree to our cancellation policy."}
-        </p>
+        {!showPolicy && (
+          <p className="text-white/20 text-xs text-center mt-4">
+            By confirming you agree to our cancellation policy.
+          </p>
+        )}
       </div>
     </motion.div>
   );
@@ -853,8 +852,10 @@ export default function ClientBooking() {
   const showShopPhone = shopSettings.show_shop_phone !== false;
   const shopEmail     = shopSettings.shop_email     || "";
   const showShopEmail = shopSettings.show_shop_email !== false;
-  const socialLinks   = parseSocialLinks(shopSettings.social_links);
-  const maxDays       = shopSettings.max_booking_days_ahead || 60;
+  const socialLinks           = parseSocialLinks(shopSettings.social_links);
+  const maxDays               = shopSettings.max_booking_days_ahead || 60;
+  const cancelPolicyEnabled   = shopSettings.cancellation_policy_enabled === true;
+  const cancelPolicyText      = shopSettings.cancellation_policy_text || "";
 
   if (loading) {
     return (
@@ -930,6 +931,8 @@ export default function ClientBooking() {
             onConfirm={handleConfirm}
             onBack={() => setStep(4)}
             submitting={submitting}
+            cancelPolicyEnabled={cancelPolicyEnabled}
+            cancelPolicyText={cancelPolicyText}
           />
         )}
         {step === 6 && (
