@@ -30,6 +30,7 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
   const [savingHours, setSavingHours] = useState(false);
   const [showDurations, setShowDurations] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     name: "", email: "", phone: "", service_commission_rate: 50, product_commission_rate: 10,
     is_active: true, photo_url: "",
@@ -56,13 +57,37 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
 
   const handlePhoto = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
     if (!file) return;
-    const path = `barbers/${Date.now()}_${file.name}`;
-    const { data, error } = await supabase.storage.from('photos').upload(path, file, { upsert: true });
-    if (error) { console.error('Photo upload failed:', error); return; }
-    const { data: { publicUrl } } = supabase.storage.from('photos').getPublicUrl(data.path);
-    set("photo_url", publicUrl);
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("File too large — max 5 MB");
+      e.target.value = "";
+      return;
+    }
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const path = `${Date.now()}.${ext}`;
+      const { data, error } = await supabase.storage.from("barber-photos").upload(path, file, { upsert: true });
+      if (error) {
+        if (error.message?.includes("Bucket not found")) {
+          toast.error('Upload failed: create a "barber-photos" bucket in Supabase Storage with public access.');
+        } else if (error.statusCode === 403 || error.message?.includes("not authorized")) {
+          toast.error("Upload failed: enable public access on the barber-photos bucket in Supabase Storage.");
+        } else {
+          toast.error("Upload failed: " + error.message);
+        }
+        return;
+      }
+      const { data: { publicUrl } } = supabase.storage.from("barber-photos").getPublicUrl(data.path);
+      set("photo_url", publicUrl);
+      toast.success("Photo uploaded — click Save to apply");
+    } catch (err) {
+      toast.error("Upload failed: " + err.message);
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
   };
 
   return (
@@ -136,17 +161,28 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
             <DialogTitle>{editing ? "Edit Barber" : "Add Barber"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
-            <div className="flex justify-center">
-              <label className="cursor-pointer">
-                <input type="file" accept="image/*" onChange={handlePhoto} className="hidden" />
-                {form.photo_url ? (
-                  <img src={form.photo_url} alt="" className="w-16 h-16 rounded-full object-cover ring-2 ring-[#B0BFA4]/30" />
-                ) : (
-                  <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+            <div className="flex items-center gap-4">
+              {form.photo_url ? (
+                <img src={form.photo_url} alt="" className="w-16 h-16 rounded-full object-cover ring-2 ring-[#B0BFA4]/30 flex-shrink-0" />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                  {form.name ? (
+                    <span className="text-xl font-bold text-gray-400">{form.name.charAt(0).toUpperCase()}</span>
+                  ) : (
                     <Camera className="w-5 h-5 text-gray-400" />
+                  )}
+                </div>
+              )}
+              <div className="flex flex-col gap-1">
+                <label htmlFor="barber-photo-upload" className="cursor-pointer">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium hover:bg-gray-50 transition-colors">
+                    {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                    {uploading ? "Uploading…" : "Upload Photo"}
                   </div>
-                )}
-              </label>
+                </label>
+                <input id="barber-photo-upload" type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handlePhoto} disabled={uploading} />
+                <p className="text-[10px] text-gray-400">PNG, JPG or WebP · max 5 MB</p>
+              </div>
             </div>
             <div>
               <Label className="text-xs text-gray-500">Name *</Label>
