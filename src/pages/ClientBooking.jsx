@@ -8,6 +8,8 @@ import { format, addDays, parse, addMinutes } from "date-fns";
 const LOGO_URL =
   "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6993eba91209ee0a1089f355/fd9cfe023_6f5fd5cc-8fc9-4041-9d87-c24e77a3bc58.png";
 
+const ANY_BARBER = { id: "any", name: "Any Barber" };
+
 const fadeSlide = {
   initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
@@ -455,6 +457,23 @@ function BarberStep({ barbers, onSelect, onBack }) {
             : "Select the barber you'd like to book with."}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto">
+          {/* Any Barber card — always first */}
+          <button
+            onClick={() => onSelect(ANY_BARBER)}
+            className="group sm:col-span-2 flex items-center gap-4 p-5 rounded-2xl border text-left transition-all"
+            style={{ background: "#141414", borderColor: "#2a2a2a" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#8B9A7E"; e.currentTarget.style.background = "#1a1f1a"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.background = "#141414"; }}
+          >
+            <div className="w-16 h-16 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ background: "#1f2a1f" }}>
+              <Scissors className="w-7 h-7" style={{ color: "#8B9A7E" }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-semibold text-base">Any Barber</p>
+              <p className="text-white/40 text-xs mt-0.5">First available across all barbers</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-[#8B9A7E] transition-colors flex-shrink-0" />
+          </button>
           {barbers.map((barber) => (
             <button
               key={barber.id}
@@ -576,7 +595,7 @@ function isSlotTaken(slotTime, duration, bookings) {
   });
 }
 
-function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack }) {
+function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarbers = [] }) {
   const [selectedDate, setSelectedDate] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
@@ -584,83 +603,118 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack }) {
   const [noAvailability, setNoAvailability] = useState(false);
   const scrollRef = useRef(null);
 
+  const isAny = barber?.id === "any";
   const serviceDuration = barber?.service_durations?.[service?.id] ?? service?.duration ?? 30;
 
   const handleNextAvailable = async () => {
     setFindingNext(true);
     setNoAvailability(false);
     const today = new Date();
+    const nowHHMM = format(today, "HH:mm");
+
     for (let i = 0; i < maxDays; i++) {
       const d = addDays(today, i);
       const dateStr = format(d, "yyyy-MM-dd");
       const dayName = format(d, "EEEE").toLowerCase();
-      const dayHours = barber?.hours?.[dayName];
-      if (!dayHours || dayHours.off || dayHours.closed) continue;
-      try {
-        const dayBookings = await entities.Booking.filter({ barber_id: barber.id, date: dateStr });
-        const daySlots = generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 30);
-        const isToday = i === 0;
-        const nowHHMM = format(today, "HH:mm");
-        const firstFree = daySlots.find(s =>
-          !isSlotTaken(s.time, serviceDuration, dayBookings) &&
-          (!isToday || s.time > nowHHMM)
-        );
-        if (firstFree) {
-          setFindingNext(false);
-          onSelect(dateStr, firstFree.time);
-          return;
-        }
-      } catch (e) {
-        console.error("[NextAvailable] error checking", dateStr, e);
+      const isToday = i === 0;
+
+      if (isAny) {
+        const working = allBarbers.filter(b => {
+          const dh = b.hours?.[dayName];
+          return dh && !dh.off && !dh.closed;
+        });
+        if (working.length === 0) continue;
+        try {
+          const dayBookings = await entities.Booking.filter({ date: dateStr });
+          for (const b of working) {
+            const dh = b.hours[dayName];
+            const bBookings = dayBookings.filter(bk => bk.barber_id === b.id);
+            const firstFree = generateSlots(dh.start || "09:00", dh.end || "18:00", 30).find(s =>
+              !isSlotTaken(s.time, serviceDuration, bBookings) && (!isToday || s.time > nowHHMM)
+            );
+            if (firstFree) { setFindingNext(false); onSelect(dateStr, firstFree.time); return; }
+          }
+        } catch (e) { console.error("[NextAvailable] error checking", dateStr, e); }
+      } else {
+        const dayHours = barber?.hours?.[dayName];
+        if (!dayHours || dayHours.off || dayHours.closed) continue;
+        try {
+          const dayBookings = await entities.Booking.filter({ barber_id: barber.id, date: dateStr });
+          const firstFree = generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 30).find(s =>
+            !isSlotTaken(s.time, serviceDuration, dayBookings) && (!isToday || s.time > nowHHMM)
+          );
+          if (firstFree) { setFindingNext(false); onSelect(dateStr, firstFree.time); return; }
+        } catch (e) { console.error("[NextAvailable] error checking", dateStr, e); }
       }
     }
     setFindingNext(false);
     setNoAvailability(true);
   };
 
-  // Build date range, marking days the barber is off
+  // Build date range — for "any", a day is off only if ALL barbers are off
   const dateRange = useMemo(() => {
     const today = new Date();
     return Array.from({ length: maxDays }, (_, i) => {
       const d = addDays(today, i);
       const dateStr = format(d, "yyyy-MM-dd");
       const dayName = format(d, "EEEE").toLowerCase();
-      const dayHours = barber?.hours?.[dayName];
-      const hasHours = barber?.hours && Object.keys(barber.hours).length > 0;
-      const isOff = hasHours && (!dayHours || dayHours.off || dayHours.closed);
-      return {
-        dateStr,
-        dayLabel: format(d, "EEE"),
-        dayNum: format(d, "d"),
-        monthLabel: format(d, "MMM"),
-        isOff,
-      };
+      let isOff;
+      if (isAny) {
+        const anyWorking = allBarbers.some(b => {
+          const dh = b.hours?.[dayName];
+          return dh && !dh.off && !dh.closed;
+        });
+        isOff = allBarbers.length > 0 && !anyWorking;
+      } else {
+        const hasHours = barber?.hours && Object.keys(barber.hours).length > 0;
+        const dayHours = barber?.hours?.[dayName];
+        isOff = hasHours && (!dayHours || dayHours.off || dayHours.closed);
+      }
+      return { dateStr, dayLabel: format(d, "EEE"), dayNum: format(d, "d"), monthLabel: format(d, "MMM"), isOff };
     });
-  }, [barber]);
+  }, [barber, maxDays, allBarbers, isAny]);
 
-  // Fetch bookings whenever the selected date changes
+  // Fetch bookings when date changes — all barbers for "any", single barber otherwise
   useEffect(() => {
     if (!selectedDate || !barber) return;
     setLoadingSlots(true);
-    entities.Booking.filter({ barber_id: barber.id, date: selectedDate })
-      .then(setBookings)
-      .catch(console.error)
-      .finally(() => setLoadingSlots(false));
-  }, [selectedDate, barber]);
+    const query = isAny
+      ? entities.Booking.filter({ date: selectedDate })
+      : entities.Booking.filter({ barber_id: barber.id, date: selectedDate });
+    query.then(setBookings).catch(console.error).finally(() => setLoadingSlots(false));
+  }, [selectedDate, barber, isAny]);
 
-  // Generate available slots for the selected date
+  // Generate slots — union across all working barbers for "any"
   const slots = useMemo(() => {
     if (!selectedDate || !barber) return [];
     const dayName = format(new Date(selectedDate + "T12:00:00"), "EEEE").toLowerCase();
+
+    if (isAny) {
+      const timeSet = new Set();
+      allBarbers.forEach(b => {
+        const dh = b.hours?.[dayName];
+        if (!dh || dh.off || dh.closed) return;
+        generateSlots(dh.start || "09:00", dh.end || "18:00", 30).forEach(s => timeSet.add(s.time));
+      });
+      return Array.from(timeSet).sort().map(time => {
+        const label = format(parse(time, "HH:mm", new Date()), "h:mm a");
+        const anyFree = allBarbers.some(b => {
+          const dh = b.hours?.[dayName];
+          if (!dh || dh.off || dh.closed) return false;
+          if (time < (dh.start || "09:00") || time >= (dh.end || "18:00")) return false;
+          return !isSlotTaken(time, serviceDuration, bookings.filter(bk => bk.barber_id === b.id));
+        });
+        return { time, label, taken: !anyFree };
+      });
+    }
+
     const dayHours = barber.hours?.[dayName];
     if (!dayHours || dayHours.off || dayHours.closed) return [];
-    const start = dayHours.start || "09:00";
-    const end = dayHours.end || "18:00";
-    return generateSlots(start, end, 30).map((slot) => ({
+    return generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 30).map(slot => ({
       ...slot,
       taken: isSlotTaken(slot.time, serviceDuration, bookings),
     }));
-  }, [selectedDate, barber, bookings, serviceDuration]);
+  }, [selectedDate, barber, bookings, serviceDuration, allBarbers, isAny]);
 
   return (
     <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
@@ -944,7 +998,7 @@ function ConfirmStep({ barber, service, date, time, clientName, clientPhone, cli
 
       <div className="px-6 py-8 max-w-md mx-auto">
         <div className="rounded-2xl border overflow-hidden mb-6" style={{ borderColor: "#2a2a2a", background: "#111" }}>
-          {row(<Scissors className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Barber", barber?.name)}
+          {row(<Scissors className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Barber", barber?.id === "any" ? "First Available Barber" : barber?.name)}
           {row(<Tag className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Service", `${service?.name}${service?.price > 0 ? ` — $${Number(service.price).toFixed(0)}` : ""}`)}
           {row(<Calendar className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Date & Time", `${dateLabel} · ${startLabel} – ${endTime}`)}
           {row(<User className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Client", [clientName, clientPhone, clientEmail].filter(Boolean).join(" · "))}
@@ -1160,7 +1214,7 @@ export default function ClientBooking() {
 
   // Services available for the selected barber
   const availableServices = useMemo(() => {
-    if (!selectedBarber) return allServices;
+    if (!selectedBarber || selectedBarber.id === "any") return allServices;
     const ids = selectedBarber.available_services;
     if (!ids || ids.length === 0) return allServices;
     return allServices.filter((s) => ids.includes(s.id));
@@ -1188,9 +1242,24 @@ export default function ClientBooking() {
       const duration = selectedBarber?.service_durations?.[selectedService?.id] ?? selectedService?.duration ?? 30;
       const endTime = format(addMinutes(parse(selectedTime, "HH:mm", new Date()), duration), "HH:mm");
 
+      // Resolve "any barber" to whichever barber actually has the slot free
+      let bookingBarber = selectedBarber;
+      if (selectedBarber.id === "any") {
+        const dayName = format(new Date(selectedDate + "T12:00:00"), "EEEE").toLowerCase();
+        const dayBookings = await entities.Booking.filter({ date: selectedDate });
+        bookingBarber = barbers.find(b => {
+          const dh = b.hours?.[dayName];
+          if (!dh || dh.off || dh.closed) return false;
+          if (selectedTime < (dh.start || "09:00") || selectedTime >= (dh.end || "18:00")) return false;
+          return !isSlotTaken(selectedTime, duration, dayBookings.filter(bk => bk.barber_id === b.id));
+        });
+        if (!bookingBarber) throw new Error("No barber available at that time — please choose another slot.");
+        setSelectedBarber(bookingBarber);
+      }
+
       await entities.Booking.create({
-        barber_id: selectedBarber.id,
-        barber_name: selectedBarber.name,
+        barber_id: bookingBarber.id,
+        barber_name: bookingBarber.name,
         service_id: selectedService.id,
         service_name: selectedService.name,
         client_id: clientId,
@@ -1212,7 +1281,7 @@ export default function ClientBooking() {
           body: {
             client_name: clientName,
             client_email: clientEmail,
-            barber_name: selectedBarber.name,
+            barber_name: bookingBarber.name,
             service_name: selectedService.name,
             date: selectedDate,
             start_time: selectedTime,
@@ -1324,6 +1393,7 @@ export default function ClientBooking() {
             barber={selectedBarber}
             service={selectedService}
             maxDays={maxDays}
+            allBarbers={barbers}
             onSelect={(date, time) => { setSelectedDate(date); setSelectedTime(time); setStep(4); }}
             onBack={() => setStep(2)}
           />
