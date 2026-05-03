@@ -599,7 +599,12 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack }) {
       try {
         const dayBookings = await entities.Booking.filter({ barber_id: barber.id, date: dateStr });
         const daySlots = generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 30);
-        const firstFree = daySlots.find(s => !isSlotTaken(s.time, serviceDuration, dayBookings));
+        const isToday = i === 0;
+        const nowHHMM = format(today, "HH:mm");
+        const firstFree = daySlots.find(s =>
+          !isSlotTaken(s.time, serviceDuration, dayBookings) &&
+          (!isToday || s.time > nowHHMM)
+        );
         if (firstFree) {
           setFindingNext(false);
           onSelect(dateStr, firstFree.time);
