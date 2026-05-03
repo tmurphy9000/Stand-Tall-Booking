@@ -325,6 +325,10 @@ function WelcomeStep({ onStart, onViewAppointments, shopName, logoUrl, shopAddre
           )}
         </div>
       )}
+
+      <p className="mt-10 text-white/20 text-xs text-center max-w-xs leading-relaxed">
+        By booking an appointment you agree to receive SMS, email, and phone communications regarding your appointment.
+      </p>
     </motion.div>
   );
 }
