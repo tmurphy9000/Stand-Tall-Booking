@@ -250,6 +250,97 @@ function AppointmentsScreen({ client, bookings: initialBookings, onBack }) {
   );
 }
 
+// ─── Legal content ────────────────────────────────────────────────────────────
+
+const TERMS_SECTIONS = [
+  {
+    heading: "1. Appointment Booking",
+    body: "By scheduling an appointment through standtallbooking.com you agree to these Terms & Conditions. Appointments are subject to barber availability. Stand Tall Barbershop reserves the right to modify or cancel appointments in exceptional circumstances, and you will be notified as soon as possible if this occurs.",
+  },
+  {
+    heading: "2. Cancellation Policy",
+    body: "We ask that you cancel or reschedule at least 24 hours before your appointment. Cancellations made with less than 24 hours' notice may result in a cancellation fee or restricted access to future online bookings.",
+  },
+  {
+    heading: "3. No-Show Policy",
+    body: "Clients who do not arrive for a scheduled appointment without prior notice will be recorded as a no-show. Repeated no-shows may result in restricted online booking access or a required deposit for future appointments.",
+  },
+  {
+    heading: "4. SMS & Email Communications",
+    body: "By booking an appointment you consent to receive SMS text messages and emails from Stand Tall Barbershop related to your appointment, including confirmations, reminders, and updates. Standard message and data rates may apply. You may opt out at any time by replying STOP to any SMS or contacting us directly.",
+  },
+  {
+    heading: "5. Refund Policy",
+    body: "Services rendered are non-refundable. If you are dissatisfied with a service, contact us within 7 days and we will do our best to make it right. Prepaid deposits are non-refundable if adequate cancellation notice is not provided.",
+  },
+  {
+    heading: "6. Limitation of Liability",
+    body: "Stand Tall Barbershop shall not be liable for any indirect, incidental, or consequential damages arising from use of our booking system or services. Our total liability in connection with any claim shall not exceed the amount paid for the specific service giving rise to that claim.",
+  },
+];
+
+const PRIVACY_SECTIONS = [
+  {
+    heading: "1. Information We Collect",
+    body: "When you book an appointment through standtallbooking.com we collect your full name, phone number, and email address. This information is provided voluntarily during the booking process.",
+  },
+  {
+    heading: "2. How We Use Your Information",
+    body: "We use your information solely to manage your appointment. This includes sending booking confirmations, appointment reminders via SMS and email, and other communications directly related to your visit.",
+  },
+  {
+    heading: "3. We Do Not Sell Your Data",
+    body: "Stand Tall Barbershop does not sell, rent, trade, or share your personal information with third parties for marketing purposes. Your data is used exclusively to provide and improve our booking and barbershop services.",
+  },
+  {
+    heading: "4. Opting Out of Communications",
+    body: "You may opt out of SMS communications at any time by replying STOP to any text message we send. To opt out of emails, reply with 'Unsubscribe' in the subject line or contact us directly. Opting out of reminders may result in missed appointment notifications.",
+  },
+  {
+    heading: "5. Data Retention",
+    body: "We retain your personal information for as long as necessary to provide our services and maintain accurate appointment records. You may request deletion of your data at any time by contacting us. We will respond to deletion requests within 30 days.",
+  },
+  {
+    heading: "6. Contact Us",
+    body: "If you have questions or concerns about this Privacy Policy or how your data is handled, contact us through our website at standtallbooking.com or by phone at our listed contact number.",
+  },
+];
+
+function LegalModal({ title, sections, onClose }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex flex-col"
+      style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)" }}
+    >
+      <div
+        className="relative flex flex-col w-full max-w-lg mx-auto my-auto max-h-[90vh] rounded-2xl overflow-hidden"
+        style={{ background: "#111", border: "1px solid #2a2a2a" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: "#2a2a2a" }}>
+          <h2 className="text-white font-bold text-base">{title}</h2>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        {/* Body */}
+        <div className="overflow-y-auto px-6 py-5 space-y-5">
+          {sections.map(({ heading, body }) => (
+            <div key={heading}>
+              <p className="text-white/80 text-sm font-semibold mb-1">{heading}</p>
+              <p className="text-white/45 text-sm leading-relaxed">{body}</p>
+            </div>
+          ))}
+          <p className="text-white/20 text-xs pt-2 pb-1">Last updated: {new Date().getFullYear()}. standtallbooking.com</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Welcome Step ─────────────────────────────────────────────────────────────
 
 const SOCIAL_ICONS = { instagram: Instagram, facebook: Facebook, tiktok: Globe };
@@ -261,6 +352,7 @@ function parseSocialLinks(raw) {
 }
 
 function WelcomeStep({ onStart, onViewAppointments, shopName, logoUrl, shopAddress, shopPhone, showShopPhone, shopEmail, showShopEmail, socialLinks }) {
+  const [legalModal, setLegalModal] = useState(null); // "terms" | "privacy" | null
   const displayLogo = logoUrl || LOGO_URL;
   const displayName = shopName || "Stand Tall Barbershop";
   const enabledSocials = Object.entries(socialLinks || {}).filter(([, v]) => v?.enabled && v?.url);
@@ -329,6 +421,23 @@ function WelcomeStep({ onStart, onViewAppointments, shopName, logoUrl, shopAddre
       <p className="mt-10 text-white/20 text-xs text-center max-w-xs leading-relaxed">
         By booking an appointment you agree to receive SMS, email, and phone communications regarding your appointment.
       </p>
+
+      <p className="mt-3 text-white/20 text-xs text-center">
+        <button onClick={() => setLegalModal("terms")} className="hover:text-white/50 transition-colors underline underline-offset-2">
+          Terms &amp; Conditions
+        </button>
+        <span className="mx-2">·</span>
+        <button onClick={() => setLegalModal("privacy")} className="hover:text-white/50 transition-colors underline underline-offset-2">
+          Privacy Policy
+        </button>
+      </p>
+
+      {legalModal === "terms" && (
+        <LegalModal title="Terms & Conditions" sections={TERMS_SECTIONS} onClose={() => setLegalModal(null)} />
+      )}
+      {legalModal === "privacy" && (
+        <LegalModal title="Privacy Policy" sections={PRIVACY_SECTIONS} onClose={() => setLegalModal(null)} />
+      )}
     </motion.div>
   );
 }
