@@ -580,11 +580,40 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack }) {
   const [selectedDate, setSelectedDate] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [findingNext, setFindingNext] = useState(false);
+  const [noAvailability, setNoAvailability] = useState(false);
   const scrollRef = useRef(null);
 
   const serviceDuration = barber?.service_durations?.[service?.id] ?? service?.duration ?? 30;
 
-  // Build 14-day range, marking days the barber is off
+  const handleNextAvailable = async () => {
+    setFindingNext(true);
+    setNoAvailability(false);
+    const today = new Date();
+    for (let i = 0; i < maxDays; i++) {
+      const d = addDays(today, i);
+      const dateStr = format(d, "yyyy-MM-dd");
+      const dayName = format(d, "EEEE").toLowerCase();
+      const dayHours = barber?.hours?.[dayName];
+      if (!dayHours || dayHours.off || dayHours.closed) continue;
+      try {
+        const dayBookings = await entities.Booking.filter({ barber_id: barber.id, date: dateStr });
+        const daySlots = generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 30);
+        const firstFree = daySlots.find(s => !isSlotTaken(s.time, serviceDuration, dayBookings));
+        if (firstFree) {
+          setFindingNext(false);
+          onSelect(dateStr, firstFree.time);
+          return;
+        }
+      } catch (e) {
+        console.error("[NextAvailable] error checking", dateStr, e);
+      }
+    }
+    setFindingNext(false);
+    setNoAvailability(true);
+  };
+
+  // Build date range, marking days the barber is off
   const dateRange = useMemo(() => {
     const today = new Date();
     return Array.from({ length: maxDays }, (_, i) => {
@@ -633,8 +662,33 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack }) {
       <StepHeader stepLabel="Step 3 of 5" title="Pick a Date & Time" onBack={onBack} progress={60} />
 
       <div className="px-6 py-6">
-        {/* Date strip */}
-        <p className="text-white/40 text-xs uppercase tracking-widest mb-3 font-semibold">Select a date</p>
+        {/* Date strip header */}
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-white/40 text-xs uppercase tracking-widest font-semibold">Select a date</p>
+          <button
+            onClick={handleNextAvailable}
+            disabled={findingNext}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+            style={{
+              background: findingNext ? "#2e3a2e" : "#1a2a1a",
+              color: findingNext ? "#6B7A5E" : "#8B9A7E",
+              border: "1px solid #2a3a2a",
+            }}
+            onMouseEnter={e => { if (!findingNext) e.currentTarget.style.background = "#243424"; }}
+            onMouseLeave={e => { if (!findingNext) e.currentTarget.style.background = "#1a2a1a"; }}
+          >
+            {findingNext
+              ? <><Loader2 className="w-3 h-3 animate-spin" /> Searching…</>
+              : <>⚡ Next Available</>}
+          </button>
+        </div>
+
+        {noAvailability && (
+          <p className="text-white/30 text-xs text-center py-2 mb-2">
+            No availability found in the next {maxDays} days.
+          </p>
+        )}
+
         <div
           ref={scrollRef}
           className="flex gap-2 overflow-x-auto pb-3 -mx-6 px-6"
