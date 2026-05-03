@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { entities } from "@/api/entities";
 import { supabase } from "@/lib/supabaseClient";
-import { Loader2, Scissors, ChevronRight, ArrowLeft, Clock, CheckCircle2, User, Calendar, Tag, Copy, Instagram, Facebook, Globe } from "lucide-react";
+import { Loader2, Scissors, ChevronRight, ArrowLeft, Clock, CheckCircle2, User, Calendar, Tag, Copy, Instagram, Facebook, Globe, Phone, X, CalendarClock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, addDays, parse, addMinutes } from "date-fns";
 
@@ -38,6 +38,218 @@ function StepHeader({ stepLabel, title, onBack, progress, logoUrl }) {
   );
 }
 
+// ─── My Appointments flow ─────────────────────────────────────────────────────
+
+function PhoneEntryScreen({ onBack, onSent }) {
+  const [phone, setPhone] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSend = async () => {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 10) { setError("Enter a valid 10-digit phone number."); return; }
+    setSending(true);
+    setError("");
+    try {
+      const { error: fnErr } = await supabase.functions.invoke("sendOTP", { body: { phone: digits } });
+      if (fnErr) { setError("Failed to send code. Try again."); return; }
+      onSent(digits);
+    } catch {
+      setError("Failed to send code. Try again.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <motion.div {...fadeSlide} className="flex flex-col items-center justify-center min-h-screen px-6" style={{ background: "#0A0A0A" }}>
+      <div className="w-full max-w-sm">
+        <button onClick={onBack} className="flex items-center gap-2 text-white/40 hover:text-white text-sm mb-8 transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6" style={{ background: "#1f2a1f" }}>
+          <Phone className="w-6 h-6" style={{ color: "#8B9A7E" }} />
+        </div>
+        <h2 className="text-2xl font-bold text-white mb-2">View My Appointments</h2>
+        <p className="text-white/40 text-sm mb-8">Enter your phone number and we'll text you a verification code.</p>
+        <input
+          type="tel"
+          value={phone}
+          onChange={e => { setPhone(e.target.value); setError(""); }}
+          onKeyDown={e => e.key === "Enter" && handleSend()}
+          placeholder="(555) 000-0000"
+          className="w-full px-4 py-3 rounded-xl text-white text-base outline-none mb-3"
+          style={{ background: "#141414", border: "1px solid #2a2a2a" }}
+          autoFocus
+        />
+        {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
+        <button
+          onClick={handleSend}
+          disabled={sending}
+          className="w-full py-3.5 rounded-xl font-semibold text-white transition-all flex items-center justify-center gap-2"
+          style={{ background: sending ? "#4a5a44" : "#8B9A7E" }}
+        >
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          {sending ? "Sending…" : "Send Code"}
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+function OtpEntryScreen({ phone, onBack, onVerified }) {
+  const [code, setCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [error, setError] = useState("");
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
+
+  const handleVerify = async () => {
+    if (code.length !== 6) { setError("Enter the 6-digit code."); return; }
+    setVerifying(true);
+    setError("");
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke("verifyOTP", { body: { phone, code } });
+      if (fnErr || data?.error) { setError(data?.error || "Verification failed. Try again."); return; }
+      onVerified(data.client, data.bookings);
+    } catch {
+      setError("Verification failed. Try again.");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    setError("");
+    await supabase.functions.invoke("sendOTP", { body: { phone } });
+    setResending(false);
+    setResent(true);
+    setTimeout(() => setResent(false), 4000);
+  };
+
+  return (
+    <motion.div {...fadeSlide} className="flex flex-col items-center justify-center min-h-screen px-6" style={{ background: "#0A0A0A" }}>
+      <div className="w-full max-w-sm">
+        <button onClick={onBack} className="flex items-center gap-2 text-white/40 hover:text-white text-sm mb-8 transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6" style={{ background: "#1f2a1f" }}>
+          <Phone className="w-6 h-6" style={{ color: "#8B9A7E" }} />
+        </div>
+        <h2 className="text-2xl font-bold text-white mb-2">Enter Your Code</h2>
+        <p className="text-white/40 text-sm mb-8">
+          We sent a 6-digit code to <span className="text-white/70">{phone.replace(/(\d{3})(\d{3})(\d{4})/, "($1) $2-$3")}</span>.
+        </p>
+        <input
+          type="text"
+          inputMode="numeric"
+          maxLength={6}
+          value={code}
+          onChange={e => { setCode(e.target.value.replace(/\D/g, "")); setError(""); }}
+          onKeyDown={e => e.key === "Enter" && handleVerify()}
+          placeholder="000000"
+          className="w-full px-4 py-3 rounded-xl text-white text-2xl text-center tracking-[0.5em] font-mono outline-none mb-3"
+          style={{ background: "#141414", border: "1px solid #2a2a2a" }}
+          autoFocus
+        />
+        {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
+        <button
+          onClick={handleVerify}
+          disabled={verifying || code.length !== 6}
+          className="w-full py-3.5 rounded-xl font-semibold text-white transition-all flex items-center justify-center gap-2 mb-4"
+          style={{ background: verifying || code.length !== 6 ? "#2e3a2e" : "#8B9A7E", opacity: code.length !== 6 && !verifying ? 0.5 : 1 }}
+        >
+          {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          {verifying ? "Verifying…" : "Verify Code"}
+        </button>
+        <p className="text-center text-white/30 text-sm">
+          Didn't get it?{" "}
+          <button onClick={handleResend} disabled={resending} className="text-[#8B9A7E] hover:underline">
+            {resending ? "Sending…" : resent ? "Sent!" : "Resend"}
+          </button>
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
+function AppointmentsScreen({ client, bookings: initialBookings, onBack }) {
+  const [bookings, setBookings] = useState(initialBookings);
+  const [cancelling, setCancelling] = useState(null);
+
+  const handleCancel = async (id) => {
+    setCancelling(id);
+    try {
+      await entities.Booking.update(id, { status: "cancelled" });
+      setBookings(prev => prev.filter(b => b.id !== id));
+    } finally {
+      setCancelling(null);
+    }
+  };
+
+  const formatApptDate = (dateStr) =>
+    format(new Date(dateStr + "T12:00:00"), "EEE, MMM d");
+
+  const formatApptTime = (t) =>
+    format(parse(t, "HH:mm", new Date()), "h:mm a");
+
+  return (
+    <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
+      <div className="sticky top-0 z-10 flex items-center gap-4 px-6 py-4 border-b border-white/10" style={{ background: "#0A0A0A" }}>
+        <button onClick={onBack} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <p className="text-xs text-white/40 uppercase tracking-widest font-semibold">My Appointments</p>
+          <h2 className="text-white font-bold text-lg leading-tight">
+            {client ? `Hey, ${client.name.split(" ")[0]}` : "Upcoming Bookings"}
+          </h2>
+        </div>
+        <CalendarClock className="w-5 h-5 ml-auto" style={{ color: "#8B9A7E" }} />
+      </div>
+
+      <div className="px-6 py-6 max-w-md mx-auto">
+        {bookings.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <CalendarClock className="w-10 h-10 mb-4 opacity-20" style={{ color: "#8B9A7E" }} />
+            <p className="text-white/40 text-sm">No upcoming appointments found.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {bookings.map(b => (
+              <div key={b.id} className="rounded-2xl border p-4" style={{ background: "#111", borderColor: "#2a2a2a" }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-semibold text-sm">{b.service_name}</p>
+                    <p className="text-white/50 text-xs mt-0.5">with {b.barber_name}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: "#1f2a1f", color: "#8B9A7E" }}>
+                        {formatApptDate(b.date)}
+                      </span>
+                      <span className="text-[11px] text-white/40">
+                        {formatApptTime(b.start_time)}{b.end_time ? ` – ${formatApptTime(b.end_time)}` : ""}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleCancel(b.id)}
+                    disabled={cancelling === b.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 border border-red-900/40 hover:bg-red-900/20 transition-colors flex-shrink-0"
+                  >
+                    {cancelling === b.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Welcome Step ─────────────────────────────────────────────────────────────
 
 const SOCIAL_ICONS = { instagram: Instagram, facebook: Facebook, tiktok: Globe };
@@ -48,7 +260,7 @@ function parseSocialLinks(raw) {
   return raw;
 }
 
-function WelcomeStep({ onStart, shopName, logoUrl, shopAddress, shopPhone, showShopPhone, shopEmail, showShopEmail, socialLinks }) {
+function WelcomeStep({ onStart, onViewAppointments, shopName, logoUrl, shopAddress, shopPhone, showShopPhone, shopEmail, showShopEmail, socialLinks }) {
   const displayLogo = logoUrl || LOGO_URL;
   const displayName = shopName || "Stand Tall Barbershop";
   const enabledSocials = Object.entries(socialLinks || {}).filter(([, v]) => v?.enabled && v?.url);
@@ -75,6 +287,17 @@ function WelcomeStep({ onStart, shopName, logoUrl, shopAddress, shopPhone, showS
       >
         Book an Appointment
         <ChevronRight className="w-5 h-5" />
+      </button>
+
+      <button
+        onClick={onViewAppointments}
+        className="mt-3 flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium text-white/50 hover:text-white transition-colors"
+        style={{ background: "#141414" }}
+        onMouseEnter={e => (e.currentTarget.style.color = "white")}
+        onMouseLeave={e => (e.currentTarget.style.color = "")}
+      >
+        <CalendarClock className="w-4 h-4" />
+        View My Appointments
       </button>
 
       {(contactRows.length > 0 || enabledSocials.length > 0) && (
@@ -737,6 +960,12 @@ export default function ClientBooking() {
   const [shopSettings, setShopSettings] = useState({});
   const [loading, setLoading] = useState(true);
 
+  // My Appointments sub-flow: null | "phone" | "otp" | "list"
+  const [myAppts, setMyAppts]             = useState(null);
+  const [myApptPhone, setMyApptPhone]     = useState("");
+  const [myApptClient, setMyApptClient]   = useState(null);
+  const [myApptBookings, setMyApptBookings] = useState([]);
+
   const [selectedBarber, setSelectedBarber] = useState(null);
   const [selectedService, setSelectedService] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -871,8 +1100,32 @@ export default function ClientBooking() {
   return (
     <div style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
       <AnimatePresence mode="wait">
-        {step === 0 && (
-          <WelcomeStep key="welcome" onStart={() => setStep(1)} shopName={shopName} logoUrl={logoUrl}
+        {myAppts === "phone" && (
+          <PhoneEntryScreen
+            key="appt-phone"
+            onBack={() => setMyAppts(null)}
+            onSent={(phone) => { setMyApptPhone(phone); setMyAppts("otp"); }}
+          />
+        )}
+        {myAppts === "otp" && (
+          <OtpEntryScreen
+            key="appt-otp"
+            phone={myApptPhone}
+            onBack={() => setMyAppts("phone")}
+            onVerified={(client, bookings) => { setMyApptClient(client); setMyApptBookings(bookings); setMyAppts("list"); }}
+          />
+        )}
+        {myAppts === "list" && (
+          <AppointmentsScreen
+            key="appt-list"
+            client={myApptClient}
+            bookings={myApptBookings}
+            onBack={() => setMyAppts(null)}
+          />
+        )}
+        {!myAppts && step === 0 && (
+          <WelcomeStep key="welcome" onStart={() => setStep(1)} onViewAppointments={() => setMyAppts("phone")}
+            shopName={shopName} logoUrl={logoUrl}
             shopAddress={shopAddress} shopPhone={shopPhone} showShopPhone={showShopPhone}
             shopEmail={shopEmail} showShopEmail={showShopEmail} socialLinks={socialLinks} />
         )}
