@@ -15,55 +15,95 @@ function json(body: unknown, status = 200) {
 
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, "");
-  // Strip leading country code 1 if 11 digits
   return digits.length === 11 && digits.startsWith("1") ? digits.slice(1) : digits;
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: corsHeaders });
+  console.log("[sendOTP] request received, method:", req.method);
 
+  if (req.method === "OPTIONS") {
+    console.log("[sendOTP] OPTIONS preflight, returning 204");
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  // ── env check ────────────────────────────────────────────────────────────────
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const serviceKey  = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const accountSid  = Deno.env.get("TWILIO_ACCOUNT_SID");
+  const authToken   = Deno.env.get("TWILIO_AUTH_TOKEN");
+  const fromPhone   = Deno.env.get("TWILIO_PHONE_NUMBER");
+
+  console.log("[sendOTP] env check — SUPABASE_URL:", !!supabaseUrl, "| SERVICE_ROLE_KEY:", !!serviceKey,
+    "| TWILIO_ACCOUNT_SID:", !!accountSid, "| TWILIO_AUTH_TOKEN:", !!authToken, "| TWILIO_PHONE_NUMBER:", !!fromPhone);
+
   if (!supabaseUrl || !serviceKey) {
+    console.error("[sendOTP] missing Supabase env vars");
     return json({ error: "Server configuration error" }, 500);
   }
-  const db = createClient(supabaseUrl, serviceKey);
 
+  if (!accountSid || !authToken || !fromPhone) {
+    console.error("[sendOTP] missing Twilio env vars");
+    return json({ error: "SMS service not configured" }, 500);
+  }
+
+  // ── parse body ───────────────────────────────────────────────────────────────
   let body: { phone?: string };
-  try { body = await req.json(); } catch { return json({ error: "Invalid request body" }, 400); }
+  try {
+    body = await req.json();
+    console.log("[sendOTP] body parsed, raw phone:", body.phone);
+  } catch (e) {
+    console.error("[sendOTP] failed to parse request body:", e);
+    return json({ error: "Invalid request body" }, 400);
+  }
 
   const phone = normalizePhone(body.phone || "");
-  if (phone.length < 10) return json({ error: "Invalid phone number" }, 400);
+  console.log("[sendOTP] normalized phone:", phone, "length:", phone.length);
 
+  if (phone.length < 10) {
+    console.error("[sendOTP] phone too short:", phone);
+    return json({ error: "Invalid phone number" }, 400);
+  }
+
+  // ── generate OTP ─────────────────────────────────────────────────────────────
   const code      = String(Math.floor(100000 + Math.random() * 900000));
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
+  console.log("[sendOTP] generated code:", code, "| expires:", expiresAt);
 
-  // Remove any existing unused OTPs for this number
-  await db.from("otp_codes").delete().eq("phone", phone).eq("used", false);
+  // ── database writes ───────────────────────────────────────────────────────────
+  const db = createClient(supabaseUrl, serviceKey);
 
+  console.log("[sendOTP] deleting old OTPs for phone:", phone);
+  const { error: deleteErr } = await db
+    .from("otp_codes")
+    .delete()
+    .eq("phone", phone)
+    .eq("used", false);
+  if (deleteErr) {
+    console.error("[sendOTP] delete old OTPs error:", deleteErr);
+    // non-fatal — continue
+  } else {
+    console.log("[sendOTP] old OTPs deleted (or none existed)");
+  }
+
+  console.log("[sendOTP] inserting new OTP into otp_codes");
   const { error: insertErr } = await db
     .from("otp_codes")
     .insert({ phone, code, expires_at: expiresAt, used: false });
 
   if (insertErr) {
-    console.error("[sendOTP] insert error:", insertErr);
+    console.error("[sendOTP] insert error:", JSON.stringify(insertErr));
     return json({ error: "Failed to generate code" }, 500);
   }
+  console.log("[sendOTP] OTP inserted successfully");
 
-  const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
-  const authToken  = Deno.env.get("TWILIO_AUTH_TOKEN");
-  const fromPhone  = Deno.env.get("TWILIO_PHONE_NUMBER");
-
-  if (!accountSid || !authToken || !fromPhone) {
-    console.error("[sendOTP] Twilio credentials not set");
-    return json({ error: "SMS service not configured" }, 500);
-  }
-
+  // ── Twilio SMS ────────────────────────────────────────────────────────────────
   const toPhone = `+1${phone}`;
+  const twilioUrl = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+  console.log("[sendOTP] calling Twilio — from:", fromPhone, "| to:", toPhone, "| url:", twilioUrl);
 
-  const twilioRes = await fetch(
-    `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
-    {
+  let twilioRes: Response;
+  try {
+    twilioRes = await fetch(twilioUrl, {
       method: "POST",
       headers: {
         Authorization: `Basic ${btoa(`${accountSid}:${authToken}`)}`,
@@ -74,15 +114,22 @@ Deno.serve(async (req) => {
         From: fromPhone,
         Body: `Your Stand Tall Booking verification code is ${code}. Valid for 10 minutes.`,
       }).toString(),
-    }
-  );
+    });
+  } catch (fetchErr) {
+    console.error("[sendOTP] fetch to Twilio threw:", fetchErr);
+    return json({ error: "Failed to reach SMS service" }, 500);
+  }
+
+  console.log("[sendOTP] Twilio response status:", twilioRes.status);
+
+  const twilioBody = await twilioRes.text();
+  console.log("[sendOTP] Twilio response body:", twilioBody);
 
   if (!twilioRes.ok) {
-    const errBody = await twilioRes.json().catch(() => ({}));
-    console.error("[sendOTP] Twilio error:", errBody);
+    console.error("[sendOTP] Twilio returned non-2xx:", twilioRes.status, twilioBody);
     return json({ error: "Failed to send SMS" }, 500);
   }
 
-  console.log("[sendOTP] OTP sent to", toPhone);
+  console.log("[sendOTP] SMS sent successfully to", toPhone);
   return json({ success: true });
 });
