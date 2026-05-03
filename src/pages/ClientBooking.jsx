@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { entities } from "@/api/entities";
 import { supabase } from "@/lib/supabaseClient";
-import { Loader2, Scissors, ChevronRight, ArrowLeft, Clock, CheckCircle2, User, Calendar, Tag, Copy, Instagram, Facebook, Globe } from "lucide-react";
+import { Loader2, Scissors, ChevronRight, ArrowLeft, Clock, CheckCircle2, User, Calendar, Tag, Copy, Instagram, Facebook, Globe, Phone, X, CalendarClock } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, addDays, parse, addMinutes } from "date-fns";
 
 const LOGO_URL =
   "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6993eba91209ee0a1089f355/fd9cfe023_6f5fd5cc-8fc9-4041-9d87-c24e77a3bc58.png";
+
+const ANY_BARBER = { id: "any", name: "Any Barber" };
 
 const fadeSlide = {
   initial: { opacity: 0, y: 16 },
@@ -38,6 +40,309 @@ function StepHeader({ stepLabel, title, onBack, progress, logoUrl }) {
   );
 }
 
+// ─── My Appointments flow ─────────────────────────────────────────────────────
+
+function PhoneEntryScreen({ onBack, onSent }) {
+  const [phone, setPhone] = useState("");
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSend = async () => {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 10) { setError("Enter a valid 10-digit phone number."); return; }
+    setSending(true);
+    setError("");
+    try {
+      const { error: fnErr } = await supabase.functions.invoke("sendOTP", { body: { phone: digits } });
+      if (fnErr) { setError("Failed to send code. Try again."); return; }
+      onSent(digits);
+    } catch {
+      setError("Failed to send code. Try again.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <motion.div {...fadeSlide} className="flex flex-col items-center justify-center min-h-screen px-6" style={{ background: "#0A0A0A" }}>
+      <div className="w-full max-w-sm">
+        <button onClick={onBack} className="flex items-center gap-2 text-white/40 hover:text-white text-sm mb-8 transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6" style={{ background: "#1f2a1f" }}>
+          <Phone className="w-6 h-6" style={{ color: "#8B9A7E" }} />
+        </div>
+        <h2 className="text-2xl font-bold text-white mb-2">View My Appointments</h2>
+        <p className="text-white/40 text-sm mb-8">Enter your phone number and we'll text you a verification code.</p>
+        <input
+          type="tel"
+          value={phone}
+          onChange={e => { setPhone(e.target.value); setError(""); }}
+          onKeyDown={e => e.key === "Enter" && handleSend()}
+          placeholder="(555) 000-0000"
+          className="w-full px-4 py-3 rounded-xl text-white text-base outline-none mb-3"
+          style={{ background: "#141414", border: "1px solid #2a2a2a" }}
+          autoFocus
+        />
+        {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
+        <button
+          onClick={handleSend}
+          disabled={sending}
+          className="w-full py-3.5 rounded-xl font-semibold text-white transition-all flex items-center justify-center gap-2"
+          style={{ background: sending ? "#4a5a44" : "#8B9A7E" }}
+        >
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          {sending ? "Sending…" : "Send Code"}
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+function OtpEntryScreen({ phone, onBack, onVerified }) {
+  const [code, setCode] = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [error, setError] = useState("");
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
+
+  const handleVerify = async () => {
+    if (code.length !== 6) { setError("Enter the 6-digit code."); return; }
+    setVerifying(true);
+    setError("");
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke("verifyOTP", { body: { phone, code } });
+      if (fnErr || data?.error) { setError(data?.error || "Verification failed. Try again."); return; }
+      onVerified(data.client, data.bookings);
+    } catch {
+      setError("Verification failed. Try again.");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    setError("");
+    await supabase.functions.invoke("sendOTP", { body: { phone } });
+    setResending(false);
+    setResent(true);
+    setTimeout(() => setResent(false), 4000);
+  };
+
+  return (
+    <motion.div {...fadeSlide} className="flex flex-col items-center justify-center min-h-screen px-6" style={{ background: "#0A0A0A" }}>
+      <div className="w-full max-w-sm">
+        <button onClick={onBack} className="flex items-center gap-2 text-white/40 hover:text-white text-sm mb-8 transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6" style={{ background: "#1f2a1f" }}>
+          <Phone className="w-6 h-6" style={{ color: "#8B9A7E" }} />
+        </div>
+        <h2 className="text-2xl font-bold text-white mb-2">Enter Your Code</h2>
+        <p className="text-white/40 text-sm mb-8">
+          We sent a 6-digit code to <span className="text-white/70">{phone.replace(/(\d{3})(\d{3})(\d{4})/, "($1) $2-$3")}</span>.
+        </p>
+        <input
+          type="text"
+          inputMode="numeric"
+          maxLength={6}
+          value={code}
+          onChange={e => { setCode(e.target.value.replace(/\D/g, "")); setError(""); }}
+          onKeyDown={e => e.key === "Enter" && handleVerify()}
+          placeholder="000000"
+          className="w-full px-4 py-3 rounded-xl text-white text-2xl text-center tracking-[0.5em] font-mono outline-none mb-3"
+          style={{ background: "#141414", border: "1px solid #2a2a2a" }}
+          autoFocus
+        />
+        {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
+        <button
+          onClick={handleVerify}
+          disabled={verifying || code.length !== 6}
+          className="w-full py-3.5 rounded-xl font-semibold text-white transition-all flex items-center justify-center gap-2 mb-4"
+          style={{ background: verifying || code.length !== 6 ? "#2e3a2e" : "#8B9A7E", opacity: code.length !== 6 && !verifying ? 0.5 : 1 }}
+        >
+          {verifying ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+          {verifying ? "Verifying…" : "Verify Code"}
+        </button>
+        <p className="text-center text-white/30 text-sm">
+          Didn't get it?{" "}
+          <button onClick={handleResend} disabled={resending} className="text-[#8B9A7E] hover:underline">
+            {resending ? "Sending…" : resent ? "Sent!" : "Resend"}
+          </button>
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
+function AppointmentsScreen({ client, bookings: initialBookings, onBack }) {
+  const [bookings, setBookings] = useState(initialBookings);
+  const [cancelling, setCancelling] = useState(null);
+
+  const handleCancel = async (id) => {
+    setCancelling(id);
+    try {
+      await entities.Booking.update(id, { status: "cancelled" });
+      setBookings(prev => prev.filter(b => b.id !== id));
+    } finally {
+      setCancelling(null);
+    }
+  };
+
+  const formatApptDate = (dateStr) =>
+    format(new Date(dateStr + "T12:00:00"), "EEE, MMM d");
+
+  const formatApptTime = (t) =>
+    format(parse(t, "HH:mm", new Date()), "h:mm a");
+
+  return (
+    <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
+      <div className="sticky top-0 z-10 flex items-center gap-4 px-6 py-4 border-b border-white/10" style={{ background: "#0A0A0A" }}>
+        <button onClick={onBack} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <p className="text-xs text-white/40 uppercase tracking-widest font-semibold">My Appointments</p>
+          <h2 className="text-white font-bold text-lg leading-tight">
+            {client ? `Hey, ${client.name.split(" ")[0]}` : "Upcoming Bookings"}
+          </h2>
+        </div>
+        <CalendarClock className="w-5 h-5 ml-auto" style={{ color: "#8B9A7E" }} />
+      </div>
+
+      <div className="px-6 py-6 max-w-md mx-auto">
+        {bookings.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <CalendarClock className="w-10 h-10 mb-4 opacity-20" style={{ color: "#8B9A7E" }} />
+            <p className="text-white/40 text-sm">No upcoming appointments found.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {bookings.map(b => (
+              <div key={b.id} className="rounded-2xl border p-4" style={{ background: "#111", borderColor: "#2a2a2a" }}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-semibold text-sm">{b.service_name}</p>
+                    <p className="text-white/50 text-xs mt-0.5">with {b.barber_name}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: "#1f2a1f", color: "#8B9A7E" }}>
+                        {formatApptDate(b.date)}
+                      </span>
+                      <span className="text-[11px] text-white/40">
+                        {formatApptTime(b.start_time)}{b.end_time ? ` – ${formatApptTime(b.end_time)}` : ""}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleCancel(b.id)}
+                    disabled={cancelling === b.id}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-red-400 border border-red-900/40 hover:bg-red-900/20 transition-colors flex-shrink-0"
+                  >
+                    {cancelling === b.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Legal content ────────────────────────────────────────────────────────────
+
+const TERMS_SECTIONS = [
+  {
+    heading: "1. Appointment Booking",
+    body: "By scheduling an appointment through standtallbooking.com you agree to these Terms & Conditions. Appointments are subject to barber availability. Stand Tall Barbershop reserves the right to modify or cancel appointments in exceptional circumstances, and you will be notified as soon as possible if this occurs.",
+  },
+  {
+    heading: "2. Cancellation Policy",
+    body: "We ask that you cancel or reschedule at least 24 hours before your appointment. Cancellations made with less than 24 hours' notice may result in a cancellation fee or restricted access to future online bookings.",
+  },
+  {
+    heading: "3. No-Show Policy",
+    body: "Clients who do not arrive for a scheduled appointment without prior notice will be recorded as a no-show. Repeated no-shows may result in restricted online booking access or a required deposit for future appointments.",
+  },
+  {
+    heading: "4. SMS & Email Communications",
+    body: "By booking an appointment you consent to receive SMS text messages and emails from Stand Tall Barbershop related to your appointment, including confirmations, reminders, and updates. Standard message and data rates may apply. You may opt out at any time by replying STOP to any SMS or contacting us directly.",
+  },
+  {
+    heading: "5. Refund Policy",
+    body: "Services rendered are non-refundable. If you are dissatisfied with a service, contact us within 7 days and we will do our best to make it right. Prepaid deposits are non-refundable if adequate cancellation notice is not provided.",
+  },
+  {
+    heading: "6. Limitation of Liability",
+    body: "Stand Tall Barbershop shall not be liable for any indirect, incidental, or consequential damages arising from use of our booking system or services. Our total liability in connection with any claim shall not exceed the amount paid for the specific service giving rise to that claim.",
+  },
+];
+
+const PRIVACY_SECTIONS = [
+  {
+    heading: "1. Information We Collect",
+    body: "When you book an appointment through standtallbooking.com we collect your full name, phone number, and email address. This information is provided voluntarily during the booking process.",
+  },
+  {
+    heading: "2. How We Use Your Information",
+    body: "We use your information solely to manage your appointment. This includes sending booking confirmations, appointment reminders via SMS and email, and other communications directly related to your visit.",
+  },
+  {
+    heading: "3. We Do Not Sell Your Data",
+    body: "Stand Tall Barbershop does not sell, rent, trade, or share your personal information with third parties for marketing purposes. Your data is used exclusively to provide and improve our booking and barbershop services.",
+  },
+  {
+    heading: "4. Opting Out of Communications",
+    body: "You may opt out of SMS communications at any time by replying STOP to any text message we send. To opt out of emails, reply with 'Unsubscribe' in the subject line or contact us directly. Opting out of reminders may result in missed appointment notifications.",
+  },
+  {
+    heading: "5. Data Retention",
+    body: "We retain your personal information for as long as necessary to provide our services and maintain accurate appointment records. You may request deletion of your data at any time by contacting us. We will respond to deletion requests within 30 days.",
+  },
+  {
+    heading: "6. Contact Us",
+    body: "If you have questions or concerns about this Privacy Policy or how your data is handled, contact us through our website at standtallbooking.com or by phone at our listed contact number.",
+  },
+];
+
+function LegalModal({ title, sections, onClose }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex flex-col"
+      style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)" }}
+    >
+      <div
+        className="relative flex flex-col w-full max-w-lg mx-auto my-auto max-h-[90vh] rounded-2xl overflow-hidden"
+        style={{ background: "#111", border: "1px solid #2a2a2a" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b flex-shrink-0" style={{ borderColor: "#2a2a2a" }}>
+          <h2 className="text-white font-bold text-base">{title}</h2>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/10 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        {/* Body */}
+        <div className="overflow-y-auto px-6 py-5 space-y-5">
+          {sections.map(({ heading, body }) => (
+            <div key={heading}>
+              <p className="text-white/80 text-sm font-semibold mb-1">{heading}</p>
+              <p className="text-white/45 text-sm leading-relaxed">{body}</p>
+            </div>
+          ))}
+          <p className="text-white/20 text-xs pt-2 pb-1">Last updated: {new Date().getFullYear()}. standtallbooking.com</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Welcome Step ─────────────────────────────────────────────────────────────
 
 const SOCIAL_ICONS = { instagram: Instagram, facebook: Facebook, tiktok: Globe };
@@ -48,7 +353,8 @@ function parseSocialLinks(raw) {
   return raw;
 }
 
-function WelcomeStep({ onStart, shopName, logoUrl, shopAddress, shopPhone, showShopPhone, shopEmail, showShopEmail, socialLinks }) {
+function WelcomeStep({ onStart, onViewAppointments, shopName, logoUrl, shopAddress, shopPhone, showShopPhone, shopEmail, showShopEmail, socialLinks }) {
+  const [legalModal, setLegalModal] = useState(null); // "terms" | "privacy" | null
   const displayLogo = logoUrl || LOGO_URL;
   const displayName = shopName || "Stand Tall Barbershop";
   const enabledSocials = Object.entries(socialLinks || {}).filter(([, v]) => v?.enabled && v?.url);
@@ -77,6 +383,17 @@ function WelcomeStep({ onStart, shopName, logoUrl, shopAddress, shopPhone, showS
         <ChevronRight className="w-5 h-5" />
       </button>
 
+      <button
+        onClick={onViewAppointments}
+        className="mt-3 flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium text-white/50 hover:text-white transition-colors"
+        style={{ background: "#141414" }}
+        onMouseEnter={e => (e.currentTarget.style.color = "white")}
+        onMouseLeave={e => (e.currentTarget.style.color = "")}
+      >
+        <CalendarClock className="w-4 h-4" />
+        View My Appointments
+      </button>
+
       {(contactRows.length > 0 || enabledSocials.length > 0) && (
         <div className="mt-10 flex flex-col items-center gap-3 w-full max-w-xs">
           {contactRows.map(({ label, text }) => (
@@ -102,6 +419,27 @@ function WelcomeStep({ onStart, shopName, logoUrl, shopAddress, shopPhone, showS
           )}
         </div>
       )}
+
+      <p className="mt-10 text-white/20 text-xs text-center max-w-xs leading-relaxed">
+        By booking an appointment you agree to receive SMS, email, and phone communications regarding your appointment.
+      </p>
+
+      <p className="mt-3 text-white/20 text-xs text-center">
+        <button onClick={() => setLegalModal("terms")} className="hover:text-white/50 transition-colors underline underline-offset-2">
+          Terms &amp; Conditions
+        </button>
+        <span className="mx-2">·</span>
+        <button onClick={() => setLegalModal("privacy")} className="hover:text-white/50 transition-colors underline underline-offset-2">
+          Privacy Policy
+        </button>
+      </p>
+
+      {legalModal === "terms" && (
+        <LegalModal title="Terms & Conditions" sections={TERMS_SECTIONS} onClose={() => setLegalModal(null)} />
+      )}
+      {legalModal === "privacy" && (
+        <LegalModal title="Privacy Policy" sections={PRIVACY_SECTIONS} onClose={() => setLegalModal(null)} />
+      )}
     </motion.div>
   );
 }
@@ -119,6 +457,23 @@ function BarberStep({ barbers, onSelect, onBack }) {
             : "Select the barber you'd like to book with."}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-xl mx-auto">
+          {/* Any Barber card — always first */}
+          <button
+            onClick={() => onSelect(ANY_BARBER)}
+            className="group sm:col-span-2 flex items-center gap-4 p-5 rounded-2xl border text-left transition-all"
+            style={{ background: "#141414", borderColor: "#2a2a2a" }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = "#8B9A7E"; e.currentTarget.style.background = "#1a1f1a"; }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.background = "#141414"; }}
+          >
+            <div className="w-16 h-16 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ background: "#1f2a1f" }}>
+              <Scissors className="w-7 h-7" style={{ color: "#8B9A7E" }} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-white font-semibold text-base">Any Barber</p>
+              <p className="text-white/40 text-xs mt-0.5">First available across all barbers</p>
+            </div>
+            <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-[#8B9A7E] transition-colors flex-shrink-0" />
+          </button>
           {barbers.map((barber) => (
             <button
               key={barber.id}
@@ -240,65 +595,270 @@ function isSlotTaken(slotTime, duration, bookings) {
   });
 }
 
-function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack }) {
+function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarbers = [] }) {
   const [selectedDate, setSelectedDate] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
+  const [findingNext, setFindingNext] = useState(false);
+  const [nextSlots, setNextSlots] = useState([]);
+  const [shownSlotKeys, setShownSlotKeys] = useState(new Set());
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [slotsExhausted, setSlotsExhausted] = useState(false);
   const scrollRef = useRef(null);
+  const bookingsCacheRef = useRef({});
 
+  const isAny = barber?.id === "any";
   const serviceDuration = barber?.service_durations?.[service?.id] ?? service?.duration ?? 30;
 
-  // Build 14-day range, marking days the barber is off
+  const searchSlots = async (skip, limit, isMore) => {
+    isMore ? setLoadingMore(true) : setFindingNext(true);
+    const today = new Date();
+    const nowHHMM = format(today, "HH:mm");
+    const found = [];
+
+    for (let i = 0; i < maxDays && found.length < limit; i++) {
+      const d = addDays(today, i);
+      const dateStr = format(d, "yyyy-MM-dd");
+      const dayName = format(d, "EEEE").toLowerCase();
+      const isToday = i === 0;
+
+      if (isAny) {
+        const working = allBarbers.filter(b => {
+          const dh = b.hours?.[dayName];
+          return dh && !dh.off && !dh.closed;
+        });
+        if (working.length === 0) continue;
+        try {
+          if (!bookingsCacheRef.current[dateStr]) {
+            bookingsCacheRef.current[dateStr] = await entities.Booking.filter({ date: dateStr });
+          }
+          const dayBookings = bookingsCacheRef.current[dateStr];
+          const timeToBarber = new Map();
+          for (const b of working) {
+            const dh = b.hours[dayName];
+            const daySlots = generateSlots(dh.start || "09:00", dh.end || "18:00", 30);
+            for (const s of daySlots) {
+              if (timeToBarber.has(s.time)) continue;
+              const key = `${dateStr}|${s.time}`;
+              if (skip.has(key)) continue;
+              if (isToday && s.time <= nowHHMM) continue;
+              const free = !isSlotTaken(s.time, serviceDuration, dayBookings.filter(bk => bk.barber_id === b.id));
+              if (free) timeToBarber.set(s.time, b.name);
+            }
+          }
+          const sorted = Array.from(timeToBarber.entries()).sort(([a], [b]) => a.localeCompare(b));
+          for (const [time, barberName] of sorted) {
+            if (found.length >= limit) break;
+            found.push({
+              dateStr, time, barberName,
+              dayLabel: format(d, "EEE"),
+              dateLabel: format(d, "MMM d"),
+              timeLabel: format(parse(time, "HH:mm", new Date()), "h:mm a"),
+            });
+          }
+        } catch (e) {
+          console.error("[NextAvailable] error checking", dateStr, e);
+        }
+      } else {
+        const dayHours = barber?.hours?.[dayName];
+        if (!dayHours || dayHours.off || dayHours.closed) continue;
+        try {
+          if (!bookingsCacheRef.current[dateStr]) {
+            bookingsCacheRef.current[dateStr] = await entities.Booking.filter({ barber_id: barber.id, date: dateStr });
+          }
+          const dayBookings = bookingsCacheRef.current[dateStr];
+          const daySlots = generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 30);
+          for (const s of daySlots) {
+            if (found.length >= limit) break;
+            const key = `${dateStr}|${s.time}`;
+            if (skip.has(key)) continue;
+            if (isToday && s.time <= nowHHMM) continue;
+            if (!isSlotTaken(s.time, serviceDuration, dayBookings)) {
+              found.push({
+                dateStr, time: s.time, barberName: barber.name,
+                dayLabel: format(d, "EEE"),
+                dateLabel: format(d, "MMM d"),
+                timeLabel: format(parse(s.time, "HH:mm", new Date()), "h:mm a"),
+              });
+            }
+          }
+        } catch (e) {
+          console.error("[NextAvailable] error checking", dateStr, e);
+        }
+      }
+    }
+
+    const newKeys = new Set(skip);
+    found.forEach(f => newKeys.add(`${f.dateStr}|${f.time}`));
+    setShownSlotKeys(newKeys);
+    setSlotsExhausted(found.length < limit);
+
+    if (isMore) {
+      setNextSlots(prev => [...prev, ...found]);
+      setLoadingMore(false);
+    } else {
+      setNextSlots(found);
+      setFindingNext(false);
+    }
+  };
+
+  const handleNextAvailable = () => {
+    bookingsCacheRef.current = {};
+    setNextSlots([]);
+    setShownSlotKeys(new Set());
+    setSlotsExhausted(false);
+    searchSlots(new Set(), 5, false);
+  };
+
+  const handleSeeMore = () => {
+    searchSlots(shownSlotKeys, 5, true);
+  };
+
+  // Build date range — for "any", a day is off only if ALL barbers are off
   const dateRange = useMemo(() => {
     const today = new Date();
     return Array.from({ length: maxDays }, (_, i) => {
       const d = addDays(today, i);
       const dateStr = format(d, "yyyy-MM-dd");
       const dayName = format(d, "EEEE").toLowerCase();
-      const dayHours = barber?.hours?.[dayName];
-      const hasHours = barber?.hours && Object.keys(barber.hours).length > 0;
-      const isOff = hasHours && (!dayHours || dayHours.off || dayHours.closed);
-      return {
-        dateStr,
-        dayLabel: format(d, "EEE"),
-        dayNum: format(d, "d"),
-        monthLabel: format(d, "MMM"),
-        isOff,
-      };
+      let isOff;
+      if (isAny) {
+        const anyWorking = allBarbers.some(b => {
+          const dh = b.hours?.[dayName];
+          return dh && !dh.off && !dh.closed;
+        });
+        isOff = allBarbers.length > 0 && !anyWorking;
+      } else {
+        const hasHours = barber?.hours && Object.keys(barber.hours).length > 0;
+        const dayHours = barber?.hours?.[dayName];
+        isOff = hasHours && (!dayHours || dayHours.off || dayHours.closed);
+      }
+      return { dateStr, dayLabel: format(d, "EEE"), dayNum: format(d, "d"), monthLabel: format(d, "MMM"), isOff };
     });
-  }, [barber]);
+  }, [barber, maxDays, allBarbers, isAny]);
 
-  // Fetch bookings whenever the selected date changes
+  // Fetch bookings when date changes — all barbers for "any", single barber otherwise
   useEffect(() => {
     if (!selectedDate || !barber) return;
     setLoadingSlots(true);
-    entities.Booking.filter({ barber_id: barber.id, date: selectedDate })
-      .then(setBookings)
-      .catch(console.error)
-      .finally(() => setLoadingSlots(false));
-  }, [selectedDate, barber]);
+    const query = isAny
+      ? entities.Booking.filter({ date: selectedDate })
+      : entities.Booking.filter({ barber_id: barber.id, date: selectedDate });
+    query.then(setBookings).catch(console.error).finally(() => setLoadingSlots(false));
+  }, [selectedDate, barber, isAny]);
 
-  // Generate available slots for the selected date
+  // Generate slots — union across all working barbers for "any"
   const slots = useMemo(() => {
     if (!selectedDate || !barber) return [];
     const dayName = format(new Date(selectedDate + "T12:00:00"), "EEEE").toLowerCase();
+
+    if (isAny) {
+      const timeSet = new Set();
+      allBarbers.forEach(b => {
+        const dh = b.hours?.[dayName];
+        if (!dh || dh.off || dh.closed) return;
+        generateSlots(dh.start || "09:00", dh.end || "18:00", 30).forEach(s => timeSet.add(s.time));
+      });
+      return Array.from(timeSet).sort().map(time => {
+        const label = format(parse(time, "HH:mm", new Date()), "h:mm a");
+        const anyFree = allBarbers.some(b => {
+          const dh = b.hours?.[dayName];
+          if (!dh || dh.off || dh.closed) return false;
+          if (time < (dh.start || "09:00") || time >= (dh.end || "18:00")) return false;
+          return !isSlotTaken(time, serviceDuration, bookings.filter(bk => bk.barber_id === b.id));
+        });
+        return { time, label, taken: !anyFree };
+      });
+    }
+
     const dayHours = barber.hours?.[dayName];
     if (!dayHours || dayHours.off || dayHours.closed) return [];
-    const start = dayHours.start || "09:00";
-    const end = dayHours.end || "18:00";
-    return generateSlots(start, end, 30).map((slot) => ({
+    return generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 30).map(slot => ({
       ...slot,
       taken: isSlotTaken(slot.time, serviceDuration, bookings),
     }));
-  }, [selectedDate, barber, bookings, serviceDuration]);
+  }, [selectedDate, barber, bookings, serviceDuration, allBarbers, isAny]);
 
   return (
     <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
       <StepHeader stepLabel="Step 3 of 5" title="Pick a Date & Time" onBack={onBack} progress={60} />
 
       <div className="px-6 py-6">
-        {/* Date strip */}
-        <p className="text-white/40 text-xs uppercase tracking-widest mb-3 font-semibold">Select a date</p>
+        {/* Date strip header */}
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-white/40 text-xs uppercase tracking-widest font-semibold">Select a date</p>
+          <button
+            onClick={handleNextAvailable}
+            disabled={findingNext || loadingMore}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+            style={{
+              background: findingNext ? "#2e3a2e" : "#1a2a1a",
+              color: findingNext ? "#6B7A5E" : "#8B9A7E",
+              border: "1px solid #2a3a2a",
+            }}
+            onMouseEnter={e => { if (!findingNext && !loadingMore) e.currentTarget.style.background = "#243424"; }}
+            onMouseLeave={e => { if (!findingNext && !loadingMore) e.currentTarget.style.background = "#1a2a1a"; }}
+          >
+            {findingNext
+              ? <><Loader2 className="w-3 h-3 animate-spin" /> Searching…</>
+              : <>⚡ Next Available</>}
+          </button>
+        </div>
+
+        {/* Quick pick slot cards */}
+        {nextSlots.length > 0 && (
+          <div className="mb-5">
+            <p className="text-[10px] uppercase tracking-widest font-semibold mb-2" style={{ color: "#8B9A7E" }}>
+              Quick Pick
+            </p>
+            <div className="space-y-2">
+              {nextSlots.map((slot) => (
+                <button
+                  key={`${slot.dateStr}|${slot.time}`}
+                  onClick={() => onSelect(slot.dateStr, slot.time)}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border text-left transition-all"
+                  style={{ background: "#141414", borderColor: "#2a2a2a" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#8B9A7E"; e.currentTarget.style.background = "#1a1f1a"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.background = "#141414"; }}
+                >
+                  <div className="flex-shrink-0 text-center w-12">
+                    <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#8B9A7E" }}>
+                      {slot.dayLabel}
+                    </p>
+                    <p className="text-white text-lg font-bold leading-tight">{slot.dateLabel.split(" ")[1]}</p>
+                    <p className="text-[10px] text-white/30">{slot.dateLabel.split(" ")[0]}</p>
+                  </div>
+                  <div className="w-px h-8 flex-shrink-0" style={{ background: "#2a2a2a" }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-semibold text-sm">{slot.timeLabel}</p>
+                    <p className="text-white/40 text-xs mt-0.5">with {slot.barberName}</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 flex-shrink-0 text-white/20" />
+                </button>
+              ))}
+            </div>
+            {!slotsExhausted ? (
+              <button
+                onClick={handleSeeMore}
+                disabled={loadingMore}
+                className="w-full flex items-center justify-center gap-1.5 py-2.5 mt-1 text-xs font-medium transition-colors"
+                style={{ color: loadingMore ? "#4a5a44" : "#8B9A7E" }}
+              >
+                {loadingMore ? <><Loader2 className="w-3 h-3 animate-spin" /> Loading…</> : "See more times →"}
+              </button>
+            ) : (
+              <p className="text-white/20 text-xs text-center py-2">No more availability found.</p>
+            )}
+            <div className="h-px mt-4 mb-1" style={{ background: "#1a1a1a" }} />
+          </div>
+        )}
+
+        {slotsExhausted && nextSlots.length === 0 && (
+          <p className="text-white/30 text-xs text-center py-2 mb-2">
+            No availability found in the next {maxDays} days.
+          </p>
+        )}
+
         <div
           ref={scrollRef}
           className="flex gap-2 overflow-x-auto pb-3 -mx-6 px-6"
@@ -369,7 +929,7 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack }) {
           </div>
         )}
 
-        {!selectedDate && (
+        {!selectedDate && nextSlots.length === 0 && (
           <p className="text-white/20 text-sm text-center mt-12">← Choose a date to see available times</p>
         )}
       </div>
@@ -522,11 +1082,14 @@ function downloadIcs({ title, startStr, endStr, location, details, uid }) {
 
 // ─── Confirm Step ─────────────────────────────────────────────────────────────
 
-function ConfirmStep({ barber, service, date, time, clientName, clientPhone, clientEmail, onConfirm, onBack, submitting }) {
+function ConfirmStep({ barber, service, date, time, clientName, clientPhone, clientEmail, onConfirm, onBack, submitting, cancelPolicyEnabled, cancelPolicyText }) {
+  const [policyAgreed, setPolicyAgreed] = useState(false);
   const duration = barber?.service_durations?.[service?.id] ?? service?.duration ?? 30;
   const endTime = format(addMinutes(parse(time, "HH:mm", new Date()), duration), "h:mm a");
   const startLabel = format(parse(time, "HH:mm", new Date()), "h:mm a");
   const dateLabel = format(new Date(date + "T12:00:00"), "EEEE, MMMM d, yyyy");
+  const showPolicy = cancelPolicyEnabled && cancelPolicyText;
+  const confirmDisabled = submitting || (showPolicy && !policyAgreed);
 
   const row = (icon, label, value) => (
     <div className="flex items-start gap-4 py-4 border-b border-white/5 last:border-0">
@@ -546,27 +1109,51 @@ function ConfirmStep({ barber, service, date, time, clientName, clientPhone, cli
 
       <div className="px-6 py-8 max-w-md mx-auto">
         <div className="rounded-2xl border overflow-hidden mb-6" style={{ borderColor: "#2a2a2a", background: "#111" }}>
-          {row(<Scissors className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Barber", barber?.name)}
+          {row(<Scissors className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Barber", barber?.id === "any" ? "First Available Barber" : barber?.name)}
           {row(<Tag className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Service", `${service?.name}${service?.price > 0 ? ` — $${Number(service.price).toFixed(0)}` : ""}`)}
           {row(<Calendar className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Date & Time", `${dateLabel} · ${startLabel} – ${endTime}`)}
           {row(<User className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Client", [clientName, clientPhone, clientEmail].filter(Boolean).join(" · "))}
         </div>
 
+        {showPolicy && (
+          <div className="rounded-xl border mb-4" style={{ borderColor: "#2a2a1a", background: "#141408" }}>
+            <p className="text-[11px] font-bold uppercase tracking-widest px-4 pt-4 pb-2" style={{ color: "#c8a94e" }}>Cancellation Policy</p>
+            <div className="px-4 pb-4 max-h-40 overflow-y-auto">
+              <p className="text-white/60 text-sm leading-relaxed whitespace-pre-wrap">{cancelPolicyText}</p>
+            </div>
+            <label className="flex items-center gap-3 px-4 py-3 border-t cursor-pointer" style={{ borderColor: "#2a2a1a" }}>
+              <input
+                type="checkbox"
+                checked={policyAgreed}
+                onChange={e => setPolicyAgreed(e.target.checked)}
+                className="w-4 h-4 rounded accent-[#8B9A7E] flex-shrink-0"
+              />
+              <span className="text-white/70 text-sm">I agree to the cancellation policy</span>
+            </label>
+          </div>
+        )}
+
         <button
           onClick={onConfirm}
-          disabled={submitting}
+          disabled={confirmDisabled}
           className="w-full py-4 rounded-xl font-semibold text-white text-base transition-all flex items-center justify-center gap-2"
-          style={{ background: submitting ? "#4a5a44" : "#8B9A7E", cursor: submitting ? "not-allowed" : "pointer" }}
-          onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = "#6B7A5E"; }}
-          onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = "#8B9A7E"; }}
+          style={{
+            background: confirmDisabled ? "#2e3a2e" : "#8B9A7E",
+            cursor: confirmDisabled ? "not-allowed" : "pointer",
+            opacity: confirmDisabled && !submitting ? 0.5 : 1,
+          }}
+          onMouseEnter={e => { if (!confirmDisabled) e.currentTarget.style.background = "#6B7A5E"; }}
+          onMouseLeave={e => { if (!confirmDisabled) e.currentTarget.style.background = "#8B9A7E"; }}
         >
           {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
           {submitting ? "Booking…" : "Confirm Booking"}
         </button>
 
-        <p className="text-white/20 text-xs text-center mt-4">
-          By confirming you agree to our cancellation policy.
-        </p>
+        {!showPolicy && (
+          <p className="text-white/20 text-xs text-center mt-4">
+            By confirming you agree to our cancellation policy.
+          </p>
+        )}
       </div>
     </motion.div>
   );
@@ -710,6 +1297,12 @@ export default function ClientBooking() {
   const [shopSettings, setShopSettings] = useState({});
   const [loading, setLoading] = useState(true);
 
+  // My Appointments sub-flow: null | "phone" | "otp" | "list"
+  const [myAppts, setMyAppts]             = useState(null);
+  const [myApptPhone, setMyApptPhone]     = useState("");
+  const [myApptClient, setMyApptClient]   = useState(null);
+  const [myApptBookings, setMyApptBookings] = useState([]);
+
   const [selectedBarber, setSelectedBarber] = useState(null);
   const [selectedService, setSelectedService] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -732,7 +1325,7 @@ export default function ClientBooking() {
 
   // Services available for the selected barber
   const availableServices = useMemo(() => {
-    if (!selectedBarber) return allServices;
+    if (!selectedBarber || selectedBarber.id === "any") return allServices;
     const ids = selectedBarber.available_services;
     if (!ids || ids.length === 0) return allServices;
     return allServices.filter((s) => ids.includes(s.id));
@@ -760,9 +1353,24 @@ export default function ClientBooking() {
       const duration = selectedBarber?.service_durations?.[selectedService?.id] ?? selectedService?.duration ?? 30;
       const endTime = format(addMinutes(parse(selectedTime, "HH:mm", new Date()), duration), "HH:mm");
 
+      // Resolve "any barber" to whichever barber actually has the slot free
+      let bookingBarber = selectedBarber;
+      if (selectedBarber.id === "any") {
+        const dayName = format(new Date(selectedDate + "T12:00:00"), "EEEE").toLowerCase();
+        const dayBookings = await entities.Booking.filter({ date: selectedDate });
+        bookingBarber = barbers.find(b => {
+          const dh = b.hours?.[dayName];
+          if (!dh || dh.off || dh.closed) return false;
+          if (selectedTime < (dh.start || "09:00") || selectedTime >= (dh.end || "18:00")) return false;
+          return !isSlotTaken(selectedTime, duration, dayBookings.filter(bk => bk.barber_id === b.id));
+        });
+        if (!bookingBarber) throw new Error("No barber available at that time — please choose another slot.");
+        setSelectedBarber(bookingBarber);
+      }
+
       await entities.Booking.create({
-        barber_id: selectedBarber.id,
-        barber_name: selectedBarber.name,
+        barber_id: bookingBarber.id,
+        barber_name: bookingBarber.name,
         service_id: selectedService.id,
         service_name: selectedService.name,
         client_id: clientId,
@@ -784,7 +1392,7 @@ export default function ClientBooking() {
           body: {
             client_name: clientName,
             client_email: clientEmail,
-            barber_name: selectedBarber.name,
+            barber_name: bookingBarber.name,
             service_name: selectedService.name,
             date: selectedDate,
             start_time: selectedTime,
@@ -825,8 +1433,10 @@ export default function ClientBooking() {
   const showShopPhone = shopSettings.show_shop_phone !== false;
   const shopEmail     = shopSettings.shop_email     || "";
   const showShopEmail = shopSettings.show_shop_email !== false;
-  const socialLinks   = parseSocialLinks(shopSettings.social_links);
-  const maxDays       = shopSettings.max_booking_days_ahead || 60;
+  const socialLinks           = parseSocialLinks(shopSettings.social_links);
+  const maxDays               = shopSettings.max_booking_days_ahead || 60;
+  const cancelPolicyEnabled   = shopSettings.cancellation_policy_enabled === true;
+  const cancelPolicyText      = shopSettings.cancellation_policy_text || "";
 
   if (loading) {
     return (
@@ -842,8 +1452,32 @@ export default function ClientBooking() {
   return (
     <div style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
       <AnimatePresence mode="wait">
-        {step === 0 && (
-          <WelcomeStep key="welcome" onStart={() => setStep(1)} shopName={shopName} logoUrl={logoUrl}
+        {myAppts === "phone" && (
+          <PhoneEntryScreen
+            key="appt-phone"
+            onBack={() => setMyAppts(null)}
+            onSent={(phone) => { setMyApptPhone(phone); setMyAppts("otp"); }}
+          />
+        )}
+        {myAppts === "otp" && (
+          <OtpEntryScreen
+            key="appt-otp"
+            phone={myApptPhone}
+            onBack={() => setMyAppts("phone")}
+            onVerified={(client, bookings) => { setMyApptClient(client); setMyApptBookings(bookings); setMyAppts("list"); }}
+          />
+        )}
+        {myAppts === "list" && (
+          <AppointmentsScreen
+            key="appt-list"
+            client={myApptClient}
+            bookings={myApptBookings}
+            onBack={() => setMyAppts(null)}
+          />
+        )}
+        {!myAppts && step === 0 && (
+          <WelcomeStep key="welcome" onStart={() => setStep(1)} onViewAppointments={() => setMyAppts("phone")}
+            shopName={shopName} logoUrl={logoUrl}
             shopAddress={shopAddress} shopPhone={shopPhone} showShopPhone={showShopPhone}
             shopEmail={shopEmail} showShopEmail={showShopEmail} socialLinks={socialLinks} />
         )}
@@ -870,6 +1504,7 @@ export default function ClientBooking() {
             barber={selectedBarber}
             service={selectedService}
             maxDays={maxDays}
+            allBarbers={barbers}
             onSelect={(date, time) => { setSelectedDate(date); setSelectedTime(time); setStep(4); }}
             onBack={() => setStep(2)}
           />
@@ -902,6 +1537,8 @@ export default function ClientBooking() {
             onConfirm={handleConfirm}
             onBack={() => setStep(4)}
             submitting={submitting}
+            cancelPolicyEnabled={cancelPolicyEnabled}
+            cancelPolicyText={cancelPolicyText}
           />
         )}
         {step === 6 && (
