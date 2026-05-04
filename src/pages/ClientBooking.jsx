@@ -595,60 +595,126 @@ function isSlotTaken(slotTime, duration, bookings) {
   });
 }
 
-function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarbers = [] }) {
+function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarbers = [], minNotice = 0 }) {
   const [selectedDate, setSelectedDate] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [findingNext, setFindingNext] = useState(false);
-  const [noAvailability, setNoAvailability] = useState(false);
+  const [nextSlots, setNextSlots] = useState([]);
+  const [shownSlotKeys, setShownSlotKeys] = useState(new Set());
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [slotsExhausted, setSlotsExhausted] = useState(false);
   const scrollRef = useRef(null);
+  const bookingsCacheRef = useRef({});
 
   const isAny = barber?.id === "any";
   const serviceDuration = barber?.service_durations?.[service?.id] ?? service?.duration ?? 30;
 
-  const handleNextAvailable = async () => {
-    setFindingNext(true);
-    setNoAvailability(false);
-    const today = new Date();
-    const nowHHMM = format(today, "HH:mm");
+  const searchSlots = async (skip, limit, isMore) => {
+    isMore ? setLoadingMore(true) : setFindingNext(true);
+    const found = [];
+    try {
+      const today = new Date();
+      // cutoff = now + min notice; slots at or before cutoff are un-bookable today
+      const cutoffHHMM = format(addMinutes(today, minNotice), "HH:mm");
 
-    for (let i = 0; i < maxDays; i++) {
-      const d = addDays(today, i);
-      const dateStr = format(d, "yyyy-MM-dd");
-      const dayName = format(d, "EEEE").toLowerCase();
-      const isToday = i === 0;
+      for (let i = 0; i < maxDays && found.length < limit; i++) {
+        const d = addDays(today, i);
+        const dateStr = format(d, "yyyy-MM-dd");
+        const dayName = format(d, "EEEE").toLowerCase();
+        const isToday = i === 0;
 
-      if (isAny) {
-        const working = allBarbers.filter(b => {
-          const dh = b.hours?.[dayName];
-          return dh && !dh.off && !dh.closed;
-        });
-        if (working.length === 0) continue;
-        try {
-          const dayBookings = await entities.Booking.filter({ date: dateStr });
-          for (const b of working) {
-            const dh = b.hours[dayName];
-            const bBookings = dayBookings.filter(bk => bk.barber_id === b.id);
-            const firstFree = generateSlots(dh.start || "09:00", dh.end || "18:00", 30).find(s =>
-              !isSlotTaken(s.time, serviceDuration, bBookings) && (!isToday || s.time > nowHHMM)
-            );
-            if (firstFree) { setFindingNext(false); onSelect(dateStr, firstFree.time); return; }
+        if (isAny) {
+          const working = allBarbers.filter(b => {
+            const dh = b.hours?.[dayName];
+            return dh && !dh.off && !dh.closed;
+          });
+          if (working.length === 0) continue;
+          try {
+            if (!bookingsCacheRef.current[dateStr]) {
+              bookingsCacheRef.current[dateStr] = await entities.Booking.filter({ date: dateStr });
+            }
+            const dayBookings = bookingsCacheRef.current[dateStr];
+            const timeToBarber = new Map();
+            for (const wb of working) {
+              const dh = wb.hours[dayName];
+              const daySlots = generateSlots(dh.start || "09:00", dh.end || "18:00", 30);
+              for (const s of daySlots) {
+                if (timeToBarber.has(s.time)) continue;
+                const key = `${dateStr}|${s.time}`;
+                if (skip.has(key)) continue;
+                if (isToday && s.time <= cutoffHHMM) continue;
+                const free = !isSlotTaken(s.time, serviceDuration, dayBookings.filter(bk => bk.barber_id === wb.id));
+                if (free) timeToBarber.set(s.time, wb.name);
+              }
+            }
+            const sorted = Array.from(timeToBarber.entries()).sort(([ta], [tb]) => ta.localeCompare(tb));
+            for (const [time, barberName] of sorted) {
+              if (found.length >= limit) break;
+              found.push({
+                dateStr, time, barberName,
+                dayLabel: format(d, "EEE"),
+                dateLabel: format(d, "MMM d"),
+                timeLabel: format(parse(time, "HH:mm", new Date()), "h:mm a"),
+              });
+            }
+          } catch (e) {
+            console.error("[NextAvailable] error checking", dateStr, e);
           }
-        } catch (e) { console.error("[NextAvailable] error checking", dateStr, e); }
-      } else {
-        const dayHours = barber?.hours?.[dayName];
-        if (!dayHours || dayHours.off || dayHours.closed) continue;
-        try {
-          const dayBookings = await entities.Booking.filter({ barber_id: barber.id, date: dateStr });
-          const firstFree = generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 30).find(s =>
-            !isSlotTaken(s.time, serviceDuration, dayBookings) && (!isToday || s.time > nowHHMM)
-          );
-          if (firstFree) { setFindingNext(false); onSelect(dateStr, firstFree.time); return; }
-        } catch (e) { console.error("[NextAvailable] error checking", dateStr, e); }
+        } else {
+          const dayHours = barber?.hours?.[dayName];
+          if (!dayHours || dayHours.off || dayHours.closed) continue;
+          try {
+            if (!bookingsCacheRef.current[dateStr]) {
+              bookingsCacheRef.current[dateStr] = await entities.Booking.filter({ barber_id: barber.id, date: dateStr });
+            }
+            const dayBookings = bookingsCacheRef.current[dateStr];
+            const daySlots = generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 30);
+            for (const s of daySlots) {
+              if (found.length >= limit) break;
+              const key = `${dateStr}|${s.time}`;
+              if (skip.has(key)) continue;
+              if (isToday && s.time <= cutoffHHMM) continue;
+              if (!isSlotTaken(s.time, serviceDuration, dayBookings)) {
+                found.push({
+                  dateStr, time: s.time, barberName: barber.name,
+                  dayLabel: format(d, "EEE"),
+                  dateLabel: format(d, "MMM d"),
+                  timeLabel: format(parse(s.time, "HH:mm", new Date()), "h:mm a"),
+                });
+              }
+            }
+          } catch (e) {
+            console.error("[NextAvailable] error checking", dateStr, e);
+          }
+        }
       }
+
+      const newKeys = new Set(skip);
+      found.forEach(f => newKeys.add(`${f.dateStr}|${f.time}`));
+      setShownSlotKeys(newKeys);
+      setSlotsExhausted(found.length < limit);
+      if (isMore) setNextSlots(prev => [...prev, ...found]);
+      else setNextSlots(found);
+    } catch (e) {
+      console.error("[searchSlots] unexpected error:", e);
+      setSlotsExhausted(true);
+    } finally {
+      if (isMore) setLoadingMore(false);
+      else setFindingNext(false);
     }
-    setFindingNext(false);
-    setNoAvailability(true);
+  };
+
+  const handleNextAvailable = () => {
+    bookingsCacheRef.current = {};
+    setNextSlots([]);
+    setShownSlotKeys(new Set());
+    setSlotsExhausted(false);
+    searchSlots(new Set(), 5, false);
+  };
+
+  const handleSeeMore = () => {
+    searchSlots(shownSlotKeys, 5, true);
   };
 
   // Build date range — for "any", a day is off only if ALL barbers are off
@@ -688,6 +754,10 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
   const slots = useMemo(() => {
     if (!selectedDate || !barber) return [];
     const dayName = format(new Date(selectedDate + "T12:00:00"), "EEEE").toLowerCase();
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    const isSelectedToday = selectedDate === todayStr;
+    // Cutoff: slots at or before this time are un-bookable (past + min notice window)
+    const cutoffHHMM = isSelectedToday ? format(addMinutes(new Date(), minNotice), "HH:mm") : null;
 
     if (isAny) {
       const timeSet = new Set();
@@ -698,7 +768,8 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
       });
       return Array.from(timeSet).sort().map(time => {
         const label = format(parse(time, "HH:mm", new Date()), "h:mm a");
-        const anyFree = allBarbers.some(b => {
+        const isPast = cutoffHHMM !== null && time <= cutoffHHMM;
+        const anyFree = !isPast && allBarbers.some(b => {
           const dh = b.hours?.[dayName];
           if (!dh || dh.off || dh.closed) return false;
           if (time < (dh.start || "09:00") || time >= (dh.end || "18:00")) return false;
@@ -712,9 +783,10 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
     if (!dayHours || dayHours.off || dayHours.closed) return [];
     return generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 30).map(slot => ({
       ...slot,
-      taken: isSlotTaken(slot.time, serviceDuration, bookings),
+      taken: isSlotTaken(slot.time, serviceDuration, bookings) ||
+             (cutoffHHMM !== null && slot.time <= cutoffHHMM),
     }));
-  }, [selectedDate, barber, bookings, serviceDuration, allBarbers, isAny]);
+  }, [selectedDate, barber, bookings, serviceDuration, allBarbers, isAny, minNotice]);
 
   return (
     <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
@@ -726,15 +798,15 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
           <p className="text-white/40 text-xs uppercase tracking-widest font-semibold">Select a date</p>
           <button
             onClick={handleNextAvailable}
-            disabled={findingNext}
+            disabled={findingNext || loadingMore}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
             style={{
               background: findingNext ? "#2e3a2e" : "#1a2a1a",
               color: findingNext ? "#6B7A5E" : "#8B9A7E",
               border: "1px solid #2a3a2a",
             }}
-            onMouseEnter={e => { if (!findingNext) e.currentTarget.style.background = "#243424"; }}
-            onMouseLeave={e => { if (!findingNext) e.currentTarget.style.background = "#1a2a1a"; }}
+            onMouseEnter={e => { if (!findingNext && !loadingMore) e.currentTarget.style.background = "#243424"; }}
+            onMouseLeave={e => { if (!findingNext && !loadingMore) e.currentTarget.style.background = "#1a2a1a"; }}
           >
             {findingNext
               ? <><Loader2 className="w-3 h-3 animate-spin" /> Searching…</>
@@ -742,7 +814,55 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
           </button>
         </div>
 
-        {noAvailability && (
+        {/* Quick pick slot cards */}
+        {nextSlots.length > 0 && (
+          <div className="mb-5">
+            <p className="text-[10px] uppercase tracking-widest font-semibold mb-2" style={{ color: "#8B9A7E" }}>
+              Quick Pick
+            </p>
+            <div className="space-y-2">
+              {nextSlots.map((slot) => (
+                <button
+                  key={`${slot.dateStr}|${slot.time}`}
+                  onClick={() => onSelect(slot.dateStr, slot.time)}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl border text-left transition-all"
+                  style={{ background: "#141414", borderColor: "#2a2a2a" }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = "#8B9A7E"; e.currentTarget.style.background = "#1a1f1a"; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.background = "#141414"; }}
+                >
+                  <div className="flex-shrink-0 text-center w-12">
+                    <p className="text-[10px] font-bold uppercase tracking-wide" style={{ color: "#8B9A7E" }}>
+                      {slot.dayLabel}
+                    </p>
+                    <p className="text-white text-lg font-bold leading-tight">{slot.dateLabel.split(" ")[1]}</p>
+                    <p className="text-[10px] text-white/30">{slot.dateLabel.split(" ")[0]}</p>
+                  </div>
+                  <div className="w-px h-8 flex-shrink-0" style={{ background: "#2a2a2a" }} />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white font-semibold text-sm">{slot.timeLabel}</p>
+                    <p className="text-white/40 text-xs mt-0.5">with {slot.barberName}</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 flex-shrink-0 text-white/20" />
+                </button>
+              ))}
+            </div>
+            {!slotsExhausted ? (
+              <button
+                onClick={handleSeeMore}
+                disabled={loadingMore}
+                className="w-full flex items-center justify-center gap-1.5 py-2.5 mt-1 text-xs font-medium transition-colors"
+                style={{ color: loadingMore ? "#4a5a44" : "#8B9A7E" }}
+              >
+                {loadingMore ? <><Loader2 className="w-3 h-3 animate-spin" /> Loading…</> : "See more times →"}
+              </button>
+            ) : (
+              <p className="text-white/20 text-xs text-center py-2">No more availability found.</p>
+            )}
+            <div className="h-px mt-4 mb-1" style={{ background: "#1a1a1a" }} />
+          </div>
+        )}
+
+        {slotsExhausted && nextSlots.length === 0 && (
           <p className="text-white/30 text-xs text-center py-2 mb-2">
             No availability found in the next {maxDays} days.
           </p>
@@ -818,7 +938,7 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
           </div>
         )}
 
-        {!selectedDate && (
+        {!selectedDate && nextSlots.length === 0 && (
           <p className="text-white/20 text-sm text-center mt-12">← Choose a date to see available times</p>
         )}
       </div>
@@ -1324,6 +1444,7 @@ export default function ClientBooking() {
   const showShopEmail = shopSettings.show_shop_email !== false;
   const socialLinks           = parseSocialLinks(shopSettings.social_links);
   const maxDays               = shopSettings.max_booking_days_ahead || 60;
+  const minBookingNotice      = shopSettings.min_booking_notice_minutes ?? 0;
   const cancelPolicyEnabled   = shopSettings.cancellation_policy_enabled === true;
   const cancelPolicyText      = shopSettings.cancellation_policy_text || "";
 
@@ -1393,6 +1514,7 @@ export default function ClientBooking() {
             barber={selectedBarber}
             service={selectedService}
             maxDays={maxDays}
+            minNotice={minBookingNotice}
             allBarbers={barbers}
             onSelect={(date, time) => { setSelectedDate(date); setSelectedTime(time); setStep(4); }}
             onBack={() => setStep(2)}

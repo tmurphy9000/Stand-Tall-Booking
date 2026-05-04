@@ -62,6 +62,7 @@ export default function BookingPageSettings() {
   });
   const [cancelPolicyEnabled, setCancelPolicyEnabled] = useState(false);
   const [cancelPolicyText, setCancelPolicyText]       = useState("");
+  const [minNotice, setMinNotice]                     = useState(0);
 
   useEffect(() => {
     if (!settings.id) return;
@@ -83,6 +84,7 @@ export default function BookingPageSettings() {
     });
     setCancelPolicyEnabled(settings.cancellation_policy_enabled === true);
     setCancelPolicyText(settings.cancellation_policy_text || "");
+    setMinNotice(settings.min_booking_notice_minutes ?? 0);
   }, [settings.id]);
 
   const save = useMutation({
@@ -146,8 +148,9 @@ export default function BookingPageSettings() {
       shop_email:      shopEmail,
       show_shop_email:             showEmail,
       social_links:                social,
-      cancellation_policy_enabled: cancelPolicyEnabled,
-      cancellation_policy_text:    cancelPolicyText || null,
+      cancellation_policy_enabled:  cancelPolicyEnabled,
+      cancellation_policy_text:     cancelPolicyText || null,
+      min_booking_notice_minutes:   Number(minNotice) || 0,
     });
   };
 
@@ -196,6 +199,23 @@ export default function BookingPageSettings() {
         </div>
         <p className="text-xs text-gray-400">
           How far out clients can book online. Currently set to {unitToDays(windowValue, windowUnit)} days.
+        </p>
+      </section>
+
+      {/* ── Minimum booking notice ── */}
+      <section className="space-y-3">
+        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Minimum Booking Notice</h3>
+        <Select value={String(minNotice)} onValueChange={v => setMinNotice(Number(v))}>
+          <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="0">No restriction</SelectItem>
+            {[5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60].map(m => (
+              <SelectItem key={m} value={String(m)}>{m} minutes</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-gray-400">
+          Clients cannot book a slot starting within this many minutes from now.
         </p>
       </section>
 
