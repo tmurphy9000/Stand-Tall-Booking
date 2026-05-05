@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { entities } from "@/api/entities";
 import { supabase } from "@/lib/supabaseClient";
-import { Loader2, Scissors, ChevronRight, ArrowLeft, Clock, CheckCircle2, User, Calendar, Tag, Copy, Instagram, Facebook, Globe, Phone, X, CalendarClock } from "lucide-react";
+import { Loader2, Scissors, ChevronRight, ArrowLeft, Clock, CheckCircle2, User, Calendar, Tag, Copy, Instagram, Facebook, Globe, Phone, X, CalendarClock, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, addDays, parse, addMinutes } from "date-fns";
 
@@ -564,6 +564,137 @@ function ServiceStep({ services, barber, onSelect, onBack }) {
   );
 }
 
+// ─── Guest Prompt Step ────────────────────────────────────────────────────────
+
+function GuestPromptStep({ onYes, onNo, onBack }) {
+  return (
+    <motion.div {...fadeSlide} className="flex flex-col items-center justify-center min-h-screen px-6" style={{ background: "#0A0A0A" }}>
+      <div className="w-full max-w-sm">
+        <button onClick={onBack} className="flex items-center gap-2 text-white/40 hover:text-white text-sm mb-10 transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back
+        </button>
+        <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ background: "#1f2a1f" }}>
+          <Users className="w-8 h-8" style={{ color: "#8B9A7E" }} />
+        </div>
+        <h2 className="text-2xl font-bold text-white mb-2">Add a Guest?</h2>
+        <p className="text-white/40 text-sm mb-8 leading-relaxed">
+          Book a back-to-back appointment for someone else at the same time — both appointments will be confirmed together.
+        </p>
+        <button
+          onClick={onYes}
+          className="w-full py-3.5 rounded-xl font-semibold text-white mb-3 transition-all"
+          style={{ background: "#8B9A7E" }}
+          onMouseEnter={e => (e.currentTarget.style.background = "#6B7A5E")}
+          onMouseLeave={e => (e.currentTarget.style.background = "#8B9A7E")}
+        >
+          Yes, add a guest
+        </button>
+        <button
+          onClick={onNo}
+          className="w-full py-3.5 rounded-xl font-semibold transition-all"
+          style={{ background: "#141414", border: "1px solid #2a2a2a", color: "#aaa" }}
+          onMouseEnter={e => (e.currentTarget.style.borderColor = "#8B9A7E")}
+          onMouseLeave={e => (e.currentTarget.style.borderColor = "#2a2a2a")}
+        >
+          No thanks, just me
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Guest Form Step ──────────────────────────────────────────────────────────
+
+function GuestFormStep({ allServices, allBarbers, guestName, guestService, guestBarber, onNameChange, onServiceChange, onBarberChange, onNext, onBack }) {
+  const allBarbersWithAny = [ANY_BARBER, ...allBarbers];
+  const canContinue = guestName.trim() && guestService && guestBarber;
+
+  return (
+    <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
+      <StepHeader stepLabel="Guest Details" title="Add a Guest" onBack={onBack} progress={50} />
+      <div className="px-6 py-8 max-w-md mx-auto space-y-6">
+
+        {/* Guest name */}
+        <div>
+          <p className="text-white/40 text-xs uppercase tracking-widest font-semibold mb-2">Guest Name</p>
+          <input
+            type="text"
+            value={guestName}
+            onChange={e => onNameChange(e.target.value)}
+            placeholder="Enter guest's name"
+            className="w-full px-4 py-3 rounded-xl text-white text-base outline-none"
+            style={{ background: "#141414", border: "1px solid #2a2a2a" }}
+            autoFocus
+            onFocus={e => (e.currentTarget.style.borderColor = "#8B9A7E")}
+            onBlur={e => (e.currentTarget.style.borderColor = "#2a2a2a")}
+          />
+        </div>
+
+        {/* Guest service */}
+        <div>
+          <p className="text-white/40 text-xs uppercase tracking-widest font-semibold mb-2">Guest's Service</p>
+          <div className="flex flex-col gap-2">
+            {allServices.map(svc => {
+              const selected = guestService?.id === svc.id;
+              return (
+                <button
+                  key={svc.id}
+                  onClick={() => onServiceChange(svc)}
+                  className="flex items-center gap-3 p-4 rounded-xl border text-left transition-all"
+                  style={{ background: selected ? "#1a2a1a" : "#141414", borderColor: selected ? "#8B9A7E" : "#2a2a2a" }}
+                >
+                  <Scissors className="w-4 h-4 flex-shrink-0" style={{ color: "#8B9A7E" }} />
+                  <span className="text-white text-sm font-medium flex-1">{svc.name}</span>
+                  {svc.price > 0 && <span className="text-white/40 text-sm">${Number(svc.price).toFixed(0)}</span>}
+                  {selected && <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: "#8B9A7E" }} />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Guest barber */}
+        <div>
+          <p className="text-white/40 text-xs uppercase tracking-widest font-semibold mb-2">Guest's Barber</p>
+          <div className="flex flex-col gap-2">
+            {allBarbersWithAny.map(b => {
+              const selected = guestBarber?.id === b.id;
+              return (
+                <button
+                  key={b.id}
+                  onClick={() => onBarberChange(b)}
+                  className="flex items-center gap-3 p-4 rounded-xl border text-left transition-all"
+                  style={{ background: selected ? "#1a2a1a" : "#141414", borderColor: selected ? "#8B9A7E" : "#2a2a2a" }}
+                >
+                  <User className="w-4 h-4 flex-shrink-0" style={{ color: "#8B9A7E" }} />
+                  <span className="text-white text-sm font-medium flex-1">{b.name}</span>
+                  {selected && <CheckCircle2 className="w-4 h-4 flex-shrink-0" style={{ color: "#8B9A7E" }} />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <button
+          onClick={onNext}
+          disabled={!canContinue}
+          className="w-full py-3.5 rounded-xl font-semibold text-white transition-all flex items-center justify-center gap-2"
+          style={{
+            background: canContinue ? "#8B9A7E" : "#2e3a2e",
+            opacity: canContinue ? 1 : 0.5,
+            cursor: canContinue ? "pointer" : "not-allowed",
+          }}
+          onMouseEnter={e => { if (canContinue) e.currentTarget.style.background = "#6B7A5E"; }}
+          onMouseLeave={e => { if (canContinue) e.currentTarget.style.background = "#8B9A7E"; }}
+        >
+          Continue
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Date + Time Step ─────────────────────────────────────────────────────────
 
 function generateSlots(start, end, intervalMins) {
@@ -595,9 +726,10 @@ function isSlotTaken(slotTime, duration, bookings) {
   });
 }
 
-function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarbers = [], minNotice = 0 }) {
+function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarbers = [], minNotice = 0, guestService = null, guestBarber = null }) {
   const [selectedDate, setSelectedDate] = useState(null);
   const [bookings, setBookings] = useState([]);
+  const [guestBookings, setGuestBookings] = useState([]);
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [findingNext, setFindingNext] = useState(false);
   const [nextSlots, setNextSlots] = useState([]);
@@ -750,11 +882,25 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
   useEffect(() => {
     if (!selectedDate || !barber) return;
     setLoadingSlots(true);
-    const query = isAny
+    const mainQuery = isAny
       ? entities.Booking.filter({ date: selectedDate })
       : entities.Booking.filter({ barber_id: barber.id, date: selectedDate });
-    query.then(setBookings).catch(console.error).finally(() => setLoadingSlots(false));
-  }, [selectedDate, barber, isAny]);
+
+    if (guestBarber) {
+      const guestQuery = (guestBarber.id === "any" || isAny)
+        ? entities.Booking.filter({ date: selectedDate })
+        : entities.Booking.filter({ barber_id: guestBarber.id, date: selectedDate });
+      Promise.all([mainQuery, guestQuery])
+        .then(([main, guest]) => { setBookings(main); setGuestBookings(guest); })
+        .catch(console.error)
+        .finally(() => setLoadingSlots(false));
+    } else {
+      mainQuery
+        .then(bkgs => { setBookings(bkgs); setGuestBookings([]); })
+        .catch(console.error)
+        .finally(() => setLoadingSlots(false));
+    }
+  }, [selectedDate, barber, isAny, guestBarber?.id]);
 
   // Generate slots — union across all working barbers for "any"
   const slots = useMemo(() => {
@@ -762,8 +908,31 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
     const dayName = format(new Date(selectedDate + "T12:00:00"), "EEEE").toLowerCase();
     const todayStr = format(new Date(), "yyyy-MM-dd");
     const isSelectedToday = selectedDate === todayStr;
-    // Cutoff: slots at or before this time are un-bookable (past + min notice window)
     const cutoffHHMM = isSelectedToday ? format(addMinutes(new Date(), minNotice), "HH:mm") : null;
+
+    // Helper: check if the guest's back-to-back slot is also free
+    const guestDuration = guestService?.duration ?? 30;
+    const checkGuestFree = (mainStartTime) => {
+      if (!guestBarber || !guestService) return true;
+      const [sh, sm] = mainStartTime.split(":").map(Number);
+      const guestStartMins = sh * 60 + sm + serviceDuration;
+      const gH = Math.floor(guestStartMins / 60);
+      const gM = guestStartMins % 60;
+      const guestTime = `${String(gH).padStart(2, "0")}:${String(gM).padStart(2, "0")}`;
+
+      if (guestBarber.id === "any") {
+        return allBarbers.some(b => {
+          const dh = b.hours?.[dayName];
+          if (!dh || dh.off || dh.closed) return false;
+          if (guestTime < (dh.start || "09:00") || guestTime >= (dh.end || "18:00")) return false;
+          return !isSlotTaken(guestTime, guestDuration, guestBookings.filter(bk => bk.barber_id === b.id));
+        });
+      }
+      const dh = guestBarber.hours?.[dayName];
+      if (!dh || dh.off || dh.closed) return false;
+      if (guestTime < (dh.start || "09:00") || guestTime >= (dh.end || "18:00")) return false;
+      return !isSlotTaken(guestTime, guestDuration, guestBookings);
+    };
 
     if (isAny) {
       const timeSet = new Set();
@@ -780,7 +949,7 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
           if (!dh || dh.off || dh.closed) return false;
           if (time < (dh.start || "09:00") || time >= (dh.end || "18:00")) return false;
           return !isSlotTaken(time, serviceDuration, bookings.filter(bk => bk.barber_id === b.id));
-        });
+        }) && checkGuestFree(time);
         return { time, label, taken: !anyFree };
       });
     }
@@ -790,9 +959,10 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
     return generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 30).map(slot => ({
       ...slot,
       taken: isSlotTaken(slot.time, serviceDuration, bookings) ||
-             (cutoffHHMM !== null && slot.time <= cutoffHHMM),
+             (cutoffHHMM !== null && slot.time <= cutoffHHMM) ||
+             !checkGuestFree(slot.time),
     }));
-  }, [selectedDate, barber, bookings, serviceDuration, allBarbers, isAny, minNotice]);
+  }, [selectedDate, barber, bookings, guestBookings, serviceDuration, allBarbers, isAny, minNotice, guestBarber, guestService]);
 
   return (
     <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
@@ -802,22 +972,28 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
         {/* Date strip header */}
         <div className="flex items-center justify-between mb-3">
           <p className="text-white/40 text-xs uppercase tracking-widest font-semibold">Select a date</p>
-          <button
-            onClick={handleNextAvailable}
-            disabled={findingNext || loadingMore}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
-            style={{
-              background: findingNext ? "#2e3a2e" : "#1a2a1a",
-              color: findingNext ? "#6B7A5E" : "#8B9A7E",
-              border: "1px solid #2a3a2a",
-            }}
-            onMouseEnter={e => { if (!findingNext && !loadingMore) e.currentTarget.style.background = "#243424"; }}
-            onMouseLeave={e => { if (!findingNext && !loadingMore) e.currentTarget.style.background = "#1a2a1a"; }}
-          >
-            {findingNext
-              ? <><Loader2 className="w-3 h-3 animate-spin" /> Searching…</>
-              : <>⚡ Next Available</>}
-          </button>
+          {(guestBarber && guestService) ? (
+            <span className="text-xs px-2 py-1 rounded-lg" style={{ background: "#1f2a1f", color: "#8B9A7E" }}>
+              <Users className="w-3 h-3 inline mr-1" />Back-to-back slots
+            </span>
+          ) : (
+            <button
+              onClick={handleNextAvailable}
+              disabled={findingNext || loadingMore}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all"
+              style={{
+                background: findingNext ? "#2e3a2e" : "#1a2a1a",
+                color: findingNext ? "#6B7A5E" : "#8B9A7E",
+                border: "1px solid #2a3a2a",
+              }}
+              onMouseEnter={e => { if (!findingNext && !loadingMore) e.currentTarget.style.background = "#243424"; }}
+              onMouseLeave={e => { if (!findingNext && !loadingMore) e.currentTarget.style.background = "#1a2a1a"; }}
+            >
+              {findingNext
+                ? <><Loader2 className="w-3 h-3 animate-spin" /> Searching…</>
+                : <>⚡ Next Available</>}
+            </button>
+          )}
         </div>
 
         {/* Quick pick slot cards */}
@@ -1097,14 +1273,19 @@ function downloadIcs({ title, startStr, endStr, location, details, uid }) {
 
 // ─── Confirm Step ─────────────────────────────────────────────────────────────
 
-function ConfirmStep({ barber, service, date, time, clientName, clientPhone, clientEmail, onConfirm, onBack, submitting, cancelPolicyEnabled, cancelPolicyText }) {
+function ConfirmStep({ barber, service, date, time, clientName, clientPhone, clientEmail, onConfirm, onBack, submitting, cancelPolicyEnabled, cancelPolicyText, guest = null }) {
   const [policyAgreed, setPolicyAgreed] = useState(false);
   const duration = barber?.service_durations?.[service?.id] ?? service?.duration ?? 30;
-  const endTime = format(addMinutes(parse(time, "HH:mm", new Date()), duration), "h:mm a");
+  const endTimeHHMM = format(addMinutes(parse(time, "HH:mm", new Date()), duration), "HH:mm");
+  const endTime = format(parse(endTimeHHMM, "HH:mm", new Date()), "h:mm a");
   const startLabel = format(parse(time, "HH:mm", new Date()), "h:mm a");
   const dateLabel = format(new Date(date + "T12:00:00"), "EEEE, MMMM d, yyyy");
   const showPolicy = cancelPolicyEnabled && cancelPolicyText;
   const confirmDisabled = submitting || (showPolicy && !policyAgreed);
+
+  const guestDuration = guest?.service?.duration ?? 30;
+  const guestStartLabel = guest ? format(parse(endTimeHHMM, "HH:mm", new Date()), "h:mm a") : null;
+  const guestEndLabel = guest ? format(addMinutes(parse(endTimeHHMM, "HH:mm", new Date()), guestDuration), "h:mm a") : null;
 
   const row = (icon, label, value) => (
     <div className="flex items-start gap-4 py-4 border-b border-white/5 last:border-0">
@@ -1123,12 +1304,25 @@ function ConfirmStep({ barber, service, date, time, clientName, clientPhone, cli
       <StepHeader stepLabel="Step 5 of 5" title="Confirm Booking" onBack={onBack} progress={100} />
 
       <div className="px-6 py-8 max-w-md mx-auto">
-        <div className="rounded-2xl border overflow-hidden mb-6" style={{ borderColor: "#2a2a2a", background: "#111" }}>
+        {guest && <p className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Your Appointment</p>}
+        <div className="rounded-2xl border overflow-hidden mb-4" style={{ borderColor: "#2a2a2a", background: "#111" }}>
           {row(<Scissors className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Barber", barber?.id === "any" ? "First Available Barber" : barber?.name)}
           {row(<Tag className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Service", `${service?.name}${service?.price > 0 ? ` — $${Number(service.price).toFixed(0)}` : ""}`)}
           {row(<Calendar className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Date & Time", `${dateLabel} · ${startLabel} – ${endTime}`)}
           {row(<User className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Client", [clientName, clientPhone, clientEmail].filter(Boolean).join(" · "))}
         </div>
+
+        {guest && (
+          <>
+            <p className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2 mt-4">Guest Appointment</p>
+            <div className="rounded-2xl border overflow-hidden mb-4" style={{ borderColor: "#2a3a2a", background: "#0f1a0f" }}>
+              {row(<User className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Guest", guest.name)}
+              {row(<Scissors className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Service", `${guest.service?.name}${guest.service?.price > 0 ? ` — $${Number(guest.service.price).toFixed(0)}` : ""}`)}
+              {row(<Users className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Barber", guest.barber?.id === "any" ? "First Available Barber" : guest.barber?.name)}
+              {row(<Clock className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Time", `${guestStartLabel} – ${guestEndLabel} (back-to-back)`)}
+            </div>
+          </>
+        )}
 
         {showPolicy && (
           <div className="rounded-xl border mb-4" style={{ borderColor: "#2a2a1a", background: "#141408" }}>
@@ -1191,7 +1385,7 @@ function CopyButton({ text }) {
   );
 }
 
-function SuccessStep({ barber, service, date, time, clientName, shopAddress, shopPhone, showShopPhone, shopEmail, showShopEmail, onReset }) {
+function SuccessStep({ barber, service, date, time, clientName, shopAddress, shopPhone, showShopPhone, shopEmail, showShopEmail, onReset, guest = null }) {
   const dateLabel = format(new Date(date + "T12:00:00"), "EEEE, MMMM d");
   const timeLabel = format(parse(time, "HH:mm", new Date()), "h:mm a");
 
@@ -1201,6 +1395,10 @@ function SuccessStep({ barber, service, date, time, clientName, shopAddress, sho
   const [startStr, endStr] = calendarDates(date, time, duration);
   const calArgs     = { title, startStr, endStr, location: shopAddress, details, uid: `${date}-${time}-${barber?.id}` };
 
+  const guestDuration = guest?.service?.duration ?? 30;
+  const guestStartHHMM = format(addMinutes(parse(time, "HH:mm", new Date()), duration), "HH:mm");
+  const guestTimeLabel = guest ? format(parse(guestStartHHMM, "HH:mm", new Date()), "h:mm a") : null;
+
   return (
     <motion.div {...fadeSlide} className="flex flex-col items-center justify-center min-h-screen px-6 text-center" style={{ background: "#0A0A0A" }}>
       <div className="mb-6" style={{ color: "#8B9A7E" }}>
@@ -1208,12 +1406,14 @@ function SuccessStep({ barber, service, date, time, clientName, shopAddress, sho
       </div>
       <h1 className="text-3xl font-bold text-white mb-2">You're booked!</h1>
       <p className="text-white/50 mb-8 max-w-xs">
-        See you {dateLabel} at {timeLabel} with {barber?.name}.
+        {guest
+          ? `See you ${dateLabel} at ${timeLabel} — both appointments confirmed.`
+          : `See you ${dateLabel} at ${timeLabel} with ${barber?.name}.`}
       </p>
 
       <div className="rounded-2xl border w-full max-w-sm text-left overflow-hidden mb-4" style={{ borderColor: "#2a2a2a", background: "#111" }}>
         <div className="px-5 py-4 border-b border-white/5">
-          <p className="text-white/40 text-xs uppercase tracking-widest font-semibold">Booking Summary</p>
+          <p className="text-white/40 text-xs uppercase tracking-widest font-semibold">{guest ? "Your Appointment" : "Booking Summary"}</p>
         </div>
         {[
           ["Client", clientName],
@@ -1228,6 +1428,26 @@ function SuccessStep({ barber, service, date, time, clientName, shopAddress, sho
           </div>
         ))}
       </div>
+
+      {guest && (
+        <div className="rounded-2xl border w-full max-w-sm text-left overflow-hidden mb-4" style={{ borderColor: "#2a3a2a", background: "#0f1a0f" }}>
+          <div className="px-5 py-4 border-b border-white/10">
+            <p className="text-xs uppercase tracking-widest font-semibold" style={{ color: "#8B9A7E" }}>Guest Appointment</p>
+          </div>
+          {[
+            ["Guest", guest.name],
+            ["Barber", guest.resolvedBarber?.name ?? (guest.barber?.id === "any" ? "First Available" : guest.barber?.name)],
+            ["Service", guest.service?.name],
+            ["Date", dateLabel],
+            ["Time", guestTimeLabel],
+          ].map(([label, value]) => (
+            <div key={label} className="flex justify-between items-center px-5 py-3 border-b border-white/5 last:border-0">
+              <span className="text-white/40 text-sm">{label}</span>
+              <span className="text-white text-sm font-medium">{value}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {(shopAddress || (showShopPhone && shopPhone) || (showShopEmail && shopEmail)) && (
         <div className="rounded-2xl border w-full max-w-sm text-left overflow-hidden mb-8" style={{ borderColor: "#2a2a2a", background: "#111" }}>
@@ -1327,6 +1547,12 @@ export default function ClientBooking() {
   const [clientEmail, setClientEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  const [hasGuest, setHasGuest] = useState(false);
+  const [guestName, setGuestName] = useState("");
+  const [guestService, setGuestService] = useState(null);
+  const [guestBarber, setGuestBarber] = useState(null);
+  const [resolvedGuestBarber, setResolvedGuestBarber] = useState(null);
+
   useEffect(() => {
     Promise.all([entities.Barber.list(), entities.Service.list(), entities.ShopSettings.list()])
       .then(([allBarbers, svcs, settingsArr]) => {
@@ -1402,26 +1628,71 @@ export default function ClientBooking() {
         visit_type: "online",
       });
 
-      if (clientEmail) {
-        supabase.functions.invoke("sendBookingConfirmation", {
-          body: {
-            client_name: clientName,
-            client_email: clientEmail,
-            barber_name: bookingBarber.name,
-            service_name: selectedService.name,
-            date: selectedDate,
-            start_time: selectedTime,
-            end_time: endTime,
-            shop_name: shopName || undefined,
-            shop_address: shopAddress || undefined,
-            shop_phone: shopPhone || undefined,
-          },
-        }).then(({ error }) => {
-          if (error) console.warn("[sendBookingConfirmation] invoke error:", error);
+      // Guest booking
+      let bookingGuestBarber = null;
+      if (hasGuest && guestService && guestBarber) {
+        const guestStartHHMM = endTime; // main end = guest start
+        const guestDuration = guestService.duration ?? 30;
+        const guestEndHHMM = format(addMinutes(parse(guestStartHHMM, "HH:mm", new Date()), guestDuration), "HH:mm");
+
+        bookingGuestBarber = guestBarber;
+        if (guestBarber.id === "any") {
+          const dayName = format(new Date(selectedDate + "T12:00:00"), "EEEE").toLowerCase();
+          const dayBookings = await entities.Booking.filter({ date: selectedDate });
+          bookingGuestBarber = barbers.find(b => {
+            const dh = b.hours?.[dayName];
+            if (!dh || dh.off || dh.closed) return false;
+            if (guestStartHHMM < (dh.start || "09:00") || guestStartHHMM >= (dh.end || "18:00")) return false;
+            return !isSlotTaken(guestStartHHMM, guestDuration, dayBookings.filter(bk => bk.barber_id === b.id));
+          });
+          if (!bookingGuestBarber) throw new Error("No barber available for guest — please choose another slot.");
+        }
+        setResolvedGuestBarber(bookingGuestBarber);
+
+        await entities.Booking.create({
+          barber_id: bookingGuestBarber.id,
+          barber_name: bookingGuestBarber.name,
+          service_id: guestService.id,
+          service_name: guestService.name,
+          client_name: guestName,
+          date: selectedDate,
+          start_time: guestStartHHMM,
+          end_time: guestEndHHMM,
+          duration: guestDuration,
+          price: guestService.price ?? 0,
+          final_price: guestService.price ?? 0,
+          status: "scheduled",
+          visit_type: "online",
         });
       }
 
-      setStep(6);
+      if (clientEmail) {
+        const emailBody = {
+          client_name: clientName,
+          client_email: clientEmail,
+          barber_name: bookingBarber.name,
+          service_name: selectedService.name,
+          date: selectedDate,
+          start_time: selectedTime,
+          end_time: endTime,
+          shop_name: shopName || undefined,
+          shop_address: shopAddress || undefined,
+          shop_phone: shopPhone || undefined,
+        };
+        if (hasGuest && guestService && bookingGuestBarber) {
+          emailBody.guest_name = guestName;
+          emailBody.guest_barber_name = bookingGuestBarber.name;
+          emailBody.guest_service_name = guestService.name;
+          emailBody.guest_start_time = endTime;
+          emailBody.guest_end_time = format(addMinutes(parse(endTime, "HH:mm", new Date()), guestService.duration ?? 30), "HH:mm");
+        }
+        supabase.functions.invoke("sendBookingConfirmation", { body: emailBody })
+          .then(({ error }) => {
+            if (error) console.warn("[sendBookingConfirmation] invoke error:", error);
+          });
+      }
+
+      setStep(8);
     } catch (err) {
       console.error("Booking failed — message:", err?.message, "| details:", err?.details, "| hint:", err?.hint, "| code:", err?.code);
       alert("Something went wrong. Please try again.");
@@ -1439,6 +1710,11 @@ export default function ClientBooking() {
     setClientName("");
     setClientPhone("");
     setClientEmail("");
+    setHasGuest(false);
+    setGuestName("");
+    setGuestService(null);
+    setGuestBarber(null);
+    setResolvedGuestBarber(null);
   };
 
   const logoUrl       = shopSettings.booking_logo_url || null;
@@ -1515,6 +1791,29 @@ export default function ClientBooking() {
           />
         )}
         {step === 3 && (
+          <GuestPromptStep
+            key="guest-prompt"
+            onYes={() => setStep(4)}
+            onNo={() => { setHasGuest(false); setGuestName(""); setGuestService(null); setGuestBarber(null); setStep(5); }}
+            onBack={() => setStep(2)}
+          />
+        )}
+        {step === 4 && (
+          <GuestFormStep
+            key="guest-form"
+            allServices={allServices}
+            allBarbers={barbers}
+            guestName={guestName}
+            guestService={guestService}
+            guestBarber={guestBarber}
+            onNameChange={setGuestName}
+            onServiceChange={setGuestService}
+            onBarberChange={setGuestBarber}
+            onNext={() => { setHasGuest(true); setStep(5); }}
+            onBack={() => setStep(3)}
+          />
+        )}
+        {step === 5 && (
           <DateTimeStep
             key="datetime"
             barber={selectedBarber}
@@ -1522,11 +1821,13 @@ export default function ClientBooking() {
             maxDays={maxDays}
             minNotice={minBookingNotice}
             allBarbers={barbers}
-            onSelect={(date, time) => { setSelectedDate(date); setSelectedTime(time); setStep(4); }}
-            onBack={() => setStep(2)}
+            guestService={hasGuest ? guestService : null}
+            guestBarber={hasGuest ? guestBarber : null}
+            onSelect={(date, time) => { setSelectedDate(date); setSelectedTime(time); setStep(6); }}
+            onBack={() => hasGuest ? setStep(4) : setStep(3)}
           />
         )}
-        {step === 4 && (
+        {step === 6 && (
           <ClientInfoStep
             key="info"
             name={clientName}
@@ -1537,11 +1838,11 @@ export default function ClientBooking() {
               if (field === "phone") setClientPhone(val);
               if (field === "email") setClientEmail(val);
             }}
-            onNext={() => setStep(5)}
-            onBack={() => setStep(3)}
+            onNext={() => setStep(7)}
+            onBack={() => setStep(5)}
           />
         )}
-        {step === 5 && (
+        {step === 7 && (
           <ConfirmStep
             key="confirm"
             barber={selectedBarber}
@@ -1552,13 +1853,14 @@ export default function ClientBooking() {
             clientPhone={clientPhone}
             clientEmail={clientEmail}
             onConfirm={handleConfirm}
-            onBack={() => setStep(4)}
+            onBack={() => setStep(6)}
             submitting={submitting}
             cancelPolicyEnabled={cancelPolicyEnabled}
             cancelPolicyText={cancelPolicyText}
+            guest={hasGuest ? { name: guestName, service: guestService, barber: guestBarber } : null}
           />
         )}
-        {step === 6 && (
+        {step === 8 && (
           <SuccessStep
             key="success"
             barber={selectedBarber}
@@ -1572,6 +1874,7 @@ export default function ClientBooking() {
             shopEmail={shopEmail}
             showShopEmail={showShopEmail}
             onReset={handleReset}
+            guest={hasGuest ? { name: guestName, service: guestService, barber: guestBarber, resolvedBarber: resolvedGuestBarber } : null}
           />
         )}
       </AnimatePresence>

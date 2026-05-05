@@ -36,6 +36,11 @@ function buildHtml(booking: {
   shop_name?: string;
   shop_address?: string;
   shop_phone?: string;
+  guest_name?: string;
+  guest_barber_name?: string;
+  guest_service_name?: string;
+  guest_start_time?: string;
+  guest_end_time?: string;
 }): string {
   const {
     client_name,
@@ -47,17 +52,43 @@ function buildHtml(booking: {
     shop_name = "Stand Tall Barbershop",
     shop_address,
     shop_phone,
+    guest_name,
+    guest_barber_name,
+    guest_service_name,
+    guest_start_time,
+    guest_end_time,
   } = booking;
+
+  const hasGuest = !!(guest_name && guest_barber_name && guest_service_name && guest_start_time);
 
   const dateLabel  = formatDate(date);
   const timeLabel  = `${formatTime(start_time)} – ${formatTime(end_time)}`;
   const logoUrl    = "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6993eba91209ee0a1089f355/fd9cfe023_6f5fd5cc-8fc9-4041-9d87-c24e77a3bc58.png";
 
-  const row = (label: string, value: string) => `
+  const row = (label: string, value: string, borderColor = "#2a2a2a") => `
     <tr>
-      <td style="padding:10px 0;border-bottom:1px solid #2a2a2a;color:#888;font-size:13px;width:120px">${label}</td>
-      <td style="padding:10px 0;border-bottom:1px solid #2a2a2a;color:#ffffff;font-size:13px;font-weight:600">${value}</td>
+      <td style="padding:10px 0;border-bottom:1px solid ${borderColor};color:#888;font-size:13px;width:120px">${label}</td>
+      <td style="padding:10px 0;border-bottom:1px solid ${borderColor};color:#ffffff;font-size:13px;font-weight:600">${value}</td>
     </tr>`;
+
+  const guestSection = hasGuest ? `
+        <!-- Guest appointment card -->
+        <tr><td style="padding-top:16px">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f1a0f;border-radius:16px;padding:24px;border:1px solid #2a3a2a">
+            <tr><td style="padding-bottom:16px">
+              <p style="margin:0 0 4px;color:#8B9A7E;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px">Guest Appointment</p>
+              <p style="margin:0;color:#ccddcc;font-size:16px;font-weight:700">Back-to-back with ${guest_name}</p>
+            </td></tr>
+            <tr><td>
+              <table width="100%" cellpadding="0" cellspacing="0">
+                ${row("Guest",   guest_name!, "#2a3a2a")}
+                ${row("Barber",  guest_barber_name!, "#2a3a2a")}
+                ${row("Service", guest_service_name!, "#2a3a2a")}
+                ${row("Time",    `${formatTime(guest_start_time!)}${guest_end_time ? " – " + formatTime(guest_end_time) : ""}`, "#2a3a2a")}
+              </table>
+            </td></tr>
+          </table>
+        </td></tr>` : "";
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -78,10 +109,11 @@ function buildHtml(booking: {
 
           <!-- Heading -->
           <p style="margin:0 0 6px;color:#8B9A7E;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px">Booking Confirmed</p>
-          <h1 style="margin:0 0 8px;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px">Your appointment is confirmed!</h1>
-          <p style="margin:0 0 28px;color:#888;font-size:15px">Hi ${client_name}, we look forward to seeing you.</p>
+          <h1 style="margin:0 0 8px;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px">${hasGuest ? "Both appointments confirmed!" : "Your appointment is confirmed!"}</h1>
+          <p style="margin:0 0 28px;color:#888;font-size:15px">Hi ${client_name}, we look forward to seeing you${hasGuest ? " and your guest" : ""}.</p>
 
           <!-- Details table -->
+          ${hasGuest ? `<p style="margin:0 0 10px;color:#666;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px">Your Appointment</p>` : ""}
           <table width="100%" cellpadding="0" cellspacing="0">
             ${row("Barber",   barber_name)}
             ${row("Service",  service_name)}
@@ -92,6 +124,8 @@ function buildHtml(booking: {
           </table>
 
         </td></tr>
+
+        ${guestSection}
 
         <!-- Footer note -->
         <tr><td style="padding:24px 0 0;text-align:center">
@@ -132,6 +166,11 @@ Deno.serve(async (req) => {
     shop_name?: string;
     shop_address?: string;
     shop_phone?: string;
+    guest_name?: string;
+    guest_barber_name?: string;
+    guest_service_name?: string;
+    guest_start_time?: string;
+    guest_end_time?: string;
   };
 
   try {
@@ -157,9 +196,14 @@ Deno.serve(async (req) => {
     date,
     start_time,
     end_time,
-    shop_name:    body.shop_name,
-    shop_address: body.shop_address,
-    shop_phone:   body.shop_phone,
+    shop_name:          body.shop_name,
+    shop_address:       body.shop_address,
+    shop_phone:         body.shop_phone,
+    guest_name:         body.guest_name,
+    guest_barber_name:  body.guest_barber_name,
+    guest_service_name: body.guest_service_name,
+    guest_start_time:   body.guest_start_time,
+    guest_end_time:     body.guest_end_time,
   });
 
   const shopName = body.shop_name || "Stand Tall Barbershop";
