@@ -887,11 +887,20 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
       : entities.Booking.filter({ barber_id: barber.id, date: selectedDate });
 
     if (guestBarber) {
-      const guestQuery = (guestBarber.id === "any" || isAny)
+      const guestIsAny = guestBarber.id === "any";
+      const guestQuery = (guestIsAny || isAny)
         ? entities.Booking.filter({ date: selectedDate })
         : entities.Booking.filter({ barber_id: guestBarber.id, date: selectedDate });
+      console.log("[DateTimeStep] fetching bookings — date:", selectedDate,
+        "| main barber:", isAny ? "any" : barber.id,
+        "| guest barber:", guestIsAny ? "any" : guestBarber.id,
+        "| guestBarber.hours:", guestBarber.hours);
       Promise.all([mainQuery, guestQuery])
-        .then(([main, guest]) => { setBookings(main); setGuestBookings(guest); })
+        .then(([main, guest]) => {
+          console.log("[DateTimeStep] bookings fetched — main:", main.length, "guest:", guest.length);
+          setBookings(main);
+          setGuestBookings(guest);
+        })
         .catch(console.error)
         .finally(() => setLoadingSlots(false));
     } else {
@@ -921,17 +930,42 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
       const guestTime = `${String(gH).padStart(2, "0")}:${String(gM).padStart(2, "0")}`;
 
       if (guestBarber.id === "any") {
-        return allBarbers.some(b => {
+        const result = allBarbers.some(b => {
           const dh = b.hours?.[dayName];
           if (!dh || dh.off || dh.closed) return false;
           if (guestTime < (dh.start || "09:00") || guestTime >= (dh.end || "18:00")) return false;
           return !isSlotTaken(guestTime, guestDuration, guestBookings.filter(bk => bk.barber_id === b.id));
         });
+        console.log("[guest-any] mainStart:", mainStartTime, "guestTime:", guestTime, "free:", result);
+        return result;
       }
-      const dh = guestBarber.hours?.[dayName];
-      if (!dh || dh.off || dh.closed) return false;
-      if (guestTime < (dh.start || "09:00") || guestTime >= (dh.end || "18:00")) return false;
-      return !isSlotTaken(guestTime, guestDuration, guestBookings);
+
+      // Specific guest barber
+      const guestHasHours = guestBarber.hours && Object.keys(guestBarber.hours).length > 0;
+      console.log("[guest] barber:", guestBarber.name, "| dayName:", dayName,
+        "| guestTime:", guestTime, "| hasHours:", guestHasHours,
+        "| hours[day]:", guestBarber.hours?.[dayName],
+        "| guestBookings:", guestBookings.length);
+
+      if (!guestHasHours) {
+        // No hours configured — only check booking conflicts (same logic as main barber in dateRange)
+        const taken = isSlotTaken(guestTime, guestDuration, guestBookings);
+        console.log("[guest] no hours configured, isSlotTaken:", taken);
+        return !taken;
+      }
+
+      const dh = guestBarber.hours[dayName];
+      if (!dh || dh.off || dh.closed) {
+        console.log("[guest] barber off/closed this day:", dh);
+        return false;
+      }
+      if (guestTime < (dh.start || "09:00") || guestTime >= (dh.end || "18:00")) {
+        console.log("[guest] guestTime", guestTime, "outside hours", dh.start, "-", dh.end);
+        return false;
+      }
+      const taken = isSlotTaken(guestTime, guestDuration, guestBookings);
+      console.log("[guest] isSlotTaken:", taken);
+      return !taken;
     };
 
     if (isAny) {
