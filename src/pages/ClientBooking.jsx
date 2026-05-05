@@ -977,28 +977,28 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
         return result;
       }
 
-      // Specific guest barber
+      // Specific guest barber — hours check always runs first when hours are configured,
+      // regardless of timing mode, then booking-conflict check follows.
       const guestHasHours = guestBarber.hours && Object.keys(guestBarber.hours).length > 0;
       console.log("[guest] barber:", guestBarber.name, "| dayName:", dayName,
         "| guestTime:", guestTime, "| timing:", guestTiming, "| hasHours:", guestHasHours,
         "| hours[day]:", guestBarber.hours?.[dayName],
         "| guestBookings:", guestBookings.length);
 
-      if (!guestHasHours) {
-        const taken = isSlotTaken(guestTime, guestDuration, guestBookings);
-        console.log("[guest] no hours configured, isSlotTaken:", taken);
-        return !taken;
+      if (guestHasHours) {
+        const dh = guestBarber.hours[dayName];
+        if (!dh || dh.off || dh.closed) {
+          console.log("[guest] barber off/closed this day:", dh);
+          return false;
+        }
+        if (guestTime < (dh.start || "09:00") || guestTime >= (dh.end || "18:00")) {
+          console.log("[guest] guestTime", guestTime, "outside hours", dh.start, "-", dh.end);
+          return false;
+        }
+      } else {
+        console.log("[guest] no hours configured, skipping hours boundary check");
       }
 
-      const dh = guestBarber.hours[dayName];
-      if (!dh || dh.off || dh.closed) {
-        console.log("[guest] barber off/closed this day:", dh);
-        return false;
-      }
-      if (guestTime < (dh.start || "09:00") || guestTime >= (dh.end || "18:00")) {
-        console.log("[guest] guestTime", guestTime, "outside hours", dh.start, "-", dh.end);
-        return false;
-      }
       const taken = isSlotTaken(guestTime, guestDuration, guestBookings);
       console.log("[guest] isSlotTaken:", taken);
       return !taken;
