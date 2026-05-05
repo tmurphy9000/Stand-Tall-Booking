@@ -605,9 +605,14 @@ function GuestPromptStep({ onYes, onNo, onBack }) {
 
 // ─── Guest Form Step ──────────────────────────────────────────────────────────
 
-function GuestFormStep({ allServices, allBarbers, guestName, guestService, guestBarber, onNameChange, onServiceChange, onBarberChange, onNext, onBack }) {
+function GuestFormStep({ allServices, allBarbers, guestName, guestService, guestBarber, guestTiming, onNameChange, onServiceChange, onBarberChange, onTimingChange, onNext, onBack }) {
   const allBarbersWithAny = [ANY_BARBER, ...allBarbers];
   const canContinue = guestName.trim() && guestService && guestBarber;
+
+  const TIMING_OPTIONS = [
+    { value: "back_to_back", label: "Back to back", desc: "Guest starts after yours ends" },
+    { value: "same_time",    label: "Same time",    desc: "Both served simultaneously" },
+  ];
 
   return (
     <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
@@ -675,6 +680,30 @@ function GuestFormStep({ allServices, allBarbers, guestName, guestService, guest
           </div>
         </div>
 
+        {/* Appointment timing */}
+        <div>
+          <p className="text-white/40 text-xs uppercase tracking-widest font-semibold mb-2">When would you like the guest's appointment?</p>
+          <div className="flex gap-2">
+            {TIMING_OPTIONS.map(opt => {
+              const sel = guestTiming === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => onTimingChange(opt.value)}
+                  className="flex-1 p-4 rounded-xl border text-left transition-all"
+                  style={{ background: sel ? "#1a2a1a" : "#141414", borderColor: sel ? "#8B9A7E" : "#2a2a2a" }}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-white text-sm font-semibold">{opt.label}</p>
+                    {sel && <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: "#8B9A7E" }} />}
+                  </div>
+                  <p className="text-white/40 text-xs leading-snug">{opt.desc}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <button
           onClick={onNext}
           disabled={!canContinue}
@@ -726,7 +755,7 @@ function isSlotTaken(slotTime, duration, bookings) {
   });
 }
 
-function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarbers = [], minNotice = 0, guestService = null, guestBarber = null }) {
+function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarbers = [], minNotice = 0, guestService = null, guestBarber = null, guestTiming = "back_to_back" }) {
   const [selectedDate, setSelectedDate] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [guestBookings, setGuestBookings] = useState([]);
@@ -919,15 +948,23 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
     const isSelectedToday = selectedDate === todayStr;
     const cutoffHHMM = isSelectedToday ? format(addMinutes(new Date(), minNotice), "HH:mm") : null;
 
-    // Helper: check if the guest's back-to-back slot is also free
+    // Helper: check if the guest's slot is also free
+    // "same_time"    → guest starts at the same time as the main client
+    // "back_to_back" → guest starts immediately after the main appointment ends
     const guestDuration = guestService?.duration ?? 30;
     const checkGuestFree = (mainStartTime) => {
       if (!guestBarber || !guestService) return true;
-      const [sh, sm] = mainStartTime.split(":").map(Number);
-      const guestStartMins = sh * 60 + sm + serviceDuration;
-      const gH = Math.floor(guestStartMins / 60);
-      const gM = guestStartMins % 60;
-      const guestTime = `${String(gH).padStart(2, "0")}:${String(gM).padStart(2, "0")}`;
+
+      let guestTime;
+      if (guestTiming === "same_time") {
+        guestTime = mainStartTime;
+      } else {
+        const [sh, sm] = mainStartTime.split(":").map(Number);
+        const guestStartMins = sh * 60 + sm + serviceDuration;
+        const gH = Math.floor(guestStartMins / 60);
+        const gM = guestStartMins % 60;
+        guestTime = `${String(gH).padStart(2, "0")}:${String(gM).padStart(2, "0")}`;
+      }
 
       if (guestBarber.id === "any") {
         const result = allBarbers.some(b => {
@@ -936,19 +973,18 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
           if (guestTime < (dh.start || "09:00") || guestTime >= (dh.end || "18:00")) return false;
           return !isSlotTaken(guestTime, guestDuration, guestBookings.filter(bk => bk.barber_id === b.id));
         });
-        console.log("[guest-any] mainStart:", mainStartTime, "guestTime:", guestTime, "free:", result);
+        console.log("[guest-any] mainStart:", mainStartTime, "guestTime:", guestTime, "timing:", guestTiming, "free:", result);
         return result;
       }
 
       // Specific guest barber
       const guestHasHours = guestBarber.hours && Object.keys(guestBarber.hours).length > 0;
       console.log("[guest] barber:", guestBarber.name, "| dayName:", dayName,
-        "| guestTime:", guestTime, "| hasHours:", guestHasHours,
+        "| guestTime:", guestTime, "| timing:", guestTiming, "| hasHours:", guestHasHours,
         "| hours[day]:", guestBarber.hours?.[dayName],
         "| guestBookings:", guestBookings.length);
 
       if (!guestHasHours) {
-        // No hours configured — only check booking conflicts (same logic as main barber in dateRange)
         const taken = isSlotTaken(guestTime, guestDuration, guestBookings);
         console.log("[guest] no hours configured, isSlotTaken:", taken);
         return !taken;
@@ -996,7 +1032,7 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
              (cutoffHHMM !== null && slot.time <= cutoffHHMM) ||
              !checkGuestFree(slot.time),
     }));
-  }, [selectedDate, barber, bookings, guestBookings, serviceDuration, allBarbers, isAny, minNotice, guestBarber, guestService]);
+  }, [selectedDate, barber, bookings, guestBookings, serviceDuration, allBarbers, isAny, minNotice, guestBarber, guestService, guestTiming]);
 
   return (
     <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
@@ -1318,8 +1354,10 @@ function ConfirmStep({ barber, service, date, time, clientName, clientPhone, cli
   const confirmDisabled = submitting || (showPolicy && !policyAgreed);
 
   const guestDuration = guest?.service?.duration ?? 30;
-  const guestStartLabel = guest ? format(parse(endTimeHHMM, "HH:mm", new Date()), "h:mm a") : null;
-  const guestEndLabel = guest ? format(addMinutes(parse(endTimeHHMM, "HH:mm", new Date()), guestDuration), "h:mm a") : null;
+  const guestStartHHMM = guest?.timing === "same_time" ? time : endTimeHHMM;
+  const guestStartLabel = guest ? format(parse(guestStartHHMM, "HH:mm", new Date()), "h:mm a") : null;
+  const guestEndLabel = guest ? format(addMinutes(parse(guestStartHHMM, "HH:mm", new Date()), guestDuration), "h:mm a") : null;
+  const guestTimingLabel = guest?.timing === "same_time" ? "(same time)" : "(back-to-back)";
 
   const row = (icon, label, value) => (
     <div className="flex items-start gap-4 py-4 border-b border-white/5 last:border-0">
@@ -1353,7 +1391,7 @@ function ConfirmStep({ barber, service, date, time, clientName, clientPhone, cli
               {row(<User className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Guest", guest.name)}
               {row(<Scissors className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Service", `${guest.service?.name}${guest.service?.price > 0 ? ` — $${Number(guest.service.price).toFixed(0)}` : ""}`)}
               {row(<Users className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Barber", guest.barber?.id === "any" ? "First Available Barber" : guest.barber?.name)}
-              {row(<Clock className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Time", `${guestStartLabel} – ${guestEndLabel} (back-to-back)`)}
+              {row(<Clock className="w-4 h-4" style={{ color: "#8B9A7E" }} />, "Time", `${guestStartLabel} – ${guestEndLabel} ${guestTimingLabel}`)}
             </div>
           </>
         )}
@@ -1430,7 +1468,9 @@ function SuccessStep({ barber, service, date, time, clientName, shopAddress, sho
   const calArgs     = { title, startStr, endStr, location: shopAddress, details, uid: `${date}-${time}-${barber?.id}` };
 
   const guestDuration = guest?.service?.duration ?? 30;
-  const guestStartHHMM = format(addMinutes(parse(time, "HH:mm", new Date()), duration), "HH:mm");
+  const guestStartHHMM = guest?.timing === "same_time"
+    ? time
+    : format(addMinutes(parse(time, "HH:mm", new Date()), duration), "HH:mm");
   const guestTimeLabel = guest ? format(parse(guestStartHHMM, "HH:mm", new Date()), "h:mm a") : null;
 
   return (
@@ -1585,6 +1625,7 @@ export default function ClientBooking() {
   const [guestName, setGuestName] = useState("");
   const [guestService, setGuestService] = useState(null);
   const [guestBarber, setGuestBarber] = useState(null);
+  const [guestTiming, setGuestTiming] = useState("back_to_back"); // "back_to_back" | "same_time"
   const [resolvedGuestBarber, setResolvedGuestBarber] = useState(null);
 
   useEffect(() => {
@@ -1665,7 +1706,8 @@ export default function ClientBooking() {
       // Guest booking
       let bookingGuestBarber = null;
       if (hasGuest && guestService && guestBarber) {
-        const guestStartHHMM = endTime; // main end = guest start
+        // "same_time" → guest starts at the same time; "back_to_back" → guest starts after main ends
+        const guestStartHHMM = guestTiming === "same_time" ? selectedTime : endTime;
         const guestDuration = guestService.duration ?? 30;
         const guestEndHHMM = format(addMinutes(parse(guestStartHHMM, "HH:mm", new Date()), guestDuration), "HH:mm");
 
@@ -1674,6 +1716,8 @@ export default function ClientBooking() {
           const dayName = format(new Date(selectedDate + "T12:00:00"), "EEEE").toLowerCase();
           const dayBookings = await entities.Booking.filter({ date: selectedDate });
           bookingGuestBarber = barbers.find(b => {
+            // For same_time, avoid assigning the same barber as the main client
+            if (guestTiming === "same_time" && b.id === bookingBarber.id) return false;
             const dh = b.hours?.[dayName];
             if (!dh || dh.off || dh.closed) return false;
             if (guestStartHHMM < (dh.start || "09:00") || guestStartHHMM >= (dh.end || "18:00")) return false;
@@ -1717,8 +1761,8 @@ export default function ClientBooking() {
           emailBody.guest_name = guestName;
           emailBody.guest_barber_name = bookingGuestBarber.name;
           emailBody.guest_service_name = guestService.name;
-          emailBody.guest_start_time = endTime;
-          emailBody.guest_end_time = format(addMinutes(parse(endTime, "HH:mm", new Date()), guestService.duration ?? 30), "HH:mm");
+          emailBody.guest_start_time = guestStartHHMM;
+          emailBody.guest_end_time = guestEndHHMM;
         }
         supabase.functions.invoke("sendBookingConfirmation", { body: emailBody })
           .then(({ error }) => {
@@ -1748,6 +1792,7 @@ export default function ClientBooking() {
     setGuestName("");
     setGuestService(null);
     setGuestBarber(null);
+    setGuestTiming("back_to_back");
     setResolvedGuestBarber(null);
   };
 
@@ -1840,9 +1885,11 @@ export default function ClientBooking() {
             guestName={guestName}
             guestService={guestService}
             guestBarber={guestBarber}
+            guestTiming={guestTiming}
             onNameChange={setGuestName}
             onServiceChange={setGuestService}
             onBarberChange={setGuestBarber}
+            onTimingChange={setGuestTiming}
             onNext={() => { setHasGuest(true); setStep(5); }}
             onBack={() => setStep(3)}
           />
@@ -1857,6 +1904,7 @@ export default function ClientBooking() {
             allBarbers={barbers}
             guestService={hasGuest ? guestService : null}
             guestBarber={hasGuest ? guestBarber : null}
+            guestTiming={hasGuest ? guestTiming : "back_to_back"}
             onSelect={(date, time) => { setSelectedDate(date); setSelectedTime(time); setStep(6); }}
             onBack={() => hasGuest ? setStep(4) : setStep(3)}
           />
@@ -1891,7 +1939,7 @@ export default function ClientBooking() {
             submitting={submitting}
             cancelPolicyEnabled={cancelPolicyEnabled}
             cancelPolicyText={cancelPolicyText}
-            guest={hasGuest ? { name: guestName, service: guestService, barber: guestBarber } : null}
+            guest={hasGuest ? { name: guestName, service: guestService, barber: guestBarber, timing: guestTiming } : null}
           />
         )}
         {step === 8 && (
@@ -1908,7 +1956,7 @@ export default function ClientBooking() {
             shopEmail={shopEmail}
             showShopEmail={showShopEmail}
             onReset={handleReset}
-            guest={hasGuest ? { name: guestName, service: guestService, barber: guestBarber, resolvedBarber: resolvedGuestBarber } : null}
+            guest={hasGuest ? { name: guestName, service: guestService, barber: guestBarber, resolvedBarber: resolvedGuestBarber, timing: guestTiming } : null}
           />
         )}
       </AnimatePresence>
