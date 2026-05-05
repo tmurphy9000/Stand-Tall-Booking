@@ -1705,11 +1705,13 @@ export default function ClientBooking() {
 
       // Guest booking
       let bookingGuestBarber = null;
+      let guestStartHHMM = null;
+      let guestEndHHMM = null;
       if (hasGuest && guestService && guestBarber) {
         // "same_time" → guest starts at the same time; "back_to_back" → guest starts after main ends
-        const guestStartHHMM = guestTiming === "same_time" ? selectedTime : endTime;
+        guestStartHHMM = guestTiming === "same_time" ? selectedTime : endTime;
         const guestDuration = guestService.duration ?? 30;
-        const guestEndHHMM = format(addMinutes(parse(guestStartHHMM, "HH:mm", new Date()), guestDuration), "HH:mm");
+        guestEndHHMM = format(addMinutes(parse(guestStartHHMM, "HH:mm", new Date()), guestDuration), "HH:mm");
 
         bookingGuestBarber = guestBarber;
         if (guestBarber.id === "any") {
