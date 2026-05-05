@@ -1044,7 +1044,7 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
           <p className="text-white/40 text-xs uppercase tracking-widest font-semibold">Select a date</p>
           {(guestBarber && guestService) ? (
             <span className="text-xs px-2 py-1 rounded-lg" style={{ background: "#1f2a1f", color: "#8B9A7E" }}>
-              <Users className="w-3 h-3 inline mr-1" />Back-to-back slots
+              <Users className="w-3 h-3 inline mr-1" />{guestTiming === "same_time" ? "Same time slots" : "Back-to-back slots"}
             </span>
           ) : (
             <button
