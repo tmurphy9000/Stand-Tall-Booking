@@ -717,28 +717,34 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
     searchSlots(shownSlotKeys, 5, true);
   };
 
-  // Build date range — for "any", a day is off only if ALL barbers are off
-  const dateRange = useMemo(() => {
-    const today = new Date();
-    return Array.from({ length: maxDays }, (_, i) => {
-      const d = addDays(today, i);
-      const dateStr = format(d, "yyyy-MM-dd");
-      const dayName = format(d, "EEEE").toLowerCase();
-      let isOff;
-      if (isAny) {
-        const anyWorking = allBarbers.some(b => {
-          const dh = b.hours?.[dayName];
-          return dh && !dh.off && !dh.closed;
-        });
-        isOff = allBarbers.length > 0 && !anyWorking;
-      } else {
-        const hasHours = barber?.hours && Object.keys(barber.hours).length > 0;
-        const dayHours = barber?.hours?.[dayName];
-        isOff = hasHours && (!dayHours || dayHours.off || dayHours.closed);
-      }
-      return { dateStr, dayLabel: format(d, "EEE"), dayNum: format(d, "d"), monthLabel: format(d, "MMM"), isOff };
-    });
-  }, [barber, maxDays, allBarbers, isAny]);
+  // Build date range — always fresh (not memoized) so new Date() is never stale
+  const _rangeToday = new Date();
+  _rangeToday.setHours(0, 0, 0, 0);
+  const dateRange = Array.from({ length: maxDays }, (_, i) => {
+    const d = addDays(_rangeToday, i);
+    const dateStr = format(d, "yyyy-MM-dd");
+    const dayName = format(d, "EEEE").toLowerCase();
+    let isOff;
+    if (isAny) {
+      const anyWorking = allBarbers.some(b => {
+        const dh = b.hours?.[dayName];
+        return dh && !dh.off && !dh.closed;
+      });
+      isOff = allBarbers.length > 0 && !anyWorking;
+    } else {
+      const hasHours = barber?.hours && Object.keys(barber.hours).length > 0;
+      const dayHours = barber?.hours?.[dayName];
+      isOff = hasHours && (!dayHours || dayHours.off || dayHours.closed);
+    }
+    return { dateStr, dayLabel: format(d, "EEE"), dayNum: format(d, "d"), monthLabel: format(d, "MMM"), isOff };
+  });
+
+  // Clear selectedDate if it's in the past (e.g. after midnight or stale state)
+  useEffect(() => {
+    if (!selectedDate) return;
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    if (selectedDate < todayStr) setSelectedDate(null);
+  }, [selectedDate]);
 
   // Fetch bookings when date changes — all barbers for "any", single barber otherwise
   useEffect(() => {
