@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
 import { Calendar, Package, BarChart3, Banknote, Settings, DollarSign, ChevronLeft, ChevronRight, Users, Lock, Monitor, Smartphone, LogOut } from "lucide-react";
@@ -34,10 +34,10 @@ export default function Layout({ children, currentPageName }) {
 
   return (
     <div className="min-h-screen bg-[#FAFAF8] flex">
-      {/* Left Sidebar Navigation */}
+      {/* Left Sidebar Navigation — desktop only */}
       {showTabs && (
         <nav className={cn(
-          "fixed left-0 top-0 bottom-0 z-50 bg-[#0A0A0A] border-r border-white/10 flex flex-col transition-all duration-300",
+          "hidden md:flex md:flex-col fixed left-0 top-0 bottom-0 z-50 bg-[#0A0A0A] border-r border-white/10 transition-all duration-300",
           sidebarCollapsed ? "w-0 -translate-x-full" : "w-20"
         )}>
           {/* Logo */}
@@ -163,12 +163,12 @@ export default function Layout({ children, currentPageName }) {
         </nav>
       )}
 
-      {/* Collapse Toggle Button */}
+      {/* Collapse Toggle Button — desktop only */}
       {showTabs && (
         <button
           onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
           className={cn(
-            "fixed top-1/2 -translate-y-1/2 z-50 bg-[#0A0A0A] text-white p-2 rounded-r-lg border border-l-0 border-white/10 hover:bg-[#1A1A1A] transition-all duration-300",
+            "hidden md:flex fixed top-1/2 -translate-y-1/2 z-50 bg-[#0A0A0A] text-white p-2 rounded-r-lg border border-l-0 border-white/10 hover:bg-[#1A1A1A] transition-all duration-300",
             sidebarCollapsed ? "left-0" : "left-20"
           )}
         >
@@ -179,12 +179,70 @@ export default function Layout({ children, currentPageName }) {
       {/* Main Content Area */}
       <div className={cn(
         "flex-1 flex flex-col transition-all duration-300",
-        showTabs && (sidebarCollapsed ? "ml-0" : "ml-20")
+        showTabs && (sidebarCollapsed ? "md:ml-0" : "md:ml-20"),
+        showTabs && "pb-16 md:pb-0"
       )}>
         <main className="flex-1 overflow-auto">
           {children}
         </main>
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      {showTabs && (
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0A] border-t border-white/10 md:hidden">
+          <div className="flex overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+            {tabs
+              .filter(tab => {
+                if (tab.requiresFullAccess && !hasFullAccess) return false;
+                if (tab.page === "StaffSchedule" && !currentBarber && !hasFullAccess) return false;
+                return true;
+              })
+              .map((tab) => {
+                const isActive = currentPageName === tab.page;
+                return (
+                  <Link
+                    key={tab.page}
+                    to={createPageUrl(tab.page)}
+                    className={cn(
+                      "flex flex-col items-center gap-0.5 py-2 px-3 min-w-[56px] flex-shrink-0 transition-all relative",
+                      isActive ? "text-[#8B9A7E]" : "text-[#FAFAF8]/60"
+                    )}
+                  >
+                    {isActive && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[#8B9A7E] rounded-b" />}
+                    <tab.icon className="w-5 h-5" />
+                    <span className="text-[9px] font-medium">{tab.name.split(' ')[0]}</span>
+                  </Link>
+                );
+              })}
+            {currentBarber?.permission_level === "service_provider" ? (
+              <button
+                onClick={() => toast.error("Access Denied", {
+                  description: "Contact your owner or manager.",
+                  icon: <Lock className="w-4 h-4" />
+                })}
+                className="flex flex-col items-center gap-0.5 py-2 px-3 min-w-[56px] flex-shrink-0 text-[#FAFAF8]/60"
+              >
+                <Settings className="w-5 h-5" />
+                <span className="text-[9px] font-medium">Settings</span>
+              </button>
+            ) : (
+              <Link
+                to={createPageUrl(settingsTab.page)}
+                className={cn(
+                  "flex flex-col items-center gap-0.5 py-2 px-3 min-w-[56px] flex-shrink-0 transition-all relative",
+                  currentPageName === settingsTab.page ? "text-[#8B9A7E]" : "text-[#FAFAF8]/60"
+                )}
+              >
+                {currentPageName === settingsTab.page && (
+                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[#8B9A7E] rounded-b" />
+                )}
+                <Settings className="w-5 h-5" />
+                <span className="text-[9px] font-medium">Settings</span>
+              </Link>
+            )}
+          </div>
+        </nav>
+      )}
     </div>
   );
 }

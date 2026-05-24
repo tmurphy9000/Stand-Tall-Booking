@@ -295,7 +295,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <Label className="text-xs text-gray-500">Phone</Label>
               <Input value={form.client_phone} onChange={e => handleContactChange("client_phone", e.target.value)} placeholder="(555) 123-4567" />

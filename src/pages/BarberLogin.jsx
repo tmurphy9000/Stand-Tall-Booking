@@ -67,7 +67,7 @@ export default function BarberLogin() {
     return (
       <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center p-4">
         <Card className="max-w-md w-full shadow-xl border-0">
-          <CardContent className="pt-8 pb-8 px-8">
+          <CardContent className="pt-8 pb-8 px-4 sm:px-8">
             <div className="flex justify-center mb-6">
               <img
                 src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6993eba91209ee0a1089f355/fd9cfe023_6f5fd5cc-8fc9-4041-9d87-c24e77a3bc58.png"
@@ -148,12 +148,12 @@ export default function BarberLogin() {
   return (
     <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center p-4">
       <Card className="max-w-md w-full shadow-xl border-0">
-        <CardContent className="pt-8 pb-8 px-8">
+        <CardContent className="pt-8 pb-8 px-4 sm:px-8">
           <div className="flex justify-center mb-6">
             <img
               src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6993eba91209ee0a1089f355/fd9cfe023_6f5fd5cc-8fc9-4041-9d87-c24e77a3bc58.png"
               alt="Stand Tall Barbershop"
-              className="w-36 h-36 rounded-xl shadow-md"
+              className="w-24 h-24 sm:w-36 sm:h-36 rounded-xl shadow-md"
             />
           </div>
 

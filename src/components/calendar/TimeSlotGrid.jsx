@@ -54,6 +54,33 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
   const height = durationSlots * slotHeight - 2;
   const [showHandles, setShowHandles] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
+  const longPressTimer = useRef(null);
+  const touchStartPos = useRef({ x: 0, y: 0 });
+
+  const handleBlockTouchStart = (e) => {
+    e.stopPropagation();
+    touchStartPos.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    longPressTimer.current = setTimeout(() => {
+      const touch = e.touches[0] || e.changedTouches[0];
+      onContextMenu({
+        clientX: Math.min(touch.clientX, window.innerWidth - 200),
+        clientY: Math.min(touch.clientY, window.innerHeight - 250),
+        preventDefault: () => {},
+        stopPropagation: () => {},
+      }, booking);
+    }, 500);
+  };
+
+  const handleBlockTouchEnd = (e) => {
+    e.stopPropagation();
+    clearTimeout(longPressTimer.current);
+  };
+
+  const handleBlockTouchMove = (e) => {
+    const dx = Math.abs(e.touches[0].clientX - touchStartPos.current.x);
+    const dy = Math.abs(e.touches[0].clientY - touchStartPos.current.y);
+    if (dx > 10 || dy > 10) clearTimeout(longPressTimer.current);
+  };
 
   const statusColors = {
     scheduled: "bg-purple-100 border-purple-500 text-purple-800",
@@ -109,8 +136,16 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
         e.stopPropagation();
         onContextMenu(e, booking);
       }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onContextMenu(e, booking);
+      }}
       onMouseEnter={() => setShowHandles(true)}
       onMouseLeave={() => !isResizing && setShowHandles(false)}
+      onTouchStart={handleBlockTouchStart}
+      onTouchEnd={handleBlockTouchEnd}
+      onTouchMove={handleBlockTouchMove}
       className={cn(
         "booking-card absolute left-0.5 right-0.5 rounded-md border-l-[3px] px-1 py-0.5 overflow-hidden z-10",
         statusColors[booking.status] || statusColors.scheduled

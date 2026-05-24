@@ -84,5 +84,13 @@
 
   body {
     @apply bg-background text-foreground;
+    touch-action: manipulation;
+  }
+
+  /* Ensure interactive elements have adequate touch targets on mobile */
+  @media (max-width: 767px) {
+    button, a, [role="button"] {
+      touch-action: manipulation;
+    }
   }
 }

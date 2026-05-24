@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { entities } from "@/api/entities";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, addDays, startOfWeek } from "date-fns";
@@ -30,8 +30,16 @@ export default function CalendarPage() {
   const [initialPinchDistance, setInitialPinchDistance] = useState(null);
   const [initialZoomLevel, setInitialZoomLevel] = useState(1);
   const [showAssistant, setShowAssistant] = useState(false);
-  const [leaderboardCollapsed, setLeaderboardCollapsed] = useState(false);
+  const [leaderboardCollapsed, setLeaderboardCollapsed] = useState(() => window.innerWidth < 768);
+  const [isNarrowScreen, setIsNarrowScreen] = useState(() => window.innerWidth < 768);
+  const [mobileBarberIndex, setMobileBarberIndex] = useState(0);
   const { isMobile } = useViewMode();
+
+  useEffect(() => {
+    const handler = () => setIsNarrowScreen(window.innerWidth < 768);
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
 
   const queryClient = useQueryClient();
 
@@ -139,7 +147,10 @@ export default function CalendarPage() {
     return true;
   });
   const totalGroups = 1;
-  const visibleBarbers = activeBarbers;
+  const safeMobileIndex = activeBarbers.length > 0 ? mobileBarberIndex % activeBarbers.length : 0;
+  const visibleBarbers = isNarrowScreen && activeBarbers.length > 0
+    ? [activeBarbers[safeMobileIndex]]
+    : activeBarbers;
 
   const handleSlotClick = (e, barber, time, date) => {
     setSlotMenu({ 
@@ -289,6 +300,25 @@ export default function CalendarPage() {
         isRefreshing={bookingsFetching}
       />
 
+      {/* Mobile barber switcher */}
+      {isNarrowScreen && activeBarbers.length > 1 && (
+        <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-gray-100 md:hidden">
+          <button
+            onClick={() => setMobileBarberIndex(i => (i - 1 + activeBarbers.length) % activeBarbers.length)}
+            className="p-2 rounded-lg hover:bg-gray-50 text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </button>
+          <span className="text-sm font-semibold text-gray-700">{activeBarbers[safeMobileIndex]?.name}</span>
+          <button
+            onClick={() => setMobileBarberIndex(i => (i + 1) % activeBarbers.length)}
+            className="p-2 rounded-lg hover:bg-gray-50 text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
+          >
+            <ChevronRight className="w-5 h-5" />
+          </button>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center">
           <Loader2 className="w-6 h-6 animate-spin text-[#8B9A7E]" />
@@ -427,7 +457,7 @@ export default function CalendarPage() {
       {/* AI Assistant FAB */}
       <Button
         size="icon"
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg bg-gradient-to-br from-[#8B9A7E] to-[#6B7A5E] hover:shadow-xl transition-all z-50"
+        className="fixed bottom-20 right-4 md:bottom-6 md:right-6 w-14 h-14 rounded-full shadow-lg bg-gradient-to-br from-[#8B9A7E] to-[#6B7A5E] hover:shadow-xl transition-all z-50"
         onClick={() => setShowAssistant(true)}
       >
         <Sparkles className="w-6 h-6 text-white" />

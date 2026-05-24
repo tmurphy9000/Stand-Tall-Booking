@@ -295,7 +295,7 @@ function CheckoutContent({
   if (!booking) return null;
 
   return (
-    <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+    <DialogContent className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Checkout - {booking.client_name}</DialogTitle>
         </DialogHeader>
@@ -379,7 +379,7 @@ function CheckoutContent({
           </div>
 
           {/* Add Items */}
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div>
               <Label className="text-xs">Add Product</Label>
               <Select onValueChange={addProduct}>
@@ -461,7 +461,7 @@ function CheckoutContent({
           )}
 
           {/* Discount */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
               <Label className="text-xs">Discount Type</Label>
               <Select value={discount.type} onValueChange={(val) => setDiscount({ ...discount, type: val })}>
