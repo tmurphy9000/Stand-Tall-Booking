@@ -50,17 +50,23 @@ export default function BarberLogin() {
     }
 
     setForgotLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-      redirectTo: `${window.location.origin}/ChangePassword`,
-    });
-    setForgotLoading(false);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
+        redirectTo: `${window.location.origin}/ChangePassword`,
+      });
 
-    if (error) {
-      setForgotError(error.message || "Failed to send reset email");
-      return;
+      if (error) {
+        // Surface a readable message instead of raw Supabase internals
+        setForgotError("Unable to send reset email. Please try again or contact your manager.");
+        return;
+      }
+
+      setForgotSent(true);
+    } catch {
+      setForgotError("Unable to connect. Please check your internet connection and try again.");
+    } finally {
+      setForgotLoading(false);
     }
-
-    setForgotSent(true);
   };
 
   if (showForgot) {
