@@ -7,12 +7,13 @@ import TimeSlotGrid from "../components/calendar/TimeSlotGrid";
 import BookingFormModal from "../components/calendar/BookingFormModal";
 import QuickBookingModal from "../components/calendar/QuickBookingModal";
 import BookingContextMenu from "../components/calendar/BookingContextMenu";
-import { Loader2, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Sparkles, ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BarberAssistant from "../components/assistant/BarberAssistant";
 import LeaderboardCard from "../components/calendar/LeaderboardCard";
 import CheckoutModal from "../components/checkout/CheckoutModal";
 import { useViewMode } from "../lib/ViewModeContext";
+import { useAuth } from "../lib/AuthContext";
 
 const BARBERS_PER_GROUP = 5;
 
@@ -32,8 +33,9 @@ export default function CalendarPage() {
   const [showAssistant, setShowAssistant] = useState(false);
   const [leaderboardCollapsed, setLeaderboardCollapsed] = useState(() => window.innerWidth < 768);
   const [isNarrowScreen, setIsNarrowScreen] = useState(() => window.innerWidth < 768);
-  const [mobileBarberIndex, setMobileBarberIndex] = useState(0);
+  const [mobileCalView, setMobileCalView] = useState("mine");
   const { isMobile } = useViewMode();
+  const { currentBarber } = useAuth();
 
   useEffect(() => {
     const handler = () => setIsNarrowScreen(window.innerWidth < 768);
@@ -147,9 +149,11 @@ export default function CalendarPage() {
     return true;
   });
   const totalGroups = 1;
-  const safeMobileIndex = activeBarbers.length > 0 ? mobileBarberIndex % activeBarbers.length : 0;
-  const visibleBarbers = isNarrowScreen && activeBarbers.length > 0
-    ? [activeBarbers[safeMobileIndex]]
+  // "My Schedule" shows only the logged-in barber's column on mobile.
+  // Falls back to first barber if the logged-in user has no barber record (e.g. admin).
+  const myBarber = activeBarbers.find(b => b.id === currentBarber?.id) ?? activeBarbers[0];
+  const visibleBarbers = isNarrowScreen && mobileCalView === "mine" && myBarber
+    ? [myBarber]
     : activeBarbers;
 
   const handleSlotClick = (e, barber, time, date) => {
@@ -298,26 +302,9 @@ export default function CalendarPage() {
         setZoomLevel={setZoomLevel}
         onRefresh={handleRefresh}
         isRefreshing={bookingsFetching}
+        mobileCalView={isNarrowScreen ? mobileCalView : undefined}
+        setMobileCalView={setMobileCalView}
       />
-
-      {/* Mobile barber switcher */}
-      {isNarrowScreen && activeBarbers.length > 1 && (
-        <div className="flex items-center justify-between px-3 py-2 bg-white border-b border-gray-100 md:hidden">
-          <button
-            onClick={() => setMobileBarberIndex(i => (i - 1 + activeBarbers.length) % activeBarbers.length)}
-            className="p-2 rounded-lg hover:bg-gray-50 text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <span className="text-sm font-semibold text-gray-700">{activeBarbers[safeMobileIndex]?.name}</span>
-          <button
-            onClick={() => setMobileBarberIndex(i => (i + 1) % activeBarbers.length)}
-            className="p-2 rounded-lg hover:bg-gray-50 text-gray-600 min-w-[44px] min-h-[44px] flex items-center justify-center"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
-      )}
 
       {isLoading ? (
         <div className="flex-1 flex items-center justify-center">

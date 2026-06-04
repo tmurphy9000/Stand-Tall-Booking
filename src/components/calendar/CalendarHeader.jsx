@@ -8,7 +8,7 @@ import ColorLegend from "./ColorLegend";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 
-export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, setViewMode, onNewBooking, barberGroupIndex, setBarberGroupIndex, totalBarberGroups, zoomLevel, setZoomLevel, onRefresh, isRefreshing }) {
+export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, setViewMode, onNewBooking, barberGroupIndex, setBarberGroupIndex, totalBarberGroups, zoomLevel, setZoomLevel, onRefresh, isRefreshing, mobileCalView, setMobileCalView }) {
   const [calOpen, setCalOpen] = useState(false);
 
   const goNext = () => {
@@ -74,6 +74,36 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
           </Button>
         </div>
       </div>
+
+      {/* Mobile-only: My Schedule / All Barbers toggle */}
+      {mobileCalView !== undefined && setMobileCalView && (
+        <div className="flex justify-center px-4 pb-1.5 md:hidden">
+          <div className="flex items-center rounded-full bg-[#0A0A0A]/8 p-0.5 gap-0.5">
+            <button
+              onClick={() => setMobileCalView("mine")}
+              className={cn(
+                "px-3 py-1 rounded-full text-[11px] font-semibold transition-all",
+                mobileCalView === "mine"
+                  ? "bg-[#0A0A0A] text-[#8B9A7E]"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              My Schedule
+            </button>
+            <button
+              onClick={() => setMobileCalView("all")}
+              className={cn(
+                "px-3 py-1 rounded-full text-[11px] font-semibold transition-all",
+                mobileCalView === "all"
+                  ? "bg-[#0A0A0A] text-[#8B9A7E]"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              All Barbers
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center justify-between px-4 pb-2">
         <div className="flex items-center gap-1">
