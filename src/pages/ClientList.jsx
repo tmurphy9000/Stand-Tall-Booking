@@ -4,13 +4,18 @@ import { useQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, User, Phone, Mail, Star, ArrowLeft } from "lucide-react";
+import { Search, User, Phone, Mail, Star, ArrowLeft, Download, Upload, FileDown, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 import { createPageUrl } from "../utils";
 import { usePermissions } from "../components/permissions/usePermissions";
+import { exportClientsToCSV, downloadClientImportTemplate } from "@/lib/clientCsv";
+import ImportClientsDialog from "../components/clients/ImportClientsDialog";
 
 export default function ClientList() {
   const [search, setSearch] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const { hasFullAccess } = usePermissions();
 
   const { data: clients = [] } = useQuery({
@@ -18,6 +23,23 @@ export default function ClientList() {
     queryFn: () => entities.Client.list("-last_visit"),
     enabled: search.length > 0,
   });
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      const allClients = await entities.Client.list("name");
+      if (allClients.length === 0) {
+        toast.error("No clients to export");
+        return;
+      }
+      exportClientsToCSV(allClients);
+      toast.success(`Exported ${allClients.length} clients`);
+    } catch (err) {
+      toast.error("Export failed", { description: err.message });
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const { data: reviews = [] } = useQuery({
     queryKey: ["reviews"],
@@ -56,6 +78,26 @@ export default function ClientList() {
             </div>
           </div>
 
+          {hasFullAccess && (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={downloadClientImportTemplate}>
+                <FileDown className="w-4 h-4 mr-2" />
+                Template
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+                <Upload className="w-4 h-4 mr-2" />
+                Import
+              </Button>
+              <Button variant="outline" size="sm" onClick={handleExport} disabled={exporting}>
+                {exporting ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4 mr-2" />
+                )}
+                Export
+              </Button>
+            </div>
+          )}
         </div>
 
         <div className="mb-6 flex gap-3">
@@ -145,6 +187,10 @@ export default function ClientList() {
           </Card>
         )}
       </div>
+
+      {hasFullAccess && (
+        <ImportClientsDialog open={importOpen} onOpenChange={setImportOpen} />
+      )}
     </div>
   );
 }
