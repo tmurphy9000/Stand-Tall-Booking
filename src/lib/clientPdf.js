@@ -10,67 +10,125 @@ const PHONE_REGEX = /(\+?1[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}/;
 const DOLLAR_REGEX = /\$\s?[\d,]+(?:\.\d{1,2})?/;
 const DATE_REGEX = /\b\d{1,2}\/\d{1,2}\/\d{2,4}\b|\b\d{4}-\d{2}-\d{2}\b|\b[A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4}\b/;
 
-// Extracts text from a PDF as an array of lines, reconstructed from the
-// positioned text items on each page (left-to-right, top-to-bottom).
-// Big horizontal gaps between items (likely a column break in a table)
-// are preserved as runs of spaces so table-like PDFs can be split into columns.
-export async function extractPdfLines(file) {
+const COLUMN_TOLERANCE = 8; // PDF point units
+const MAX_TABLE_COLUMNS = 10;
+
+// Groups a page's text items into lines by y-position, sorted top-to-bottom / left-to-right.
+function groupItemsIntoLines(items) {
+  const lineGroups = new Map(); // rounded y -> items[]
+  for (const item of items) {
+    if (!item.str || !item.str.trim()) continue;
+    const y = Math.round(item.transform[5]);
+    let key = y;
+    for (const existingKey of lineGroups.keys()) {
+      if (Math.abs(existingKey - y) <= 2) {
+        key = existingKey;
+        break;
+      }
+    }
+    if (!lineGroups.has(key)) lineGroups.set(key, []);
+    lineGroups.get(key).push(item);
+  }
+
+  const sortedKeys = [...lineGroups.keys()].sort((a, b) => b - a);
+  return sortedKeys.map((key) =>
+    lineGroups
+      .get(key)
+      .sort((a, b) => a.transform[4] - b.transform[4])
+      .map((item) => ({ x: item.transform[4], endX: item.transform[4] + item.width, str: item.str.trim() }))
+      .filter((item) => item.str !== "")
+  ).filter((line) => line.length > 0);
+}
+
+// Finds shared column start positions across all lines, merging x-positions within
+// COLUMN_TOLERANCE of each other. Widens the tolerance if that produces too many columns
+// (e.g. for pages that are mostly free-form paragraphs rather than a table).
+function clusterColumnAnchors(allLines) {
+  const xs = allLines.flatMap((items) => items.map((item) => item.x)).sort((a, b) => a - b);
+
+  let tolerance = COLUMN_TOLERANCE;
+  let anchors = [];
+  for (let attempt = 0; attempt < 6; attempt++) {
+    anchors = [];
+    for (const x of xs) {
+      if (anchors.length === 0 || x - anchors[anchors.length - 1] > tolerance) {
+        anchors.push(x);
+      }
+    }
+    if (anchors.length <= MAX_TABLE_COLUMNS) break;
+    tolerance *= 1.5;
+  }
+  return anchors;
+}
+
+// Assigns each item on a line to the nearest column anchor, producing a dense row array.
+function lineToTableRow(items, anchors) {
+  const row = [];
+  for (const item of items) {
+    let colIdx = 0;
+    let minDist = Infinity;
+    for (let i = 0; i < anchors.length; i++) {
+      const dist = Math.abs(item.x - anchors[i]);
+      if (dist < minDist) {
+        minDist = dist;
+        colIdx = i;
+      }
+    }
+    row[colIdx] = row[colIdx] ? `${row[colIdx]} ${item.str}` : item.str;
+  }
+  const dense = [];
+  for (let i = 0; i < row.length; i++) dense.push(row[i] || "");
+  while (dense.length && dense[dense.length - 1] === "") dense.pop();
+  return dense;
+}
+
+// Reconstructs a readable text line from a line's items, using extra spacing for big gaps.
+function lineToText(items) {
+  let lineText = "";
+  let prevEnd = null;
+  for (const item of items) {
+    if (prevEnd !== null) {
+      const gap = item.x - prevEnd;
+      lineText += gap > 10 ? "    " : " ";
+    }
+    lineText += item.str;
+    prevEnd = item.endX;
+  }
+  return lineText;
+}
+
+// Extracts a PDF's content as both plain text lines and a best-effort table
+// (rows of cells), reconstructed from the positioned text items on each page.
+// Column boundaries are detected by clustering the x-positions where text starts
+// across the whole document, which is far more robust than per-line gap thresholds
+// for the kinds of client-list exports produced by Square, Vagaro, Booksy, and Mindbody.
+export async function extractPdfTable(file) {
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const lines = [];
 
+  const allLineItems = [];
   for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
     const textContent = await page.getTextContent();
-
-    const lineGroups = new Map(); // rounded y -> items[]
-    for (const item of textContent.items) {
-      if (!item.str || !item.str.trim()) continue;
-      const y = Math.round(item.transform[5]);
-      let key = y;
-      for (const existingKey of lineGroups.keys()) {
-        if (Math.abs(existingKey - y) <= 2) {
-          key = existingKey;
-          break;
-        }
-      }
-      if (!lineGroups.has(key)) lineGroups.set(key, []);
-      lineGroups.get(key).push(item);
-    }
-
-    const sortedKeys = [...lineGroups.keys()].sort((a, b) => b - a);
-    for (const key of sortedKeys) {
-      const items = lineGroups.get(key).sort((a, b) => a.transform[4] - b.transform[4]);
-      let lineText = "";
-      let prevEnd = null;
-      for (const item of items) {
-        const x = item.transform[4];
-        if (prevEnd !== null) {
-          const gap = x - prevEnd;
-          if (gap > 10) lineText += "    ";
-          else if (gap > 1) lineText += " ";
-        }
-        lineText += item.str;
-        prevEnd = x + item.width;
-      }
-      if (lineText.trim()) lines.push(lineText.trim());
-    }
+    allLineItems.push(...groupItemsIntoLines(textContent.items));
   }
 
-  return lines;
+  const lines = allLineItems.map(lineToText);
+
+  const anchors = clusterColumnAnchors(allLineItems);
+  const tableRows = allLineItems.map((items) => lineToTableRow(items, anchors));
+
+  return { lines, tableRows };
 }
 
-// Splits a reconstructed PDF line into table-style columns on runs of 2+ spaces or tabs.
-export function splitTableRow(line) {
-  return line.split(/\s{2,}|\t/).map((cell) => cell.trim()).filter((cell) => cell !== "");
-}
-
-// Tries to find a header line (within the first few lines) whose columns map to
-// at least two known client fields, including a name-ish field plus contact info.
-function findHeaderRow(lines) {
-  const maxScan = Math.min(lines.length, 5);
+// Tries to find a header row (within the first few rows) whose cells map to at least
+// two known client fields, including a name-ish field plus contact info. Matching is
+// case-insensitive and ignores punctuation/spacing (see normalizeHeader / HEADER_ALIASES),
+// so headers like "First Name", "Customer Name", "Cell Phone", "E-Mail", etc. all match.
+function findHeaderRow(tableRows) {
+  const maxScan = Math.min(tableRows.length, 5);
   for (let i = 0; i < maxScan; i++) {
-    const cells = splitTableRow(lines[i]);
+    const cells = tableRows[i];
     if (cells.length < 2) continue;
     const columnMap = buildColumnMap(cells);
     const fields = Object.keys(columnMap);
@@ -136,25 +194,28 @@ function parseLineByPattern(line) {
   };
 }
 
-// Parses extracted PDF lines into client records.
+// Parses an extracted PDF table into client records.
 //
 // Returns one of:
-//  - { mode: "structured", clients }  — a header row mapped to known fields was found
-//  - { mode: "pattern", clients }     — no header, but phone/email pattern matching found client rows
-//  - { mode: "raw", lines }           — couldn't auto-detect anything; caller should let the
-//                                        user manually map columns from `lines`
-export function parsePdfLines(lines) {
-  const header = findHeaderRow(lines);
+//  - { mode: "structured", clients, columnMap, headerIndex } — a header row mapped to known
+//      fields was found. First/last name columns are automatically combined into a single
+//      "name" field (handled by mapRowToClient). columnMap/headerIndex describe the detected
+//      header so the UI can pre-fill a manual remap if the user wants to adjust it.
+//  - { mode: "pattern", clients }                — no header, but phone/email pattern matching
+//      found client rows in the plain text.
+//  - { mode: "raw", lines, tableRows }           — couldn't auto-detect anything; the caller
+//      should let the user manually map tableRows' columns to client fields.
+export function parsePdfTable({ lines, tableRows }) {
+  const header = findHeaderRow(tableRows);
   if (header) {
-    const clients = lines
+    const clients = tableRows
       .slice(header.index + 1)
-      .map(splitTableRow)
       .filter((cells) => cells.length > 0)
       .map((cells) => mapRowToClient(cells, header.columnMap))
       .filter((c) => c.name || c.email || c.phone);
 
     if (clients.length > 0) {
-      return { mode: "structured", clients };
+      return { mode: "structured", clients, columnMap: header.columnMap, headerIndex: header.index };
     }
   }
 
@@ -167,5 +228,5 @@ export function parsePdfLines(lines) {
     return { mode: "pattern", clients: patternClients };
   }
 
-  return { mode: "raw", lines };
+  return { mode: "raw", lines, tableRows };
 }

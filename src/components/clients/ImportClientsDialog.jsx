@@ -37,7 +37,7 @@ import {
   mapRowToClient,
   MAPPABLE_FIELDS,
 } from "@/lib/clientCsv";
-import { extractPdfLines, parsePdfLines, splitTableRow } from "@/lib/clientPdf";
+import { extractPdfTable, parsePdfTable } from "@/lib/clientPdf";
 
 const PREVIEW_LIMIT = 50;
 const IMPORT_CHUNK_SIZE = 200;
@@ -53,9 +53,14 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
   const [importing, setImporting] = useState(false);
   const [summary, setSummary] = useState(null);
 
-  // State for the PDF manual column-mapping fallback
+  // Full extracted PDF data, kept around so the user can switch to manual mapping
   const [pdfLines, setPdfLines] = useState([]);
   const [pdfTableRows, setPdfTableRows] = useState([]);
+  const [pdfColumnMap, setPdfColumnMap] = useState(null);
+  const [pdfHeaderIndex, setPdfHeaderIndex] = useState(-1);
+
+  // State for the manual column-mapping step
+  const [mappingRows, setMappingRows] = useState([]);
   const [hasHeaderRow, setHasHeaderRow] = useState(false);
   const [columnMapping, setColumnMapping] = useState([]);
 
@@ -74,6 +79,9 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
     setSummary(null);
     setPdfLines([]);
     setPdfTableRows([]);
+    setPdfColumnMap(null);
+    setPdfHeaderIndex(-1);
+    setMappingRows([]);
     setHasHeaderRow(false);
     setColumnMapping([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -145,25 +153,55 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
   };
 
   const handlePDFFile = async (file) => {
-    const lines = await extractPdfLines(file);
+    const { lines, tableRows } = await extractPdfTable(file);
     if (lines.length === 0) {
       toast.error("Couldn't extract any text from that PDF.");
       return;
     }
 
-    const result = parsePdfLines(lines);
-    if (result.mode === "raw") {
-      const tableRows = lines.map(splitTableRow).filter((r) => r.length > 0);
-      const maxCols = Math.min(MAX_MAP_COLUMNS, Math.max(...tableRows.map((r) => r.length)));
-      setPdfLines(lines);
-      setPdfTableRows(tableRows);
-      setColumnMapping(Array.from({ length: maxCols }, () => "skip"));
-      setHasHeaderRow(false);
-      setStep("pdf-map");
+    setPdfLines(lines);
+    setPdfTableRows(tableRows);
+
+    const result = parsePdfTable({ lines, tableRows });
+    if (result.mode === "structured") {
+      setPdfColumnMap(result.columnMap);
+      setPdfHeaderIndex(result.headerIndex);
+      goToPreview(result.clients);
       return;
     }
 
-    goToPreview(result.clients);
+    setPdfColumnMap(null);
+    setPdfHeaderIndex(-1);
+
+    if (result.mode === "pattern") {
+      goToPreview(result.clients);
+      return;
+    }
+
+    // mode === "raw": let the user manually map columns
+    enterManualMapping(tableRows, null);
+  };
+
+  // Opens the manual column-mapping step. `rows` are the table rows to map (full extraction,
+  // or sliced to start at a detected header row); `columnMap` pre-fills the dropdowns when
+  // remapping a previously auto-detected table.
+  const enterManualMapping = (rows, columnMap) => {
+    const maxCols = Math.min(MAX_MAP_COLUMNS, Math.max(1, ...rows.map((r) => r.length)));
+    const mapping = Array.from({ length: maxCols }, () => "skip");
+    if (columnMap) {
+      for (const [field, idx] of Object.entries(columnMap)) {
+        if (idx < maxCols) mapping[idx] = field;
+      }
+    }
+    setMappingRows(rows);
+    setColumnMapping(mapping);
+    setHasHeaderRow(!!columnMap);
+    setStep("pdf-map");
+  };
+
+  const handleManualMapping = () => {
+    const rows = pdfHeaderIndex >= 0 ? pdfTableRows.slice(pdfHeaderIndex) : pdfTableRows;
+    enterManualMapping(rows, pdfColumnMap);
   };
 
   const handleFileChange = async (e) => {
@@ -197,7 +235,7 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
       return;
     }
 
-    const dataRows = hasHeaderRow ? pdfTableRows.slice(1) : pdfTableRows;
+    const dataRows = hasHeaderRow ? mappingRows.slice(1) : mappingRows;
     const clients = dataRows
       .map((row) => mapRowToClient(row, columnMap))
       .filter((c) => c.name || c.email || c.phone);
@@ -281,8 +319,8 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
           <>
             <div className="text-sm text-gray-600">
               <p className="mb-2">
-                Couldn't automatically detect client columns in <span className="font-medium">{fileName}</span>.
-                Map each column below to a client field, then continue.
+                Use the dropdowns below to tell us what each column from{" "}
+                <span className="font-medium">{fileName}</span> contains, then continue.
               </p>
               <div className="flex items-center gap-2 mb-2">
                 <Checkbox
@@ -325,7 +363,7 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {pdfTableRows.slice(0, PREVIEW_LIMIT).map((row, i) => (
+                  {mappingRows.slice(0, PREVIEW_LIMIT).map((row, i) => (
                     <TableRow key={i} className={hasHeaderRow && i === 0 ? "opacity-40" : ""}>
                       {columnMapping.map((_, colIdx) => (
                         <TableCell key={colIdx} className="max-w-[180px] truncate">
@@ -337,6 +375,11 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
                 </TableBody>
               </Table>
             </div>
+            {mappingRows.length > PREVIEW_LIMIT && (
+              <p className="text-xs text-gray-500">
+                Showing first {PREVIEW_LIMIT} of {mappingRows.length} rows.
+              </p>
+            )}
 
             <details className="text-xs text-gray-500">
               <summary className="cursor-pointer select-none">View raw extracted text</summary>
@@ -440,6 +483,11 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
               <Button variant="outline" onClick={reset} disabled={importing}>
                 Choose Different File
               </Button>
+              {pdfTableRows.length > 0 && (
+                <Button variant="outline" onClick={handleManualMapping} disabled={importing}>
+                  Manual Column Mapping
+                </Button>
+              )}
               <Button onClick={handleImport} disabled={importing || newCount === 0}>
                 {importing && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                 Import {newCount} Client{newCount === 1 ? "" : "s"}
