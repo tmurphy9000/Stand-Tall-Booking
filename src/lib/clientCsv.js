@@ -11,9 +11,22 @@ export const CLIENT_CSV_HEADERS = [
   "staff_notes",
 ];
 
+// Fields a CSV/PDF column can be mapped to, in the order shown in manual-mapping UIs.
+export const MAPPABLE_FIELDS = [
+  { value: "name", label: "Name" },
+  { value: "first_name", label: "First Name" },
+  { value: "last_name", label: "Last Name" },
+  { value: "email", label: "Email" },
+  { value: "phone", label: "Phone" },
+  { value: "total_visits", label: "Total Visits" },
+  { value: "total_spent", label: "Total Spent" },
+  { value: "last_visit", label: "Last Visit" },
+  { value: "staff_notes", label: "Notes" },
+];
+
 // Maps a normalized header (lowercased, alphanumeric only) to a client field.
 // Includes the column names used by Square, Vagaro, Booksy, and Mindbody exports.
-const HEADER_ALIASES = {
+export const HEADER_ALIASES = {
   name: ["name", "clientname", "customername", "fullname", "client"],
   first_name: ["firstname", "first", "clientfirstname", "customerfirstname"],
   last_name: ["lastname", "last", "clientlastname", "customerlastname", "surname"],
@@ -61,8 +74,57 @@ const HEADER_ALIASES = {
   staff_notes: ["staffnotes", "notes", "customernotes", "clientnotes", "comments", "note"],
 };
 
-function normalizeHeader(header) {
+export function normalizeHeader(header) {
   return (header || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+// Builds a { field: columnIndex } map from a header row by matching against HEADER_ALIASES.
+export function buildColumnMap(headerRow) {
+  const normalized = headerRow.map(normalizeHeader);
+  const columnMap = {};
+  for (const [field, aliases] of Object.entries(HEADER_ALIASES)) {
+    for (const alias of aliases) {
+      const idx = normalized.indexOf(alias);
+      if (idx !== -1) {
+        columnMap[field] = idx;
+        break;
+      }
+    }
+  }
+  return columnMap;
+}
+
+// Converts a single data row into a normalized client record using a { field: columnIndex } map.
+export function mapRowToClient(row, columnMap) {
+  const get = (field) =>
+    columnMap[field] !== undefined ? (row[columnMap[field]] || "").trim() : "";
+
+  let name = get("name");
+  if (!name) {
+    name = [get("first_name"), get("last_name")].filter(Boolean).join(" ").trim();
+  }
+
+  const visitsRaw = get("total_visits").replace(/[^0-9.-]/g, "");
+  const spentRaw = get("total_spent").replace(/[^0-9.-]/g, "");
+
+  let lastVisit = "";
+  const lastVisitRaw = get("last_visit");
+  if (lastVisitRaw) {
+    const parsed = new Date(lastVisitRaw);
+    if (!isNaN(parsed.getTime())) {
+      lastVisit = format(parsed, "yyyy-MM-dd");
+    }
+  }
+
+  return {
+    name,
+    email: get("email"),
+    phone: get("phone"),
+    total_visits: visitsRaw ? parseInt(visitsRaw, 10) || 0 : 0,
+    total_spent: spentRaw ? parseFloat(spentRaw) || 0 : 0,
+    last_visit: lastVisit,
+    staff_notes: get("staff_notes"),
+  };
 }
 
 export function normalizePhone(phone) {
@@ -181,51 +243,11 @@ export function parseClientImportCSV(text) {
   }
 
   const [headerRow, ...dataRows] = rows;
-  const normalized = headerRow.map(normalizeHeader);
-
-  const columnMap = {};
-  for (const [field, aliases] of Object.entries(HEADER_ALIASES)) {
-    for (const alias of aliases) {
-      const idx = normalized.indexOf(alias);
-      if (idx !== -1) {
-        columnMap[field] = idx;
-        break;
-      }
-    }
-  }
+  const columnMap = buildColumnMap(headerRow);
 
   const clients = dataRows
     .filter((row) => row.some((cell) => cell.trim() !== ""))
-    .map((row) => {
-      const get = (field) => (columnMap[field] !== undefined ? (row[columnMap[field]] || "").trim() : "");
-
-      let name = get("name");
-      if (!name) {
-        name = [get("first_name"), get("last_name")].filter(Boolean).join(" ").trim();
-      }
-
-      const visitsRaw = get("total_visits").replace(/[^0-9.-]/g, "");
-      const spentRaw = get("total_spent").replace(/[^0-9.-]/g, "");
-
-      let lastVisit = "";
-      const lastVisitRaw = get("last_visit");
-      if (lastVisitRaw) {
-        const parsed = new Date(lastVisitRaw);
-        if (!isNaN(parsed.getTime())) {
-          lastVisit = format(parsed, "yyyy-MM-dd");
-        }
-      }
-
-      return {
-        name,
-        email: get("email"),
-        phone: get("phone"),
-        total_visits: visitsRaw ? parseInt(visitsRaw, 10) || 0 : 0,
-        total_spent: spentRaw ? parseFloat(spentRaw) || 0 : 0,
-        last_visit: lastVisit,
-        staff_notes: get("staff_notes"),
-      };
-    });
+    .map((row) => mapRowToClient(row, columnMap));
 
   return { headers: headerRow, columnMap, clients };
 }

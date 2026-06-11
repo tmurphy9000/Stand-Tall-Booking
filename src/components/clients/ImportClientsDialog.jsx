@@ -11,6 +11,15 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Table,
   TableHeader,
@@ -21,19 +30,34 @@ import {
 } from "@/components/ui/table";
 import { Loader2, Upload, FileText, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
-import { parseClientImportCSV, normalizePhone, normalizeEmail } from "@/lib/clientCsv";
+import {
+  parseClientImportCSV,
+  normalizePhone,
+  normalizeEmail,
+  mapRowToClient,
+  MAPPABLE_FIELDS,
+} from "@/lib/clientCsv";
+import { extractPdfLines, parsePdfLines, splitTableRow } from "@/lib/clientPdf";
 
 const PREVIEW_LIMIT = 50;
 const IMPORT_CHUNK_SIZE = 200;
+const MAX_MAP_COLUMNS = 8;
 
 export default function ImportClientsDialog({ open, onOpenChange }) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
-  const [step, setStep] = useState("upload"); // upload | preview | summary
+  const [step, setStep] = useState("upload"); // upload | pdf-map | preview | summary
   const [fileName, setFileName] = useState("");
+  const [processing, setProcessing] = useState(false);
   const [rows, setRows] = useState([]); // parsed + annotated rows
   const [importing, setImporting] = useState(false);
   const [summary, setSummary] = useState(null);
+
+  // State for the PDF manual column-mapping fallback
+  const [pdfLines, setPdfLines] = useState([]);
+  const [pdfTableRows, setPdfTableRows] = useState([]);
+  const [hasHeaderRow, setHasHeaderRow] = useState(false);
+  const [columnMapping, setColumnMapping] = useState([]);
 
   const { data: existingClients = [] } = useQuery({
     queryKey: ["clients", "all-for-import"],
@@ -44,9 +68,14 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
   const reset = () => {
     setStep("upload");
     setFileName("");
+    setProcessing(false);
     setRows([]);
     setImporting(false);
     setSummary(null);
+    setPdfLines([]);
+    setPdfTableRows([]);
+    setHasHeaderRow(false);
+    setColumnMapping([]);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -55,63 +84,125 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
     onOpenChange(next);
   };
 
+  const annotateClients = (clients) => {
+    const existingPhones = new Set(
+      existingClients.map((c) => normalizePhone(c.phone)).filter(Boolean)
+    );
+    const existingEmails = new Set(
+      existingClients.map((c) => normalizeEmail(c.email)).filter(Boolean)
+    );
+    const seenPhones = new Set();
+    const seenEmails = new Set();
+
+    return clients.map((c) => {
+      const phone = normalizePhone(c.phone);
+      const email = normalizeEmail(c.email);
+
+      let status = "new";
+      if (!c.name) {
+        status = "invalid";
+      } else if (
+        (phone && existingPhones.has(phone)) ||
+        (email && existingEmails.has(email)) ||
+        (phone && seenPhones.has(phone)) ||
+        (email && seenEmails.has(email))
+      ) {
+        status = "duplicate";
+      }
+
+      if (status === "new") {
+        if (phone) seenPhones.add(phone);
+        if (email) seenEmails.add(email);
+      }
+
+      return { ...c, status };
+    });
+  };
+
+  const goToPreview = (clients) => {
+    if (clients.length === 0) {
+      toast.error("No client rows found in that file.");
+      return;
+    }
+    setRows(annotateClients(clients));
+    setStep("preview");
+  };
+
+  const handleCSVFile = async (file) => {
+    const text = await file.text();
+    const { clients, headers } = parseClientImportCSV(text);
+
+    if (clients.length === 0) {
+      toast.error("No client rows found in that file.");
+      return;
+    }
+    if (headers.length > 0 && !clients.some((c) => c.name || c.email || c.phone)) {
+      toast.error("Couldn't recognize any name, email, or phone columns in that file.");
+      return;
+    }
+
+    goToPreview(clients);
+  };
+
+  const handlePDFFile = async (file) => {
+    const lines = await extractPdfLines(file);
+    if (lines.length === 0) {
+      toast.error("Couldn't extract any text from that PDF.");
+      return;
+    }
+
+    const result = parsePdfLines(lines);
+    if (result.mode === "raw") {
+      const tableRows = lines.map(splitTableRow).filter((r) => r.length > 0);
+      const maxCols = Math.min(MAX_MAP_COLUMNS, Math.max(...tableRows.map((r) => r.length)));
+      setPdfLines(lines);
+      setPdfTableRows(tableRows);
+      setColumnMapping(Array.from({ length: maxCols }, () => "skip"));
+      setHasHeaderRow(false);
+      setStep("pdf-map");
+      return;
+    }
+
+    goToPreview(result.clients);
+  };
+
   const handleFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setFileName(file.name);
-
+    setProcessing(true);
     try {
-      const text = await file.text();
-      const { clients, headers } = parseClientImportCSV(text);
-
-      if (clients.length === 0) {
-        toast.error("No client rows found in that file.");
-        return;
+      const isPDF = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
+      if (isPDF) {
+        await handlePDFFile(file);
+      } else {
+        await handleCSVFile(file);
       }
-      if (headers.length > 0 && !clients.some((c) => c.name || c.email || c.phone)) {
-        toast.error("Couldn't recognize any name, email, or phone columns in that file.");
-        return;
-      }
-
-      const existingPhones = new Set(
-        existingClients.map((c) => normalizePhone(c.phone)).filter(Boolean)
-      );
-      const existingEmails = new Set(
-        existingClients.map((c) => normalizeEmail(c.email)).filter(Boolean)
-      );
-      const seenPhones = new Set();
-      const seenEmails = new Set();
-
-      const annotated = clients.map((c) => {
-        const phone = normalizePhone(c.phone);
-        const email = normalizeEmail(c.email);
-
-        let status = "new";
-        if (!c.name) {
-          status = "invalid";
-        } else if (
-          (phone && existingPhones.has(phone)) ||
-          (email && existingEmails.has(email)) ||
-          (phone && seenPhones.has(phone)) ||
-          (email && seenEmails.has(email))
-        ) {
-          status = "duplicate";
-        }
-
-        if (status === "new") {
-          if (phone) seenPhones.add(phone);
-          if (email) seenEmails.add(email);
-        }
-
-        return { ...c, status };
-      });
-
-      setRows(annotated);
-      setStep("preview");
     } catch (err) {
       toast.error("Failed to read file", { description: err.message });
+    } finally {
+      setProcessing(false);
     }
+  };
+
+  const handlePdfMapContinue = () => {
+    const columnMap = {};
+    columnMapping.forEach((field, idx) => {
+      if (field !== "skip") columnMap[field] = idx;
+    });
+
+    if (Object.keys(columnMap).length === 0) {
+      toast.error("Map at least one column before continuing.");
+      return;
+    }
+
+    const dataRows = hasHeaderRow ? pdfTableRows.slice(1) : pdfTableRows;
+    const clients = dataRows
+      .map((row) => mapRowToClient(row, columnMap))
+      .filter((c) => c.name || c.email || c.phone);
+
+    goToPreview(clients);
   };
 
   const handleImport = async () => {
@@ -155,30 +246,105 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
         <DialogHeader>
           <DialogTitle>Import Clients</DialogTitle>
           <DialogDescription>
-            Upload a CSV export from Square, Vagaro, Booksy, Mindbody, or this app.
+            Upload a CSV or PDF export from Square, Vagaro, Booksy, Mindbody, or this app.
           </DialogDescription>
         </DialogHeader>
 
         {step === "upload" && (
           <div className="flex flex-col items-center justify-center gap-4 py-12 border-2 border-dashed rounded-lg">
-            <Upload className="w-10 h-10 text-gray-400" />
+            {processing ? (
+              <Loader2 className="w-10 h-10 text-gray-400 animate-spin" />
+            ) : (
+              <Upload className="w-10 h-10 text-gray-400" />
+            )}
             <p className="text-sm text-gray-500 text-center max-w-sm">
-              Select a CSV file to preview the clients before importing. Duplicates are
-              detected by matching phone number or email against existing clients.
+              {processing
+                ? `Reading ${fileName}...`
+                : "Select a CSV or PDF file to preview the clients before importing. Duplicates are detected by matching phone number or email against existing clients."}
             </p>
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,text/csv"
+              accept=".csv,text/csv,.pdf,application/pdf"
               onChange={handleFileChange}
               className="hidden"
-              id="client-csv-input"
+              id="client-import-input"
             />
-            <Button onClick={() => fileInputRef.current?.click()}>
+            <Button onClick={() => fileInputRef.current?.click()} disabled={processing}>
               <FileText className="w-4 h-4 mr-2" />
-              Choose CSV File
+              Choose File
             </Button>
           </div>
+        )}
+
+        {step === "pdf-map" && (
+          <>
+            <div className="text-sm text-gray-600">
+              <p className="mb-2">
+                Couldn't automatically detect client columns in <span className="font-medium">{fileName}</span>.
+                Map each column below to a client field, then continue.
+              </p>
+              <div className="flex items-center gap-2 mb-2">
+                <Checkbox
+                  id="has-header-row"
+                  checked={hasHeaderRow}
+                  onCheckedChange={(v) => setHasHeaderRow(!!v)}
+                />
+                <Label htmlFor="has-header-row" className="text-sm font-normal cursor-pointer">
+                  First row is a header (skip it)
+                </Label>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-auto border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    {columnMapping.map((value, colIdx) => (
+                      <TableHead key={colIdx} className="min-w-[150px]">
+                        <Select
+                          value={value}
+                          onValueChange={(field) =>
+                            setColumnMapping((prev) => prev.map((v, i) => (i === colIdx ? field : v)))
+                          }
+                        >
+                          <SelectTrigger className="h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="skip">Ignore</SelectItem>
+                            {MAPPABLE_FIELDS.map((f) => (
+                              <SelectItem key={f.value} value={f.value}>
+                                {f.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {pdfTableRows.slice(0, PREVIEW_LIMIT).map((row, i) => (
+                    <TableRow key={i} className={hasHeaderRow && i === 0 ? "opacity-40" : ""}>
+                      {columnMapping.map((_, colIdx) => (
+                        <TableCell key={colIdx} className="max-w-[180px] truncate">
+                          {row[colIdx] || "—"}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            <details className="text-xs text-gray-500">
+              <summary className="cursor-pointer select-none">View raw extracted text</summary>
+              <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap bg-gray-50 border rounded p-2">
+                {pdfLines.join("\n")}
+              </pre>
+            </details>
+          </>
         )}
 
         {step === "preview" && (
@@ -261,6 +427,14 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
         )}
 
         <DialogFooter>
+          {step === "pdf-map" && (
+            <>
+              <Button variant="outline" onClick={reset}>
+                Choose Different File
+              </Button>
+              <Button onClick={handlePdfMapContinue}>Continue</Button>
+            </>
+          )}
           {step === "preview" && (
             <>
               <Button variant="outline" onClick={reset} disabled={importing}>
@@ -276,7 +450,7 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
             <Button onClick={() => handleClose(false)}>Done</Button>
           )}
           {step === "upload" && (
-            <Button variant="outline" onClick={() => handleClose(false)}>
+            <Button variant="outline" onClick={() => handleClose(false)} disabled={processing}>
               Cancel
             </Button>
           )}
