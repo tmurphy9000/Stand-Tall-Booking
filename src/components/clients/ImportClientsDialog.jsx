@@ -38,10 +38,13 @@ import {
   MAPPABLE_FIELDS,
 } from "@/lib/clientCsv";
 import { extractPdfTable, parsePdfTable } from "@/lib/clientPdf";
+import { supabase } from "@/lib/supabaseClient";
 
 const PREVIEW_LIMIT = 50;
 const IMPORT_CHUNK_SIZE = 200;
 const MAX_MAP_COLUMNS = 8;
+const IMPORT_CLIENTS_FUNCTION_URL =
+  "https://mmmkachplbkaxvhauhaa.supabase.co/functions/v1/import-clients";
 
 export default function ImportClientsDialog({ open, onOpenChange }) {
   const queryClient = useQueryClient();
@@ -211,12 +214,37 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
     setFileName(file.name);
     setProcessing(true);
     try {
-      const isPDF = file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf");
-      if (isPDF) {
-        await handlePDFFile(file);
-      } else {
-        await handleCSVFile(file);
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(IMPORT_CLIENTS_FUNCTION_URL, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
+        body: formData,
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to import clients");
       }
+
+      const clients = (result.clients || []).map((c) => ({
+        name: c.name || "",
+        email: c.email || "",
+        phone: c.phone || "",
+        total_visits: 0,
+        total_spent: 0,
+        last_visit: "",
+        staff_notes: "",
+      }));
+
+      goToPreview(clients);
     } catch (err) {
       toast.error("Failed to read file", { description: err.message });
     } finally {
