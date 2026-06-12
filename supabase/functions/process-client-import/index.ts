@@ -30,7 +30,7 @@ async function extractClientsFromChunk(chunk: string): Promise<Client[]> {
       "anthropic-version": "2023-06-01",
     },
     body: JSON.stringify({
-      model: "claude-opus-4-6",
+      model: "claude-haiku-4-5-20251001",
       max_tokens: 4096,
       messages: [{
         role: "user",
