@@ -15,6 +15,8 @@ const corsHeaders = {
 
 const PROMPT = "Extract all clients from the following text, which was extracted from an uploaded file. Return ONLY a JSON array, no markdown. Each item: {name, email, phone}. Use empty string for missing fields.\n\n";
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 type Client = { name: string; email: string; phone: string };
 
 // Uploaded files (CSV, PDF, etc.) may not be valid UTF-8, so pull out the
@@ -205,6 +207,8 @@ Deno.serve(async (req) => {
           updated_at: new Date().toISOString(),
         })
         .eq("id", jobId);
+
+      if (chunkStart < text.length) await sleep(2000);
     }
 
     await supabase
