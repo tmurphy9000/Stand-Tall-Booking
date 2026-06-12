@@ -15,62 +15,65 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 
 const DEFAULT_SHOP_ID = "00000000-0000-0000-0000-000000000001";
-const POLL_INTERVAL_MS = 3000;
+const CHUNK_SIZE = 100000;
 
 export default function ImportClientsDialog({ open, onOpenChange }) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
   const cancelledRef = useRef(false);
-  const pollIntervalRef = useRef(null);
   const [fileName, setFileName] = useState("");
   const [uploading, setUploading] = useState(false);
   const [checking, setChecking] = useState(false);
-  const [job, setJob] = useState(null); // { id, status, imported_clients, last_chunk, total_chars, error }
+  const [processing, setProcessing] = useState(false);
+  const [job, setJob] = useState(null); // { id, status, error }
   const [progress, setProgress] = useState(0);
+  const [importedCount, setImportedCount] = useState(0);
 
-  const stopPolling = () => {
-    if (pollIntervalRef.current) {
-      clearInterval(pollIntervalRef.current);
-      pollIntervalRef.current = null;
-    }
-  };
+  const runChunkLoop = async (jobId, startChunk, startEnd, startImported) => {
+    setProcessing(true);
+    let chunkStart = startChunk;
+    let chunkEnd = startEnd;
+    let imported = startImported;
 
-  const pollJob = async (jobId) => {
-    const { data, error } = await supabase
-      .from("client_imports")
-      .select("*")
-      .eq("id", jobId)
-      .single();
+    try {
+      while (true) {
+        if (cancelledRef.current) return;
 
-    if (cancelledRef.current || error || !data) return;
+        const { data, error } = await supabase.functions.invoke("process-client-import", {
+          body: { job_id: jobId, chunk_start: chunkStart, chunk_end: chunkEnd },
+        });
 
-    setJob(data);
+        if (cancelledRef.current) return;
+        if (error) throw error;
+        if (data?.error) throw new Error(data.error);
 
-    if (data.status === "done") {
-      stopPolling();
-      const count = data.imported_clients || 0;
+        imported += data.clients_found || 0;
+        setImportedCount(imported);
+        if (data.total_length) {
+          setProgress(Math.min(100, Math.round((data.next_chunk_start / data.total_length) * 100)));
+        }
+
+        if (data.done) break;
+
+        chunkStart = data.next_chunk_start;
+        chunkEnd = data.next_chunk_end;
+      }
+
+      if (cancelledRef.current) return;
       queryClient.invalidateQueries({ queryKey: ["clients"] });
-      toast.success(`Imported ${count} client${count === 1 ? "" : "s"}`);
+      toast.success(`Imported ${imported} client${imported === 1 ? "" : "s"}`);
       handleClose(false);
-    } else if (data.status === "failed") {
-      stopPolling();
-    }
-  };
-
-  const startPolling = (jobId) => {
-    stopPolling();
-    pollJob(jobId);
-    pollIntervalRef.current = setInterval(() => pollJob(jobId), POLL_INTERVAL_MS);
-  };
-
-  const runImport = (jobId) => {
-    supabase.functions.invoke("process-client-import", { body: { job_id: jobId } }).catch(async (err) => {
+    } catch (err) {
+      if (cancelledRef.current) return;
+      const message = err?.message || "Import failed";
       await supabase
         .from("client_imports")
-        .update({ status: "failed", error: err?.message || "Failed to start import", updated_at: new Date().toISOString() })
+        .update({ status: "failed", error: message, updated_at: new Date().toISOString() })
         .eq("id", jobId);
-    });
-    startPolling(jobId);
+      setJob((prev) => (prev ? { ...prev, status: "failed", error: message } : prev));
+    } finally {
+      setProcessing(false);
+    }
   };
 
   useEffect(() => {
@@ -93,7 +96,12 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
 
       if (!error && data) {
         setJob(data);
-        runImport(data.id);
+        const lastChunk = data.last_chunk || 0;
+        setImportedCount(data.imported_clients || 0);
+        if (data.total_chars) {
+          setProgress(Math.min(100, Math.round((lastChunk / data.total_chars) * 100)));
+        }
+        runChunkLoop(data.id, lastChunk, lastChunk + CHUNK_SIZE, data.imported_clients || 0);
       }
     };
 
@@ -103,29 +111,26 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
   useEffect(() => {
     return () => {
       cancelledRef.current = true;
-      stopPolling();
     };
   }, []);
 
-  useEffect(() => {
-    if (job?.total_chars) {
-      setProgress(Math.min(100, Math.round(((job.last_chunk || 0) / job.total_chars) * 100)));
-    }
-  }, [job?.last_chunk, job?.total_chars]);
-
   const reset = () => {
     cancelledRef.current = true;
-    stopPolling();
     setFileName("");
     setUploading(false);
     setChecking(false);
+    setProcessing(false);
     setJob(null);
     setProgress(0);
+    setImportedCount(0);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleClose = (next) => {
-    if (!next) reset();
+    if (!next) {
+      if (processing) return;
+      reset();
+    }
     onOpenChange(next);
   };
 
@@ -159,7 +164,7 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
       setUploading(false);
 
       cancelledRef.current = false;
-      runImport(importJob.id);
+      runChunkLoop(importJob.id, 0, CHUNK_SIZE, 0);
     } catch (err) {
       toast.error("Failed to start import", { description: err.message });
       reset();
@@ -171,12 +176,17 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent
+        className="max-w-md"
+        showCloseButton={!processing}
+        onEscapeKeyDown={(e) => { if (processing) e.preventDefault(); }}
+        onInteractOutside={(e) => { if (processing) e.preventDefault(); }}
+      >
         <DialogHeader>
           <DialogTitle>Import Clients</DialogTitle>
           <DialogDescription>
             Upload a CSV or PDF export from Square, Vagaro, Booksy, Mindbody, or this app. Clients
-            are extracted and imported automatically in the background.
+            are extracted and imported automatically.
           </DialogDescription>
         </DialogHeader>
 
@@ -212,19 +222,24 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
         )}
 
         {job && job.status !== "failed" && (
-          <div className="flex flex-col items-center justify-center gap-4 py-12">
-            <Loader2 className="w-10 h-10 text-gray-400 animate-spin" />
-            <p className="text-sm text-gray-500 text-center max-w-sm">
-              Large files may take a few minutes to process. You can safely close this window —
-              the import will continue in the background.
+          <div className="flex flex-col gap-4">
+            <p className="text-sm font-medium text-red-600 text-center">
+              ⚠️ First import is free. Additional imports are $9.99. Closing this tab will forfeit your free import.
             </p>
-            <div className="w-full space-y-2">
-              <Progress value={progress} />
-              <p className="text-sm text-gray-500 text-center">
-                {job.imported_clients > 0
-                  ? `Imported ${job.imported_clients} client${job.imported_clients === 1 ? "" : "s"} so far...`
-                  : "Reading file and extracting clients..."}
+            <div className="flex flex-col items-center justify-center gap-4 py-8">
+              <Loader2 className="w-10 h-10 text-gray-400 animate-spin" />
+              <p className="text-sm text-gray-500 text-center max-w-sm">
+                Large files may take a few minutes to process. Please keep this tab open until the
+                import finishes.
               </p>
+              <div className="w-full space-y-2">
+                <Progress value={progress} />
+                <p className="text-sm text-gray-500 text-center">
+                  {importedCount > 0
+                    ? `Imported ${importedCount} client${importedCount === 1 ? "" : "s"} so far...`
+                    : "Reading file and extracting clients..."}
+                </p>
+              </div>
             </div>
           </div>
         )}

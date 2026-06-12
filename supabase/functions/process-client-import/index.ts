@@ -15,8 +15,6 @@ const corsHeaders = {
 
 const PROMPT = "Extract all clients from the following text, which was extracted from an uploaded file. Return ONLY a JSON array, no markdown. Each item: {name, email, phone}. Use empty string for missing fields.\n\n";
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
 type Client = { name: string; email: string; phone: string };
 
 // Uploaded files (CSV, PDF, etc.) may not be valid UTF-8, so pull out the
@@ -121,7 +119,7 @@ Deno.serve(async (req) => {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  let body: { job_id?: string };
+  let body: { job_id?: string; chunk_start?: number; chunk_end?: number };
   try {
     body = await req.json();
   } catch {
@@ -129,9 +127,15 @@ Deno.serve(async (req) => {
   }
 
   const jobId = body?.job_id;
+  const chunkStart = body?.chunk_start ?? 0;
+  const chunkEnd = body?.chunk_end;
 
   if (!jobId) {
     return Response.json({ error: "job_id is required" }, { status: 400, headers: corsHeaders });
+  }
+
+  if (typeof chunkEnd !== "number") {
+    return Response.json({ error: "chunk_end is required" }, { status: 400, headers: corsHeaders });
   }
 
   const { data: job, error: jobError } = await supabase
@@ -145,17 +149,14 @@ Deno.serve(async (req) => {
   }
 
   if (job.status === "done") {
-    return Response.json({ done: true, imported_clients: job.imported_clients }, { headers: corsHeaders });
+    return Response.json({
+      clients_found: 0,
+      next_chunk_start: chunkStart,
+      next_chunk_end: chunkEnd,
+      total_length: job.total_chars || 0,
+      done: true,
+    }, { headers: corsHeaders });
   }
-
-  // Resume from where a previous, interrupted invocation left off.
-  let chunkStart = job.status === "processing" ? (job.last_chunk || 0) : 0;
-  let importedTotal = job.imported_clients || 0;
-
-  await supabase
-    .from("client_imports")
-    .update({ status: "processing", updated_at: new Date().toISOString() })
-    .eq("id", jobId);
 
   try {
     const { data: file, error: downloadError } = await supabase.storage
@@ -173,50 +174,52 @@ Deno.serve(async (req) => {
       throw new Error("Could not extract any text from that file");
     }
 
-    while (chunkStart < text.length) {
-      const chunkEnd = Math.min(chunkStart + CHUNK_CHARS, text.length);
-      const slice = text.slice(chunkStart, chunkEnd);
+    const totalLength = text.length;
+    const end = Math.min(chunkEnd, totalLength);
+    const slice = text.slice(chunkStart, end);
 
-      let clients: Client[] = [];
-      if (slice.trim()) {
-        clients = await extractClientsFromChunk(slice);
-        clients = dedupeClients(clients).filter((c) => c.name);
-      }
-
-      for (let i = 0; i < clients.length; i += INSERT_BATCH_SIZE) {
-        const batch = clients.slice(i, i + INSERT_BATCH_SIZE).map((c) => ({
-          name: c.name,
-          email: c.email || null,
-          phone: c.phone || null,
-          shop_id: job.shop_id,
-        }));
-
-        const { error: insertError } = await supabase.from("clients").insert(batch);
-        if (insertError) throw new Error("Failed to insert clients: " + insertError.message);
-      }
-
-      importedTotal += clients.length;
-      chunkStart = chunkEnd;
-
-      await supabase
-        .from("client_imports")
-        .update({
-          imported_clients: importedTotal,
-          last_chunk: chunkStart,
-          total_chars: text.length,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", jobId);
-
-      if (chunkStart < text.length) await sleep(2000);
+    let clients: Client[] = [];
+    if (slice.trim()) {
+      clients = await extractClientsFromChunk(slice);
+      clients = dedupeClients(clients).filter((c) => c.name);
     }
+
+    for (let i = 0; i < clients.length; i += INSERT_BATCH_SIZE) {
+      const batch = clients.slice(i, i + INSERT_BATCH_SIZE).map((c) => ({
+        name: c.name,
+        email: c.email || null,
+        phone: c.phone || null,
+        shop_id: job.shop_id,
+      }));
+
+      const { error: insertError } = await supabase.from("clients").insert(batch);
+      if (insertError) throw new Error("Failed to insert clients: " + insertError.message);
+    }
+
+    const importedTotal = (job.imported_clients || 0) + clients.length;
+    const done = end >= totalLength;
 
     await supabase
       .from("client_imports")
-      .update({ status: "done", updated_at: new Date().toISOString() })
+      .update({
+        status: done ? "done" : "processing",
+        imported_clients: importedTotal,
+        last_chunk: end,
+        total_chars: totalLength,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", jobId);
 
-    return Response.json({ done: true, imported_clients: importedTotal }, { headers: corsHeaders });
+    const nextChunkStart = end;
+    const nextChunkEnd = Math.min(end + CHUNK_CHARS, totalLength);
+
+    return Response.json({
+      clients_found: clients.length,
+      next_chunk_start: nextChunkStart,
+      next_chunk_end: nextChunkEnd,
+      total_length: totalLength,
+      done,
+    }, { headers: corsHeaders });
   } catch (err) {
     await supabase
       .from("client_imports")
