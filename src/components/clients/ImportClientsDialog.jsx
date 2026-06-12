@@ -15,27 +15,110 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 
 const DEFAULT_SHOP_ID = "00000000-0000-0000-0000-000000000001";
-const CHUNK_CHARS = 50000;
+const POLL_INTERVAL_MS = 3000;
 
 export default function ImportClientsDialog({ open, onOpenChange }) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
   const cancelledRef = useRef(false);
+  const pollIntervalRef = useRef(null);
   const [fileName, setFileName] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [job, setJob] = useState(null); // { id, status, imported_clients, error }
+  const [checking, setChecking] = useState(false);
+  const [job, setJob] = useState(null); // { id, status, imported_clients, last_chunk, total_chars, error }
   const [progress, setProgress] = useState(0);
+
+  const stopPolling = () => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  };
+
+  const pollJob = async (jobId) => {
+    const { data, error } = await supabase
+      .from("client_imports")
+      .select("*")
+      .eq("id", jobId)
+      .single();
+
+    if (cancelledRef.current || error || !data) return;
+
+    setJob(data);
+
+    if (data.status === "done") {
+      stopPolling();
+      const count = data.imported_clients || 0;
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      toast.success(`Imported ${count} client${count === 1 ? "" : "s"}`);
+      handleClose(false);
+    } else if (data.status === "failed") {
+      stopPolling();
+    }
+  };
+
+  const startPolling = (jobId) => {
+    stopPolling();
+    pollJob(jobId);
+    pollIntervalRef.current = setInterval(() => pollJob(jobId), POLL_INTERVAL_MS);
+  };
+
+  const runImport = (jobId) => {
+    supabase.functions.invoke("process-client-import", { body: { job_id: jobId } }).catch(async (err) => {
+      await supabase
+        .from("client_imports")
+        .update({ status: "failed", error: err?.message || "Failed to start import", updated_at: new Date().toISOString() })
+        .eq("id", jobId);
+    });
+    startPolling(jobId);
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    cancelledRef.current = false;
+
+    const checkExistingJob = async () => {
+      setChecking(true);
+      const { data, error } = await supabase
+        .from("client_imports")
+        .select("*")
+        .eq("shop_id", DEFAULT_SHOP_ID)
+        .in("status", ["pending", "processing"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (cancelledRef.current) return;
+      setChecking(false);
+
+      if (!error && data) {
+        setJob(data);
+        runImport(data.id);
+      }
+    };
+
+    checkExistingJob();
+  }, [open]);
 
   useEffect(() => {
     return () => {
       cancelledRef.current = true;
+      stopPolling();
     };
   }, []);
 
+  useEffect(() => {
+    if (job?.total_chars) {
+      setProgress(Math.min(100, Math.round(((job.last_chunk || 0) / job.total_chars) * 100)));
+    }
+  }, [job?.last_chunk, job?.total_chars]);
+
   const reset = () => {
     cancelledRef.current = true;
+    stopPolling();
     setFileName("");
     setUploading(false);
+    setChecking(false);
     setJob(null);
     setProgress(0);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -44,56 +127,6 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
   const handleClose = (next) => {
     if (!next) reset();
     onOpenChange(next);
-  };
-
-  const getErrorMessage = async (error) => {
-    if (error?.context?.json) {
-      try {
-        const body = await error.context.json();
-        if (body?.error) return body.error;
-      } catch {
-        // fall through to generic message below
-      }
-    }
-    return error?.message || "Something went wrong while importing this file.";
-  };
-
-  const processImport = async (jobId, fileSize) => {
-    let chunkStart = 0;
-    let chunkEnd = CHUNK_CHARS;
-    let importedCount = 0;
-
-    while (!cancelledRef.current) {
-      const { data, error } = await supabase.functions.invoke("process-client-import", {
-        body: { job_id: jobId, chunk_start: chunkStart, chunk_end: chunkEnd },
-      });
-
-      if (cancelledRef.current) return;
-
-      if (error) {
-        const message = await getErrorMessage(error);
-        setJob((prev) => ({ ...prev, status: "failed", error: message }));
-        return;
-      }
-
-      importedCount += data.clients_found;
-      setJob((prev) => ({
-        ...prev,
-        status: data.done ? "done" : "processing",
-        imported_clients: importedCount,
-      }));
-      setProgress(Math.min(100, Math.round((chunkEnd / fileSize) * 100)));
-
-      if (data.done) {
-        queryClient.invalidateQueries({ queryKey: ["clients"] });
-        toast.success(`Imported ${importedCount} client${importedCount === 1 ? "" : "s"}`);
-        handleClose(false);
-        return;
-      }
-
-      chunkStart = data.next_chunk_start;
-      chunkEnd = data.next_chunk_end;
-    }
   };
 
   const handleFileChange = async (e) => {
@@ -126,13 +159,15 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
       setUploading(false);
 
       cancelledRef.current = false;
-      processImport(importJob.id, file.size);
+      runImport(importJob.id);
     } catch (err) {
       toast.error("Failed to start import", { description: err.message });
       reset();
       setUploading(false);
     }
   };
+
+  const showUpload = !job && !checking;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -145,7 +180,13 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
           </DialogDescription>
         </DialogHeader>
 
-        {!job && (
+        {checking && (
+          <div className="flex flex-col items-center justify-center gap-4 py-12">
+            <Loader2 className="w-10 h-10 text-gray-400 animate-spin" />
+          </div>
+        )}
+
+        {showUpload && (
           <div className="flex flex-col items-center justify-center gap-4 py-12 border-2 border-dashed rounded-lg">
             {uploading ? (
               <Loader2 className="w-10 h-10 text-gray-400 animate-spin" />
@@ -174,7 +215,8 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
           <div className="flex flex-col items-center justify-center gap-4 py-12">
             <Loader2 className="w-10 h-10 text-gray-400 animate-spin" />
             <p className="text-sm text-gray-500 text-center max-w-sm">
-              Large files may take a few minutes to process. Please keep this window open.
+              Large files may take a few minutes to process. You can safely close this window —
+              the import will continue in the background.
             </p>
             <div className="w-full space-y-2">
               <Progress value={progress} />
