@@ -151,6 +151,9 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
         {job && job.status !== "failed" && (
           <div className="flex flex-col items-center justify-center gap-4 py-12">
             <Loader2 className="w-10 h-10 text-gray-400 animate-spin" />
+            <p className="text-sm text-gray-500 text-center max-w-sm">
+              Large files may take a few minutes to process. Please keep this window open.
+            </p>
             <div className="w-full space-y-2">
               <Progress value={progress} />
               <p className="text-sm text-gray-500 text-center">
