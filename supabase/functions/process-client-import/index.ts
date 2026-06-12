@@ -88,6 +88,12 @@ async function extractClientsFromChunk(chunk: string): Promise<Client[]> {
   return clients;
 }
 
+// Path for the cached, pre-extracted text version of an uploaded file
+// (same path, .txt extension instead of the original).
+function toTxtPath(filePath: string): string {
+  return filePath.replace(/\.[^./]+$/, "") + ".txt";
+}
+
 function dedupeClients(clients: Client[]): Client[] {
   const seenEmails = new Set<string>();
   const seenPhones = new Set<string>();
@@ -159,19 +165,48 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { data: file, error: downloadError } = await supabase.storage
-      .from("client-imports")
-      .download(job.file_path);
+    const txtPath = toTxtPath(job.file_path);
+    let text: string;
 
-    if (downloadError || !file) {
-      throw new Error("Failed to download file: " + (downloadError?.message || "not found"));
-    }
+    if (chunkStart === 0) {
+      // First chunk: download the original (potentially large/binary) file,
+      // extract its text once, and cache it so later chunks are cheap.
+      const { data: file, error: downloadError } = await supabase.storage
+        .from("client-imports")
+        .download(job.file_path);
 
-    const bytes = new Uint8Array(await file.arrayBuffer());
-    const text = extractAsciiText(bytes).trim();
+      if (downloadError || !file) {
+        throw new Error("Failed to download file: " + (downloadError?.message || "not found"));
+      }
 
-    if (!text) {
-      throw new Error("Could not extract any text from that file");
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      text = extractAsciiText(bytes).trim();
+
+      if (!text) {
+        throw new Error("Could not extract any text from that file");
+      }
+
+      const { error: uploadError } = await supabase.storage
+        .from("client-imports")
+        .upload(txtPath, text, { contentType: "text/plain", upsert: true });
+
+      if (uploadError) {
+        throw new Error("Failed to cache extracted text: " + uploadError.message);
+      }
+    } else {
+      const { data: file, error: downloadError } = await supabase.storage
+        .from("client-imports")
+        .download(txtPath);
+
+      if (downloadError || !file) {
+        throw new Error("Failed to download extracted text: " + (downloadError?.message || "not found"));
+      }
+
+      text = (await file.text()).trim();
+
+      if (!text) {
+        throw new Error("Could not extract any text from that file");
+      }
     }
 
     const totalLength = text.length;
