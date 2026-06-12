@@ -2,7 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const INSERT_BATCH_SIZE = 200;
-const CHUNK_CHARS = 500000;
+const CHUNK_CHARS = 100000;
 // If a chunk is too dense for the AI to return in one response, split it in
 // half and retry each half. Stop splitting below this size.
 const MIN_SPLIT_CHARS = 50000;
