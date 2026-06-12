@@ -15,30 +15,29 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 
 const DEFAULT_SHOP_ID = "00000000-0000-0000-0000-000000000001";
-const POLL_INTERVAL_MS = 3000;
+const CHUNK_CHARS = 50000;
 
 export default function ImportClientsDialog({ open, onOpenChange }) {
   const queryClient = useQueryClient();
   const fileInputRef = useRef(null);
-  const pollRef = useRef(null);
+  const cancelledRef = useRef(false);
   const [fileName, setFileName] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [job, setJob] = useState(null); // { id, status, total_clients, imported_clients, error }
+  const [job, setJob] = useState(null); // { id, status, imported_clients, error }
+  const [progress, setProgress] = useState(0);
 
-  const stopPolling = () => {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  };
-
-  useEffect(() => stopPolling, []);
+  useEffect(() => {
+    return () => {
+      cancelledRef.current = true;
+    };
+  }, []);
 
   const reset = () => {
-    stopPolling();
+    cancelledRef.current = true;
     setFileName("");
     setUploading(false);
     setJob(null);
+    setProgress(0);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
@@ -47,27 +46,54 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
     onOpenChange(next);
   };
 
-  const pollJob = (jobId) => {
-    pollRef.current = setInterval(async () => {
-      const { data, error } = await supabase
-        .from("client_imports")
-        .select("*")
-        .eq("id", jobId)
-        .single();
-
-      if (error) return;
-
-      setJob(data);
-
-      if (data.status === "done") {
-        stopPolling();
-        queryClient.invalidateQueries({ queryKey: ["clients"] });
-        toast.success(`Imported ${data.imported_clients} client${data.imported_clients === 1 ? "" : "s"}`);
-        handleClose(false);
-      } else if (data.status === "failed") {
-        stopPolling();
+  const getErrorMessage = async (error) => {
+    if (error?.context?.json) {
+      try {
+        const body = await error.context.json();
+        if (body?.error) return body.error;
+      } catch {
+        // fall through to generic message below
       }
-    }, POLL_INTERVAL_MS);
+    }
+    return error?.message || "Something went wrong while importing this file.";
+  };
+
+  const processImport = async (jobId, fileSize) => {
+    let chunkStart = 0;
+    let chunkEnd = CHUNK_CHARS;
+    let importedCount = 0;
+
+    while (!cancelledRef.current) {
+      const { data, error } = await supabase.functions.invoke("process-client-import", {
+        body: { job_id: jobId, chunk_start: chunkStart, chunk_end: chunkEnd },
+      });
+
+      if (cancelledRef.current) return;
+
+      if (error) {
+        const message = await getErrorMessage(error);
+        setJob((prev) => ({ ...prev, status: "failed", error: message }));
+        return;
+      }
+
+      importedCount += data.clients_found;
+      setJob((prev) => ({
+        ...prev,
+        status: data.done ? "done" : "processing",
+        imported_clients: importedCount,
+      }));
+      setProgress(Math.min(100, Math.round((chunkEnd / fileSize) * 100)));
+
+      if (data.done) {
+        queryClient.invalidateQueries({ queryKey: ["clients"] });
+        toast.success(`Imported ${importedCount} client${importedCount === 1 ? "" : "s"}`);
+        handleClose(false);
+        return;
+      }
+
+      chunkStart = data.next_chunk_start;
+      chunkEnd = data.next_chunk_end;
+    }
   };
 
   const handleFileChange = async (e) => {
@@ -97,20 +123,16 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
       if (insertError) throw insertError;
 
       setJob(importJob);
-      pollJob(importJob.id);
+      setUploading(false);
 
-      supabase.functions.invoke("process-client-import", { body: { id: importJob.id } });
+      cancelledRef.current = false;
+      processImport(importJob.id, file.size);
     } catch (err) {
       toast.error("Failed to start import", { description: err.message });
       reset();
-    } finally {
       setUploading(false);
     }
   };
-
-  const progress = job?.total_clients
-    ? Math.min(100, Math.round((job.imported_clients / job.total_clients) * 100))
-    : 0;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -157,8 +179,8 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
             <div className="w-full space-y-2">
               <Progress value={progress} />
               <p className="text-sm text-gray-500 text-center">
-                {job.total_clients > 0
-                  ? `Importing ${job.imported_clients} of ${job.total_clients} clients...`
+                {job.imported_clients > 0
+                  ? `Imported ${job.imported_clients} client${job.imported_clients === 1 ? "" : "s"} so far...`
                   : "Reading file and extracting clients..."}
               </p>
             </div>
