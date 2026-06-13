@@ -10,7 +10,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Upload, FileText, AlertCircle } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Loader2, Upload, FileText, AlertCircle, Info } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -183,7 +189,29 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
         onInteractOutside={(e) => { if (processing) e.preventDefault(); }}
       >
         <DialogHeader>
-          <DialogTitle>Import Clients</DialogTitle>
+          <div className="flex items-center gap-2">
+            <DialogTitle>Import Clients</DialogTitle>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                    aria-label="Supported platforms"
+                  >
+                    <Info className="w-4 h-4" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="font-medium">Supported platforms:</p>
+                  <p>
+                    Vagaro, Square, Booksy, GlossGenius, Fresha, Squire, StyleSeat, Mindbody,
+                    DaySmart, Boulevard
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
           <DialogDescription>
             Upload a CSV, Excel, or PDF export from Square, Vagaro, Booksy, Mindbody, or this app.
             Clients are extracted and imported automatically.
