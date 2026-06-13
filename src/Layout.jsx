@@ -13,7 +13,7 @@ import { useAuth } from "./lib/AuthContext";
 
 const tabs = [
   { name: "Calendar", icon: Calendar, page: "Calendar" },
-  { name: "Checkout", icon: DollarSign, page: "QuickCheckout" },
+  { name: "Quick Checkout", icon: DollarSign, page: "QuickCheckout" },
   { name: "Schedule", icon: Users, page: "StaffSchedule" },
   { name: "Clients", icon: Users, page: "ClientList" },
   { name: "Inventory", icon: Package, page: "Inventory" },
