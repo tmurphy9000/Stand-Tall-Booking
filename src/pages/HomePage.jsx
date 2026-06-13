@@ -22,8 +22,8 @@ function Nav({ tab, setTab }) {
       <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
       <span style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"20px", letterSpacing:"0.08em", color:G}}>STAND TALL BOOKING</span>
       <div style={{display:"flex", gap:"4px"}}>
-        {["Home","Pricing","Join Today","Login"].map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
+        {["Home","Pricing","Terms","Join Today","Login"].map(t => (
+          <button key={t} onClick={() => t === "Terms" ? window.location.href = '/terms' : setTab(t)} style={{
             background: tab === t ? G : "transparent",
             color: tab === t ? BG : MID,
             border: "none", cursor:"pointer",
