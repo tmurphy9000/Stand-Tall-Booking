@@ -114,8 +114,13 @@ function categorizeHeader(field: string): HeaderCategory | null {
   if (["name", "full name", "client name", "customer name"].includes(normalized)) return "name";
 
   const words = normalized.split(" ");
-  if (words.includes("first")) return "firstName";
-  if (words.includes("last")) return "lastName";
+
+  // "Last Visited", "Customer Since", etc. contain "first"/"last" but are
+  // not name columns and must never be mistaken for one.
+  if (words.includes("visited") || words.includes("since") || words.includes("seen")) return null;
+
+  if (normalized === "first" || (words.includes("first") && words.includes("name"))) return "firstName";
+  if (normalized === "last" || (words.includes("last") && words.includes("name"))) return "lastName";
   if (words.includes("email") || words.includes("mail")) return "email";
   if (words.includes("phone") || words.includes("mobile") || words.includes("cell") || words.includes("telephone")) return "phone";
 
