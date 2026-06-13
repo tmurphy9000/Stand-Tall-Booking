@@ -11,10 +11,12 @@ import BarberLogin from './pages/BarberLogin';
 import ChangePassword from './pages/ChangePassword';
 import ClientBooking from './pages/ClientBooking';
 import HomePage from './pages/HomePage';
+import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 const { Pages, Layout } = pagesConfig;
 
-const PUBLIC_PATHS = ['/', '/barber-login', '/book', '/ChangePassword'];
+const PUBLIC_PATHS = ['/', '/barber-login', '/book', '/ChangePassword', '/terms', '/privacy'];
 
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
@@ -41,6 +43,8 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/terms" element={<TermsOfService />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
       {Object.entries(Pages).map(([path, Page]) => (
         <Route
           key={path}
