@@ -2,14 +2,34 @@ import { supabase } from '@/lib/supabaseClient';
 
 function createEntity(tableName) {
   return {
-    async list(sortField, limit) {
+    async list(sortField, limit, offset) {
       let query = supabase.from(tableName).select('*');
       if (sortField) {
         const descending = sortField.startsWith('-');
         const column = descending ? sortField.slice(1) : sortField;
         query = query.order(column, { ascending: !descending });
       }
-      if (limit) query = query.limit(limit);
+      if (limit != null && offset != null) {
+        query = query.range(offset, offset + limit - 1);
+      } else if (limit) {
+        query = query.limit(limit);
+      }
+      const { data, error } = await query;
+      if (error) throw error;
+      return data ?? [];
+    },
+
+    async search(term, { columns = ['name'], sortField } = {}) {
+      let query = supabase.from(tableName).select('*');
+      if (term) {
+        const pattern = `%${term}%`;
+        query = query.or(columns.map((column) => `${column}.ilike.${pattern}`).join(','));
+      }
+      if (sortField) {
+        const descending = sortField.startsWith('-');
+        const column = descending ? sortField.slice(1) : sortField;
+        query = query.order(column, { ascending: !descending });
+      }
       const { data, error } = await query;
       if (error) throw error;
       return data ?? [];

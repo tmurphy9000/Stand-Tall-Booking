@@ -1,26 +1,49 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { entities } from "@/api/entities";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, User, Phone, Mail, Star, ArrowLeft, Download, Upload, FileDown, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
-import { createPageUrl } from "../utils";
+import { createPageUrl, formatPhoneNumber } from "../utils";
 import { usePermissions } from "../components/permissions/usePermissions";
 import { exportClientsToCSV, downloadClientImportTemplate } from "@/lib/clientCsv";
 import ImportClientsDialog from "../components/clients/ImportClientsDialog";
+import { CopyButton } from "@/components/ui/copy-button";
+
+const PAGE_SIZE = 20;
 
 export default function ClientList() {
   const [search, setSearch] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const { hasFullAccess } = usePermissions();
+  const loadMoreRef = useRef(null);
 
-  const { data: clients = [] } = useQuery({
-    queryKey: ["clients"],
-    queryFn: () => entities.Client.list("-last_visit"),
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading: isLoadingClients,
+  } = useInfiniteQuery({
+    queryKey: ["clients", "browse"],
+    queryFn: ({ pageParam = 0 }) => entities.Client.list("name", PAGE_SIZE, pageParam),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length === PAGE_SIZE ? allPages.length * PAGE_SIZE : undefined,
+    enabled: search.length === 0,
+  });
+
+  const { data: searchResults = [], isLoading: isSearching } = useQuery({
+    queryKey: ["clients", "search", search, hasFullAccess],
+    queryFn: () =>
+      entities.Client.search(search, {
+        columns: hasFullAccess ? ["name", "email", "phone"] : ["name"],
+        sortField: "name",
+      }),
     enabled: search.length > 0,
   });
 
@@ -46,14 +69,24 @@ export default function ClientList() {
     queryFn: () => entities.Review.list(),
   });
 
-  const filteredClients = search.length > 0 ? clients.filter(c => {
-    const searchLower = search.toLowerCase();
-    const nameMatch = c.name?.toLowerCase().includes(searchLower);
-    if (!hasFullAccess) return nameMatch;
-    return nameMatch ||
-      c.email?.toLowerCase().includes(searchLower) ||
-      c.phone?.toLowerCase().includes(searchLower);
-  }) : [];
+  const browseClients = useMemo(() => data?.pages.flat() ?? [], [data]);
+  const clients = search.length > 0 ? searchResults : browseClients;
+  const isLoading = search.length > 0 ? isSearching : isLoadingClients;
+
+  useEffect(() => {
+    if (search.length > 0 || !hasNextPage) return;
+    const target = loadMoreRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting && !isFetchingNextPage) {
+        fetchNextPage();
+      }
+    });
+
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [search, hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const getClientRating = (clientId) => {
     const clientReviews = reviews.filter(r => r.client_id === clientId);
@@ -113,7 +146,7 @@ export default function ClientList() {
         </div>
 
         <div className="grid gap-3">
-          {filteredClients.map(client => {
+          {clients.map(client => {
             const rating = getClientRating(client.id);
             return (
               <Link key={client.id} to={`/ClientDetails?id=${client.id}`} className="block">
@@ -136,12 +169,14 @@ export default function ClientList() {
                                 <span className="flex items-center gap-1">
                                   <Mail className="w-3 h-3" />
                                   {client.email}
+                                  <CopyButton value={client.email} />
                                 </span>
                               )}
                               {client.phone && (
                                 <span className="flex items-center gap-1">
                                   <Phone className="w-3 h-3" />
-                                  {client.phone}
+                                  {formatPhoneNumber(client.phone)}
+                                  <CopyButton value={formatPhoneNumber(client.phone)} />
                                 </span>
                               )}
                             </div>
@@ -172,19 +207,24 @@ export default function ClientList() {
           })}
         </div>
 
-        {search.length === 0 && (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <p className="text-gray-500 mb-2">Search for a client by name to view their details</p>
-            </CardContent>
-          </Card>
+        {isLoading && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+          </div>
         )}
-        {search.length > 0 && filteredClients.length === 0 && (
+
+        {!isLoading && clients.length === 0 && (
           <Card>
             <CardContent className="p-12 text-center">
               <p className="text-gray-500">No clients found</p>
             </CardContent>
           </Card>
+        )}
+
+        {search.length === 0 && (
+          <div ref={loadMoreRef} className="flex items-center justify-center py-4">
+            {isFetchingNextPage && <Loader2 className="w-5 h-5 animate-spin text-gray-400" />}
+          </div>
         )}
       </div>
 

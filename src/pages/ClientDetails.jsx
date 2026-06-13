@@ -5,31 +5,14 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, User, Phone, Mail, Loader2 } from "lucide-react";
-import { createPageUrl } from "../utils";
+import { createPageUrl, formatPhoneNumber } from "../utils";
 import { usePermissions } from "../components/permissions/usePermissions";
-
-const maskPhone = (phone) => {
-  if (!phone) return "";
-  const digits = phone.replace(/\D/g, "");
-  if (digits.length < 4) return "***-***-****";
-  return `***-***-${digits.slice(-4)}`;
-};
-
-const maskEmail = (email) => {
-  if (!email) return "";
-  const atIdx = email.indexOf("@");
-  if (atIdx < 0) return "***@***.***";
-  const local = email.slice(0, atIdx);
-  const domain = email.slice(atIdx + 1);
-  const dotIdx = domain.lastIndexOf(".");
-  const tld = dotIdx >= 0 ? domain.slice(dotIdx) : "";
-  return `${local.charAt(0) || "*"}***@***.${tld ? tld.slice(1) : "***"}`;
-};
+import { CopyButton } from "@/components/ui/copy-button";
 
 export default function ClientDetails() {
   const [searchParams] = useSearchParams();
   const clientId = searchParams.get("id");
-  const { isServiceProvider } = usePermissions();
+  const { hasFullAccess } = usePermissions();
 
   const { data: client, isLoading: clientLoading } = useQuery({
     queryKey: ["client", clientId],
@@ -66,9 +49,6 @@ export default function ClientDetails() {
     );
   }
 
-  const displayEmail = isServiceProvider ? maskEmail(client.email) : client.email;
-  const displayPhone = isServiceProvider ? maskPhone(client.phone) : client.phone;
-
   return (
     <div className="p-6">
       <div className="max-w-3xl mx-auto">
@@ -91,18 +71,22 @@ export default function ClientDetails() {
           )}
           <div>
             <h1 className="text-2xl font-bold">{client.name}</h1>
-            <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
-              {client.email && (
-                <span className="flex items-center gap-1">
-                  <Mail className="w-3.5 h-3.5" />{displayEmail}
-                </span>
-              )}
-              {client.phone && (
-                <span className="flex items-center gap-1">
-                  <Phone className="w-3.5 h-3.5" />{displayPhone}
-                </span>
-              )}
-            </div>
+            {hasFullAccess && (
+              <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
+                {client.email && (
+                  <span className="flex items-center gap-1">
+                    <Mail className="w-3.5 h-3.5" />{client.email}
+                    <CopyButton value={client.email} />
+                  </span>
+                )}
+                {client.phone && (
+                  <span className="flex items-center gap-1">
+                    <Phone className="w-3.5 h-3.5" />{formatPhoneNumber(client.phone)}
+                    <CopyButton value={formatPhoneNumber(client.phone)} />
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
