@@ -1202,9 +1202,11 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
 
 function ClientInfoStep({ name, phone, email, onChange, onNext, onBack }) {
   const [error, setError] = useState("");
+  const [smsConsent, setSmsConsent] = useState(false);
 
   const handleNext = () => {
     if (!name.trim()) { setError("Please enter your full name."); return; }
+    if (!smsConsent) { setError("Please agree to receive SMS notifications to continue."); return; }
     setError("");
     onNext();
   };
@@ -1258,6 +1260,9 @@ function ClientInfoStep({ name, phone, email, onChange, onNext, onBack }) {
               onFocus={e => (e.target.style.borderColor = "#8B9A7E")}
               onBlur={e => (e.target.style.borderColor = "#2a2a2a")}
             />
+            <p className="text-xs text-white/40 mt-2">
+              By providing your phone number, you agree to receive SMS notifications including booking confirmations, reminders, and one-time verification codes from Stand Tall Booking. Message and data rates may apply. Reply STOP to unsubscribe.
+            </p>
           </div>
 
           {/* Email */}
@@ -1275,6 +1280,16 @@ function ClientInfoStep({ name, phone, email, onChange, onNext, onBack }) {
               onBlur={e => (e.target.style.borderColor = "#2a2a2a")}
             />
           </div>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={smsConsent}
+              onChange={e => { setSmsConsent(e.target.checked); setError(""); }}
+              className="w-4 h-4 rounded accent-[#8B9A7E] flex-shrink-0"
+            />
+            <span className="text-white/70 text-sm">I agree to receive SMS notifications from Stand Tall Booking</span>
+          </label>
 
           {error && (
             <p className="text-sm" style={{ color: "#f87171" }}>{error}</p>
