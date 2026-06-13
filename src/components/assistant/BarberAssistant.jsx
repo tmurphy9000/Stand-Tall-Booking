@@ -120,6 +120,10 @@ export default function BarberAssistant({ open, onClose }) {
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
           </Button>
         </div>
+
+        <p className="px-6 pb-4 text-xs text-gray-400 text-center">
+          AI responses may not always be accurate. This assistant is for scheduling and operational help only — not business, legal, or financial advice.
+        </p>
       </DialogContent>
     </Dialog>
   );
