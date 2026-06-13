@@ -47,12 +47,14 @@ function HomeTab({ setTab }) {
     { title:"AI from day one", body:"An AI assistant is included on every plan. Voice agent available as an add-on." },
     { title:"Guest booking", body:"Clients book without creating an account — less friction, more appointments." },
     { title:"Check-in kiosk", body:"A dedicated tablet app for walk-ins and client check-in — free on every plan." },
+    { title:"Cancel any time", body:"No contracts, no lock-in. If we're not the right fit, cancel with one click — no questions asked." },
   ];
 
   return (
     <div>
       {/* Hero */}
       <div style={{minHeight:"90vh", display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", textAlign:"center", padding:"5rem 2rem", position:"relative", overflow:"hidden"}}>
+        <div style={{position:"absolute", top:"1.25rem", left:"1.5rem", fontSize:"11px", fontWeight:500, color:MID, letterSpacing:"0.04em"}}>No contracts, no bull$#!*.</div>
         <div style={{position:"absolute", inset:0, display:"flex", alignItems:"center", justifyContent:"center", pointerEvents:"none", opacity:0.04}}>
           <span style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"38vw", color:G, letterSpacing:"-0.05em", userSelect:"none", lineHeight:1}}>STB</span>
         </div>
@@ -77,7 +79,7 @@ function HomeTab({ setTab }) {
       {/* Why Stand Tall */}
       <div style={{maxWidth:"1100px", margin:"0 auto", padding:"4rem 2rem"}}>
         <p style={{fontSize:"11px", letterSpacing:"0.14em", color:G, textTransform:"uppercase", fontWeight:500, marginBottom:"2rem"}}>Why Stand Tall</p>
-        <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(300px, 1fr))", gap:"1px", background:BORDER, border:`1px solid ${BORDER}`, borderRadius:"4px", overflow:"hidden"}}>
+        <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(300px, 1fr))", gap:"1px", background:"transparent", border:`1px solid ${BORDER}`, borderRadius:"4px", overflow:"hidden"}}>
           {whyPoints.map((p, i) => (
             <div key={i} style={{background:BG, padding:"1.75rem 2rem"}}>
               <div style={{fontSize:"13px", fontWeight:700, color:FG, marginBottom:"6px"}}>{p.title}</div>
