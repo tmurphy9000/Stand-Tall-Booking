@@ -37,7 +37,7 @@ export default function BarberLogin() {
       return;
     }
 
-    window.location.href = "/";
+    window.location.href = "/Calendar";
   };
 
   const handleForgotPassword = async (e) => {

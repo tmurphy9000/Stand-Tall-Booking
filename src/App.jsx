@@ -10,12 +10,11 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import BarberLogin from './pages/BarberLogin';
 import ChangePassword from './pages/ChangePassword';
 import ClientBooking from './pages/ClientBooking';
+import HomePage from './pages/HomePage';
 
-const { Pages, Layout, mainPage } = pagesConfig;
-const mainPageKey = mainPage ?? Object.keys(Pages)[0];
-const MainPage = mainPageKey ? Pages[mainPageKey] : <></>;
+const { Pages, Layout } = pagesConfig;
 
-const PUBLIC_PATHS = ['/barber-login', '/book', '/ChangePassword'];
+const PUBLIC_PATHS = ['/', '/barber-login', '/book', '/ChangePassword'];
 
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
@@ -41,11 +40,7 @@ const AuthenticatedApp = () => {
 
   return (
     <Routes>
-      <Route path="/" element={
-        <LayoutWrapper currentPageName={mainPageKey}>
-          <MainPage />
-        </LayoutWrapper>
-      } />
+      <Route path="/" element={<HomePage />} />
       {Object.entries(Pages).map(([path, Page]) => (
         <Route
           key={path}
