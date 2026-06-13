@@ -2,8 +2,14 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const INSERT_BATCH_SIZE = 200;
+// Chunk size for structured (column-mapped) files, which cost no API calls.
 const CHUNK_CHARS = 100000;
+// Larger chunk size for the per-chunk AI fallback, to reduce API call count.
+const AI_CHUNK_CHARS = 150000;
 const FORMAT_DETECTION_CHARS = 10000;
+// If an AI chunk is too dense for the AI to return in one response, split it
+// in half and retry each half. Stop splitting below this size.
+const MIN_SPLIT_CHARS = 50000;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -15,7 +21,10 @@ type Client = { name: string; email: string; phone: string };
 
 type Delimiter = "\t" | "," | "|" | "ws";
 
-type ColumnMapping = {
+// Structured (CSV/tabular) files are parsed for free using a detected column
+// layout. Anything else falls back to per-chunk AI extraction.
+type StructuredMapping = {
+  mode: "structured";
   delimiter: Delimiter;
   headerEndOffset: number;
   nameCol: number | null;
@@ -24,6 +33,10 @@ type ColumnMapping = {
   emailCol: number | null;
   phoneCol: number | null;
 };
+
+type AiMapping = { mode: "ai" };
+
+type ColumnMapping = StructuredMapping | AiMapping;
 
 type HeaderCategory = "name" | "firstName" | "lastName" | "email" | "phone";
 
@@ -110,7 +123,7 @@ function categorizeHeader(field: string): HeaderCategory | null {
 
 // Scan the first ~50 lines of extracted text for a header row whose fields
 // match known client-list column names, trying a few common delimiters.
-function detectColumnMapping(text: string): ColumnMapping | null {
+function detectColumnMapping(text: string): StructuredMapping | null {
   const delimiters: Delimiter[] = ["\t", ",", "|", "ws"];
   const lines = text.split("\n");
   let offset = 0;
@@ -134,6 +147,7 @@ function detectColumnMapping(text: string): ColumnMapping | null {
 
       if (hasName && hasContact && Object.keys(cols).length >= 2) {
         return {
+          mode: "structured",
           delimiter,
           headerEndOffset: Math.min(lineEnd, text.length),
           nameCol: cols.name ?? null,
@@ -165,9 +179,9 @@ Respond with ONLY a JSON object, no markdown:
 Text:
 `;
 
-// Last-resort: ask the AI once, on a small prefix of the file, to describe
-// the column layout so every later chunk can be parsed without any API call.
-async function detectMappingViaAI(text: string): Promise<ColumnMapping | null> {
+// Single AI call: ask once, on a small prefix of the file, to describe the
+// column layout so every later chunk can be parsed without any API call.
+async function detectMappingViaAI(text: string): Promise<StructuredMapping | null> {
   const prefix = text.slice(0, FORMAT_DETECTION_CHARS);
 
   const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -227,6 +241,7 @@ async function detectMappingViaAI(text: string): Promise<ColumnMapping | null> {
   }
 
   return {
+    mode: "structured",
     delimiter: result.delimiter as Delimiter,
     headerEndOffset: Math.min(offset, text.length),
     nameCol,
@@ -237,9 +252,76 @@ async function detectMappingViaAI(text: string): Promise<ColumnMapping | null> {
   };
 }
 
+const CLIENT_EXTRACTION_PROMPT = "Extract all clients from the following text, which was extracted from an uploaded file. Return ONLY a JSON array, no markdown. Each item: {name, email, phone}. Use empty string for missing fields.\n\n";
+
+// Per-chunk AI fallback for files where no structured column layout could be
+// detected (e.g. PDFs whose text is rendered as scattered fragments).
+async function extractClientsFromChunk(chunk: string): Promise<Client[]> {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": ANTHROPIC_API_KEY!,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 8192,
+      messages: [{
+        role: "user",
+        content: [{ type: "text", text: CLIENT_EXTRACTION_PROMPT + chunk }],
+      }],
+    }),
+  });
+
+  const ai = await res.json();
+  if (ai.error) throw new Error(ai.error.message || JSON.stringify(ai.error));
+  if (!ai.content || !ai.content[0] || typeof ai.content[0].text !== "string") {
+    throw new Error("Unexpected AI response: " + JSON.stringify(ai));
+  }
+
+  const responseText = ai.content[0].text.trim();
+  const truncated = ai.stop_reason === "max_tokens";
+
+  let clients: Client[] | null = null;
+  try {
+    clients = JSON.parse(responseText);
+  } catch {
+    const match = responseText.match(/\[[\s\S]*\]/);
+    if (match) {
+      try {
+        clients = JSON.parse(match[0]);
+      } catch {
+        clients = null;
+      }
+    }
+  }
+
+  // A truncated or unparseable response means this chunk had too many
+  // clients for one reply. Split it in half (on a line boundary) and retry
+  // each half separately.
+  if (truncated || clients === null) {
+    if (chunk.length <= MIN_SPLIT_CHARS) {
+      throw new Error("Could not parse client data from AI response (chunk too dense to split further)");
+    }
+
+    const mid = Math.floor(chunk.length / 2);
+    const newlineIdx = chunk.indexOf("\n", mid);
+    const splitAt = newlineIdx === -1 ? mid : newlineIdx + 1;
+
+    const [first, second] = await Promise.all([
+      extractClientsFromChunk(chunk.slice(0, splitAt)),
+      extractClientsFromChunk(chunk.slice(splitAt)),
+    ]);
+    return [...first, ...second];
+  }
+
+  return clients;
+}
+
 // Parse one line of the extracted text into a client using the saved
 // column mapping. Returns null for blank lines or lines with no name.
-function parseClientFromLine(line: string, mapping: ColumnMapping): Client | null {
+function parseClientFromLine(line: string, mapping: StructuredMapping): Client | null {
   if (!line.trim()) return null;
 
   const fields = splitLine(line, mapping.delimiter).map((f) => f.trim());
@@ -379,17 +461,14 @@ Deno.serve(async (req) => {
         throw new Error("Failed to cache extracted text: " + txtUploadError.message);
       }
 
-      // Detect a structured column layout (e.g. Vagaro's CSV/PDF exports)
-      // so we can skip the AI entirely for every chunk. Only fall back to
-      // a single AI call if we can't recognize the layout up front.
+      // Try to detect a structured column layout (e.g. Vagaro's CSV exports)
+      // so we can skip the AI entirely for every chunk. If that fails, fall
+      // back to per-chunk AI extraction for the whole file.
       let detected = detectColumnMapping(text);
       if (!detected) {
         detected = await detectMappingViaAI(text);
       }
-      if (!detected) {
-        throw new Error("Could not detect a structured column layout for this file");
-      }
-      mapping = detected;
+      mapping = detected ?? { mode: "ai" };
 
       const { error: mappingUploadError } = await supabase.storage
         .from("client-imports")
@@ -420,18 +499,28 @@ Deno.serve(async (req) => {
     }
 
     const totalLength = text.length;
+    let clients: Client[];
+    let end: number;
 
-    // Skip the header row on the very first chunk so it isn't parsed as a client.
-    const start = chunkStart === 0 ? Math.min(mapping.headerEndOffset, totalLength) : chunkStart;
-    const end = findChunkEnd(text, start, Math.min(chunkEnd, totalLength));
-    const slice = text.slice(start, end);
+    if (mapping.mode === "structured") {
+      // Skip the header row on the very first chunk so it isn't parsed as a client.
+      const start = chunkStart === 0 ? Math.min(mapping.headerEndOffset, totalLength) : chunkStart;
+      end = findChunkEnd(text, start, Math.min(chunkEnd, totalLength));
+      const slice = text.slice(start, end);
 
-    let clients: Client[] = [];
-    for (const line of slice.split("\n")) {
-      const client = parseClientFromLine(line, mapping);
-      if (client) clients.push(client);
+      clients = [];
+      for (const line of slice.split("\n")) {
+        const client = parseClientFromLine(line, mapping);
+        if (client) clients.push(client);
+      }
+      clients = dedupeClients(clients);
+    } else {
+      end = Math.min(chunkEnd, totalLength);
+      const slice = text.slice(chunkStart, end);
+
+      clients = slice.trim() ? await extractClientsFromChunk(slice) : [];
+      clients = dedupeClients(clients).filter((c) => c.name);
     }
-    clients = dedupeClients(clients);
 
     for (let i = 0; i < clients.length; i += INSERT_BATCH_SIZE) {
       const batch = clients.slice(i, i + INSERT_BATCH_SIZE).map((c) => ({
@@ -455,12 +544,14 @@ Deno.serve(async (req) => {
         imported_clients: importedTotal,
         last_chunk: end,
         total_chars: totalLength,
+        error: null,
         updated_at: new Date().toISOString(),
       })
       .eq("id", jobId);
 
+    const chunkSize = mapping.mode === "ai" ? AI_CHUNK_CHARS : CHUNK_CHARS;
     const nextChunkStart = end;
-    const nextChunkEnd = Math.min(end + CHUNK_CHARS, totalLength);
+    const nextChunkEnd = Math.min(end + chunkSize, totalLength);
 
     return Response.json({
       clients_found: clients.length,
