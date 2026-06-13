@@ -134,7 +134,6 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
 
   const handleClose = (next) => {
     if (!next) {
-      if (processing) return;
       reset();
     }
     onOpenChange(next);
@@ -182,12 +181,7 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent
-        className="max-w-md"
-        showCloseButton={!processing}
-        onEscapeKeyDown={(e) => { if (processing) e.preventDefault(); }}
-        onInteractOutside={(e) => { if (processing) e.preventDefault(); }}
-      >
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <DialogTitle>Import Clients</DialogTitle>
@@ -250,24 +244,19 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
         )}
 
         {job && job.status !== "failed" && (
-          <div className="flex flex-col gap-4">
-            <p className="text-sm font-medium text-red-600 text-center">
-              ⚠️ First import is free. Additional imports are $9.99. Closing this tab will forfeit your free import.
+          <div className="flex flex-col items-center justify-center gap-4 py-8">
+            <Loader2 className="w-10 h-10 text-gray-400 animate-spin" />
+            <p className="text-sm text-gray-500 text-center max-w-sm">
+              Large files may take a few minutes to process. Feel free to leave this open in the
+              background while we work through it.
             </p>
-            <div className="flex flex-col items-center justify-center gap-4 py-8">
-              <Loader2 className="w-10 h-10 text-gray-400 animate-spin" />
-              <p className="text-sm text-gray-500 text-center max-w-sm">
-                Large files may take a few minutes to process. Please keep this tab open until the
-                import finishes.
+            <div className="w-full space-y-2">
+              <Progress value={progress} />
+              <p className="text-sm text-gray-500 text-center">
+                {importedCount > 0
+                  ? `Imported ${importedCount} client${importedCount === 1 ? "" : "s"} so far...`
+                  : "Reading file and extracting clients..."}
               </p>
-              <div className="w-full space-y-2">
-                <Progress value={progress} />
-                <p className="text-sm text-gray-500 text-center">
-                  {importedCount > 0
-                    ? `Imported ${importedCount} client${importedCount === 1 ? "" : "s"} so far...`
-                    : "Reading file and extracting clients..."}
-                </p>
-              </div>
             </div>
           </div>
         )}
