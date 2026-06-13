@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff, Tag, Monitor, Cpu, CreditCard, Bell, BookOpen } from "lucide-react";
+import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff, Tag, Monitor, Cpu, CreditCard, Bell, BookOpen, Lock } from "lucide-react";
+import { Link } from "react-router-dom";
+import { createPageUrl } from "../utils";
 import { cn } from "@/lib/utils";
 import BarberManager from "../components/settings/BarberManager";
 import ServiceManager from "../components/settings/ServiceManager";
@@ -29,7 +31,7 @@ import { usePermissions } from "../components/permissions/usePermissions";
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
-  const { isAdmin, hasFullAccess } = usePermissions();
+  const { isAdmin, isSuperAdmin, hasFullAccess } = usePermissions();
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [activeTab, setActiveTab] = useState("barbers");
   const [draftHours, setDraftHours] = useState(null);
@@ -157,6 +159,15 @@ export default function SettingsPage() {
               <Mail className="w-4 h-4 flex-shrink-0" />
               Invite Barber
             </button>
+          )}
+          {isSuperAdmin && (
+            <Link
+              to={createPageUrl("AdminDashboard")}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left text-white/30 hover:text-white/60 hover:bg-white/10 w-full"
+            >
+              <Lock className="w-4 h-4 flex-shrink-0" />
+              Admin
+            </Link>
           )}
         </div>
       </div>

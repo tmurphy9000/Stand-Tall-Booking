@@ -4,10 +4,11 @@ export function usePermissions() {
   const { user, currentBarber } = useAuth();
 
   const permissionLevel = currentBarber?.permission_level ?? null;
+  const isSuperAdmin = permissionLevel === 'superadmin';
   const isOwner = permissionLevel === 'owner';
   const isManager = permissionLevel === 'manager';
   const isServiceProvider = permissionLevel === 'service_provider';
-  const hasFullAccess = isOwner || isManager;
+  const hasFullAccess = isOwner || isManager || isSuperAdmin;
   const canViewClientDetails = hasFullAccess || isServiceProvider;
 
   return {
@@ -15,6 +16,7 @@ export function usePermissions() {
       ? { id: currentBarber.id, email: currentBarber.email, full_name: currentBarber.name, role: permissionLevel }
       : null,
     isAdmin: false,
+    isSuperAdmin,
     isOwner,
     isManager,
     isServiceProvider,
