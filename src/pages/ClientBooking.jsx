@@ -1202,11 +1202,9 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
 
 function ClientInfoStep({ name, phone, email, onChange, onNext, onBack }) {
   const [error, setError] = useState("");
-  const [smsConsent, setSmsConsent] = useState(false);
 
   const handleNext = () => {
     if (!name.trim()) { setError("Please enter your full name."); return; }
-    if (!smsConsent) { setError("Please agree to receive SMS notifications to continue."); return; }
     setError("");
     onNext();
   };
@@ -1261,7 +1259,7 @@ function ClientInfoStep({ name, phone, email, onChange, onNext, onBack }) {
               onBlur={e => (e.target.style.borderColor = "#2a2a2a")}
             />
             <p className="text-xs text-white/40 mt-2">
-              By providing your phone number, you agree to receive SMS notifications including booking confirmations, reminders, and one-time verification codes from Stand Tall Booking. Message and data rates may apply. Reply STOP to unsubscribe.
+              By providing your phone number and email address, you agree to receive SMS and email notifications from Stand Tall Booking including booking confirmations, appointment reminders, and one-time verification codes. Message and data rates may apply. Reply STOP to unsubscribe from SMS at any time.
             </p>
           </div>
 
@@ -1280,16 +1278,6 @@ function ClientInfoStep({ name, phone, email, onChange, onNext, onBack }) {
               onBlur={e => (e.target.style.borderColor = "#2a2a2a")}
             />
           </div>
-
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={smsConsent}
-              onChange={e => { setSmsConsent(e.target.checked); setError(""); }}
-              className="w-4 h-4 rounded accent-[#8B9A7E] flex-shrink-0"
-            />
-            <span className="text-white/70 text-sm">I agree to receive SMS notifications from Stand Tall Booking</span>
-          </label>
 
           {error && (
             <p className="text-sm" style={{ color: "#f87171" }}>{error}</p>
@@ -1360,13 +1348,14 @@ function downloadIcs({ title, startStr, endStr, location, details, uid }) {
 
 function ConfirmStep({ barber, service, date, time, clientName, clientPhone, clientEmail, onConfirm, onBack, submitting, cancelPolicyEnabled, cancelPolicyText, guest = null }) {
   const [policyAgreed, setPolicyAgreed] = useState(false);
+  const [commsAgreed, setCommsAgreed] = useState(false);
   const duration = barber?.service_durations?.[service?.id] ?? service?.duration ?? 30;
   const endTimeHHMM = format(addMinutes(parse(time, "HH:mm", new Date()), duration), "HH:mm");
   const endTime = format(parse(endTimeHHMM, "HH:mm", new Date()), "h:mm a");
   const startLabel = format(parse(time, "HH:mm", new Date()), "h:mm a");
   const dateLabel = format(new Date(date + "T12:00:00"), "EEEE, MMMM d, yyyy");
   const showPolicy = cancelPolicyEnabled && cancelPolicyText;
-  const confirmDisabled = submitting || (showPolicy && !policyAgreed);
+  const confirmDisabled = submitting || !commsAgreed || (showPolicy && !policyAgreed);
 
   const guestDuration = guest?.service?.duration ?? 30;
   const guestStartHHMM = guest?.timing === "same_time" ? time : endTimeHHMM;
@@ -1428,6 +1417,16 @@ function ConfirmStep({ barber, service, date, time, clientName, clientPhone, cli
             </label>
           </div>
         )}
+
+        <label className="flex items-center gap-3 cursor-pointer mb-4">
+          <input
+            type="checkbox"
+            checked={commsAgreed}
+            onChange={e => setCommsAgreed(e.target.checked)}
+            className="w-4 h-4 rounded accent-[#8B9A7E] flex-shrink-0"
+          />
+          <span className="text-white/70 text-sm">I agree to receive SMS and email communications from Stand Tall Booking.</span>
+        </label>
 
         <button
           onClick={onConfirm}
