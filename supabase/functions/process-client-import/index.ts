@@ -455,7 +455,26 @@ Deno.serve(async (req) => {
         const workbook = XLSX.read(bytes, { type: "array" });
         const sheetName = workbook.SheetNames[0];
         if (!sheetName) throw new Error("XLSX file has no sheets");
-        text = XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName]).trim();
+        const sheet = workbook.Sheets[sheetName];
+
+        // Some exports (e.g. Vagaro) include metadata rows above the real
+        // header row. Scan the first 10 rows for the one that looks like a
+        // client-list header and drop everything before it.
+        const rows: unknown[][] = XLSX.utils.sheet_to_json(sheet, { header: 1, blankrows: true });
+        let headerRowIndex = 0;
+        for (let i = 0; i < Math.min(rows.length, 10); i++) {
+          const row = rows[i] || [];
+          const cats = row.map((cell) => categorizeHeader(String(cell ?? "")));
+          const hasName = cats.includes("firstName") || cats.includes("lastName") || cats.includes("name");
+          const hasContact = cats.includes("email") || cats.includes("phone");
+          if (hasName && hasContact) {
+            headerRowIndex = i;
+            break;
+          }
+        }
+
+        const trimmedSheet = XLSX.utils.aoa_to_sheet(rows.slice(headerRowIndex));
+        text = XLSX.utils.sheet_to_csv(trimmedSheet).trim();
       } else {
         text = extractAsciiText(bytes).trim();
       }
