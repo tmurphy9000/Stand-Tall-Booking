@@ -185,8 +185,8 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
         <DialogHeader>
           <DialogTitle>Import Clients</DialogTitle>
           <DialogDescription>
-            Upload a CSV or PDF export from Square, Vagaro, Booksy, Mindbody, or this app. Clients
-            are extracted and imported automatically.
+            Upload a CSV, Excel, or PDF export from Square, Vagaro, Booksy, Mindbody, or this app.
+            Clients are extracted and imported automatically.
           </DialogDescription>
         </DialogHeader>
 
@@ -204,12 +204,12 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
               <Upload className="w-10 h-10 text-gray-400" />
             )}
             <p className="text-sm text-gray-500 text-center max-w-sm">
-              {uploading ? `Uploading ${fileName}...` : "Select a CSV or PDF file to import."}
+              {uploading ? `Uploading ${fileName}...` : "Select a CSV, Excel, or PDF file to import."}
             </p>
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,text/csv,.pdf,application/pdf"
+              accept=".csv,text/csv,.pdf,application/pdf,.xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               onChange={handleFileChange}
               className="hidden"
               id="client-import-input"

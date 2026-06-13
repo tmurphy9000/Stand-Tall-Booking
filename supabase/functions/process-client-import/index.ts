@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import * as XLSX from "https://esm.sh/xlsx@0.18.5";
 
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
 const INSERT_BATCH_SIZE = 200;
@@ -447,7 +448,17 @@ Deno.serve(async (req) => {
       }
 
       const bytes = new Uint8Array(await file.arrayBuffer());
-      text = extractAsciiText(bytes).trim();
+
+      if (/\.xlsx$/i.test(job.file_path)) {
+        // Spreadsheets are already tabular: convert the first sheet to CSV
+        // so it flows through the same structured column-detection path.
+        const workbook = XLSX.read(bytes, { type: "array" });
+        const sheetName = workbook.SheetNames[0];
+        if (!sheetName) throw new Error("XLSX file has no sheets");
+        text = XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName]).trim();
+      } else {
+        text = extractAsciiText(bytes).trim();
+      }
 
       if (!text) {
         throw new Error("Could not extract any text from that file");
