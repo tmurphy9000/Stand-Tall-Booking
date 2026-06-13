@@ -591,10 +591,10 @@ function JoinTab() {
               ].map(c => (
                 <label key={c.key} style={{display:"flex", gap:"12px", alignItems:"flex-start", cursor:"pointer"}}>
                   <div onClick={() => setTermsAccepted(t => ({...t, [c.key]: !t[c.key]}))}
-                    style={{width:"18px", height:"18px", borderRadius:"3px", border:`1px solid ${termsAccepted[c.key] ? G : BORDER}`, background: termsAccepted[c.key] ? G : "transparent", flexShrink:0, marginTop:"1px", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", transition:"all 0.15s"}}>
+                    style={{width:"18px", height:"18px", borderRadius:"3px", border:`2px solid ${termsAccepted[c.key] ? G : "#F2F0EB"}`, background: termsAccepted[c.key] ? G : "transparent", flexShrink:0, marginTop:"1px", display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer", transition:"all 0.15s"}}>
                     {termsAccepted[c.key] && <svg width="11" height="11" viewBox="0 0 12 12" fill="none"><path d="M2 6L5 9L10 3" stroke={BG} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                   </div>
-                  <span style={{fontSize:"12px", color:"#D1D5DB", lineHeight:1.6}}>{c.label}</span>
+                  <span style={{fontSize:"13px", color:"#F2F0EB", lineHeight:1.6, fontWeight:500}}>{c.label}</span>
                 </label>
               ))}
             </div>
