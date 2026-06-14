@@ -295,42 +295,8 @@ function JoinTab() {
   const [verifyError, setVerifyError] = useState("");
   const [resendStatus, setResendStatus] = useState("");
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
-  const [checkoutError, setCheckoutError] = useState("");
-  const [checkoutRedirecting, setCheckoutRedirecting] = useState(false);
 
   const [termsAccepted, setTermsAccepted] = useState({ terms: false, smsEmail: false, age: false });
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("[auth] onAuthStateChange event:", event, "session:", session);
-      if (event === "SIGNED_IN" && session) {
-        console.log("[auth] user_metadata:", session.user.user_metadata);
-        const planKey = session.user.user_metadata?.plan;
-        if (planKey) {
-          setCheckoutRedirecting(true);
-          setStage("done");
-          try {
-            const { data, error } = await supabase.functions.invoke("stripe-subscription", {
-              body: { plan: planKey, customerEmail: session.user.email },
-            });
-            console.log("[stripe-subscription] response data:", data, "error:", error);
-            if (!error && data?.url) {
-              window.location.href = data.url;
-              return;
-            }
-            console.error("[stripe-subscription] checkout error:", error);
-            setCheckoutError("We couldn't start checkout. Please try again or contact support.");
-          } catch (err) {
-            console.error("[stripe-subscription] threw exception:", err);
-            setCheckoutError("We couldn't start checkout. Please try again or contact support.");
-          }
-          return;
-        }
-        setStage("done");
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
 
   const planOptions = [
     {
@@ -513,20 +479,6 @@ function JoinTab() {
         <h2 style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"clamp(32px,5vw,52px)", color:FG, margin:"0 0 0.75rem", letterSpacing:"0.02em"}}>Checkout cancelled.</h2>
         <p style={{fontSize:"14px", color:"#D1D5DB", lineHeight:1.7}}>
           No worries — you can complete your subscription anytime from your account settings.
-        </p>
-      </div>
-    </div>
-  );
-
-  // ── Redirecting to Stripe Checkout ──
-  if (stage === "done" && checkoutRedirecting) return (
-    <div style={{minHeight:"80vh", display:"flex", alignItems:"center", justifyContent:"center", padding:"4rem 2rem"}}>
-      <div style={{width:"100%", maxWidth:"420px", textAlign:"center"}}>
-        <h2 style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"clamp(32px,5vw,52px)", color:FG, margin:"0 0 0.75rem", letterSpacing:"0.02em"}}>
-          {checkoutError ? "Something went wrong." : "Taking you to checkout…"}
-        </h2>
-        <p style={{fontSize:"14px", color:checkoutError ? "#F87171" : "#D1D5DB", lineHeight:1.7}}>
-          {checkoutError || "Hang tight while we set up your subscription."}
         </p>
       </div>
     </div>
@@ -802,6 +754,65 @@ function LoginTab() {
 export default function HomePage() {
   const checkoutStatus = new URLSearchParams(window.location.search).get("checkout");
   const [tab, setTab] = useState(checkoutStatus ? "Join Today" : "Home");
+  const [redirectingToCheckout, setRedirectingToCheckout] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
+
+  useEffect(() => {
+    let started = false;
+
+    async function startCheckout(session) {
+      if (started) return;
+      started = true;
+      setRedirectingToCheckout(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("stripe-subscription", {
+          body: { plan: session.user.user_metadata.plan, customerEmail: session.user.email },
+        });
+        console.log("[stripe-subscription] response data:", data, "error:", error);
+        if (!error && data?.url) {
+          window.location.href = data.url;
+          return;
+        }
+        console.error("[stripe-subscription] checkout error:", error);
+        setCheckoutError("We couldn't start checkout. Please try again or contact support.");
+      } catch (err) {
+        console.error("[stripe-subscription] threw exception:", err);
+        setCheckoutError("We couldn't start checkout. Please try again or contact support.");
+      }
+    }
+
+    // Already-authenticated users landing directly on the page (e.g. a stale tab).
+    if (!checkoutStatus) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user?.user_metadata?.plan) {
+          startCheckout(session);
+        }
+      });
+    }
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log("[auth] onAuthStateChange event:", event, "session:", session);
+      if (event === "SIGNED_IN" && session?.user?.user_metadata?.plan) {
+        startCheckout(session);
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [checkoutStatus]);
+
+  if (redirectingToCheckout) {
+    return (
+      <div style={{minHeight:"100vh", background:BG, color:FG, fontFamily:"'Inter', system-ui, sans-serif", display:"flex", alignItems:"center", justifyContent:"center", padding:"4rem 2rem"}}>
+        <div style={{width:"100%", maxWidth:"420px", textAlign:"center"}}>
+          <h2 style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"clamp(32px,5vw,52px)", color:FG, margin:"0 0 0.75rem", letterSpacing:"0.02em"}}>
+            {checkoutError ? "Something went wrong." : "Taking you to checkout…"}
+          </h2>
+          <p style={{fontSize:"14px", color:checkoutError ? "#F87171" : "#D1D5DB", lineHeight:1.7}}>
+            {checkoutError || "Hang tight while we set up your subscription."}
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{minHeight:"100vh", background:BG, color:FG, fontFamily:"'Inter', system-ui, sans-serif"}}>
