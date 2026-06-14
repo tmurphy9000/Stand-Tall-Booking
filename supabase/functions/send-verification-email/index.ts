@@ -2,6 +2,19 @@ import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 
 const hookSecret = (Deno.env.get("SEND_EMAIL_HOOK_SECRET") ?? "").replace("v1,whsec_", "");
 
+// The secret is base64 (using +/ chars) but may arrive without standard
+// padding, which makes the library's own base64 decoder choke with
+// "illegal base64 data at input byte N". Decode it ourselves — padding the
+// string out to a multiple of 4 — and hand the library raw key bytes.
+function decodeHookSecret(secret: string): Uint8Array {
+  let padded = secret.replace(/-/g, "+").replace(/_/g, "/");
+  while (padded.length % 4 !== 0) padded += "=";
+  const binary = atob(padded);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -84,7 +97,7 @@ Deno.serve(async (req) => {
   };
 
   try {
-    const wh = new Webhook(hookSecret);
+    const wh = new Webhook(decodeHookSecret(hookSecret), { format: "raw" });
     const verified = wh.verify(payload, headers) as {
       user: { email: string };
       email_data: { token_hash: string; email_action_type: string };
