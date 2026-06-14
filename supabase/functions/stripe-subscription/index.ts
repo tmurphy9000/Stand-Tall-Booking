@@ -13,15 +13,17 @@ function json(body: unknown, status = 200) {
   });
 }
 
+const secretKey = Deno.env.get("STRIPE_SECRET_KEY");
+console.log("[stripe-subscription] STRIPE_SECRET_KEY present:", !!secretKey);
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  const secretKey = Deno.env.get("STRIPE_SECRET_KEY");
   if (!secretKey) {
     console.error("[stripe-subscription] missing STRIPE_SECRET_KEY env var");
-    return json({ error: "Server configuration error" }, 500);
+    return json({ error: "Server configuration error: missing STRIPE_SECRET_KEY" }, 500);
   }
 
   let body: { priceId?: string; plan?: string; customerId?: string; customerEmail?: string };
@@ -54,6 +56,8 @@ Deno.serve(async (req) => {
     return json({ error: "priceId or plan is required" }, 400);
   }
 
+  console.log("[stripe-subscription] plan:", plan, "resolvedPriceId:", resolvedPriceId);
+
   const stripe = new Stripe(secretKey, { apiVersion: "2024-06-20" });
 
   try {
@@ -68,6 +72,7 @@ Deno.serve(async (req) => {
     return json({ url: session.url });
   } catch (e) {
     console.error("[stripe-subscription] Stripe error:", e);
-    return json({ error: "Failed to create checkout session" }, 500);
+    const message = e instanceof Error ? e.message : String(e);
+    return json({ error: message }, 500);
   }
 });
