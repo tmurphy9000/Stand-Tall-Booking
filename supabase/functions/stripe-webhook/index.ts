@@ -51,6 +51,44 @@ async function findUserIdByEmail(email: string): Promise<string | null> {
   }
 }
 
+// Creates a new shop for a subscriber who doesn't have one yet, then links
+// it back to their subscription row and auth user metadata.
+async function provisionShopForNewSubscriber(userId: string, email: string): Promise<void> {
+  const { data: shop, error: shopError } = await supabaseAdmin
+    .from("shops")
+    .insert({ name: email })
+    .select("id")
+    .single();
+
+  if (shopError || !shop) {
+    console.error("[stripe-webhook] failed to create shop for new subscriber:", shopError);
+    return;
+  }
+
+  const { error: subscriptionError } = await supabaseAdmin
+    .from("subscriptions")
+    .update({ shop_id: shop.id })
+    .eq("user_id", userId);
+
+  if (subscriptionError) {
+    console.error("[stripe-webhook] failed to set shop_id on subscription:", subscriptionError);
+  }
+
+  const { data: userData, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(userId);
+  if (getUserError || !userData?.user) {
+    console.error("[stripe-webhook] failed to load user for metadata update:", getUserError);
+    return;
+  }
+
+  const { error: metadataError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+    user_metadata: { ...userData.user.user_metadata, shop_id: shop.id },
+  });
+
+  if (metadataError) {
+    console.error("[stripe-webhook] failed to set shop_id on user metadata:", metadataError);
+  }
+}
+
 async function resolveTierFromSubscription(subscriptionId: string | undefined): Promise<string | undefined> {
   if (!subscriptionId || !stripe) return undefined;
   try {
@@ -115,6 +153,12 @@ Deno.serve(async (req) => {
 
         const tier = plan ?? (await resolveTierFromSubscription(subscriptionId));
 
+        const { data: existingSubscription } = await supabaseAdmin
+          .from("subscriptions")
+          .select("shop_id")
+          .eq("user_id", userId)
+          .maybeSingle();
+
         const { error } = await supabaseAdmin.from("subscriptions").upsert({
           user_id: userId,
           stripe_customer_id: customerId,
@@ -125,6 +169,11 @@ Deno.serve(async (req) => {
         }, { onConflict: "user_id" });
 
         if (error) console.error("[stripe-webhook] failed to upsert subscription:", error);
+
+        if (!existingSubscription?.shop_id) {
+          await provisionShopForNewSubscriber(userId, email);
+        }
+
         break;
       }
 

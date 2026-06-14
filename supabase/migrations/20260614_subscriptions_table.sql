@@ -15,6 +15,8 @@ create unique index if not exists subscriptions_stripe_subscription_id_key on pu
 
 alter table public.subscriptions enable row level security;
 
+drop policy if exists "Users can view their own subscription" on public.subscriptions;
+
 create policy "Users can view their own subscription"
   on public.subscriptions for select
   using (auth.uid() = user_id);

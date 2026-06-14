@@ -1,7 +1,7 @@
 -- Shops table: lays the groundwork for multi-tenancy. A single default shop
 -- is seeded so existing data and new imports have a shop_id to reference.
 create table if not exists public.shops (
-  id         uuid primary key default uuid_generate_v4(),
+  id         uuid primary key default gen_random_uuid(),
   name       text not null,
   created_at timestamptz default now()
 );
