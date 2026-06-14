@@ -1,36 +1,6 @@
-const hookSecret = Deno.env.get("SEND_EMAIL_HOOK_SECRET") ?? "";
+import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
 
-function timingSafeEqual(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i++) {
-    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return mismatch === 0;
-}
-
-// Supabase sends the hook secret as a Bearer token in the Authorization header.
-// The configured secret looks like "v1,whsec_<key>" - accept that exact value
-// as well as the unprefixed forms in case Supabase sends a stripped variant.
-function isAuthorized(authHeader: string | null): boolean {
-  if (!authHeader) return false;
-  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
-  if (!token) return false;
-
-  const candidates = new Set<string>([hookSecret]);
-  if (hookSecret.startsWith("v1,")) {
-    const withoutVersion = hookSecret.slice("v1,".length);
-    candidates.add(withoutVersion);
-    if (withoutVersion.startsWith("whsec_")) {
-      candidates.add(withoutVersion.slice("whsec_".length));
-    }
-  }
-
-  for (const candidate of candidates) {
-    if (candidate && timingSafeEqual(token, candidate)) return true;
-  }
-  return false;
-}
+const hookSecret = (Deno.env.get("SEND_EMAIL_HOOK_SECRET") ?? "").replace("v1,whsec_", "");
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -104,12 +74,8 @@ Deno.serve(async (req) => {
     return json({ error: { http_code: 500, message: "Hook secret not configured" } }, 500);
   }
 
-  if (!isAuthorized(req.headers.get("Authorization"))) {
-    console.error("[send-verification-email] Missing or invalid Authorization header");
-    return json({ error: { http_code: 401, message: "Hook requires authorization token" } }, 401);
-  }
-
   const payload = await req.text();
+  const headers = Object.fromEntries(req.headers);
 
   let user: { email: string };
   let emailData: {
@@ -118,12 +84,16 @@ Deno.serve(async (req) => {
   };
 
   try {
-    const body = JSON.parse(payload);
-    user = body.user;
-    emailData = body.email_data;
+    const wh = new Webhook(hookSecret);
+    const verified = wh.verify(payload, headers) as {
+      user: { email: string };
+      email_data: { token_hash: string; email_action_type: string };
+    };
+    user = verified.user;
+    emailData = verified.email_data;
   } catch (error) {
-    console.error("[send-verification-email] Failed to parse payload:", error);
-    return json({ error: { http_code: 400, message: "Invalid payload" } }, 400);
+    console.error("[send-verification-email] Webhook verification failed:", error);
+    return json({ error: { http_code: 401, message: "Invalid webhook signature" } }, 401);
   }
 
   // Only handle signup confirmation emails — other auth email types pass through untouched.
