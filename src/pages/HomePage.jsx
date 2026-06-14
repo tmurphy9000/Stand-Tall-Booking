@@ -394,30 +394,13 @@ function JoinTab() {
     if (accountPassword.length < 8) { setAccountError("Password must be at least 8 characters."); return; }
     if (accountPassword !== accountConfirm) { setAccountError("Passwords don't match."); return; }
     setSubmitting(true);
-
-    const emailRedirectTo = "https://www.standtallbooking.com";
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email: accountEmail,
       password: accountPassword,
-      options: { data: { ...answers }, emailRedirectTo },
+      options: { data: { ...answers }, emailRedirectTo: "https://www.standtallbooking.com" },
     });
-
-    if (error) {
-      setSubmitting(false);
-      setAccountError(error.message);
-      return;
-    }
-
-    const user = data?.user;
-    try {
-      await supabase.functions.invoke("send-verification-email", {
-        body: { email: user?.email ?? accountEmail, confirmationUrl: emailRedirectTo },
-      });
-    } catch (e) {
-      console.error("[handleCreateAccount] send-verification-email failed:", e);
-    }
-
     setSubmitting(false);
+    if (error) { setAccountError(error.message); return; }
     setStage("verify");
   }
 

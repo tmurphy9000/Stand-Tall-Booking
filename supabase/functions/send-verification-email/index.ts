@@ -1,13 +1,11 @@
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
+import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
+
+const hookSecret = (Deno.env.get("SEND_EMAIL_HOOK_SECRET") ?? "").replace("v1,whsec_", "");
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json" },
   });
 }
 
@@ -32,7 +30,7 @@ function buildHtml(confirmationUrl: string): string {
         <tr><td style="background:#141414;border-radius:20px;padding:32px;border:1px solid #2a2a2a">
           <p style="margin:0 0 6px;color:#8B9A7E;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px">Confirm your account</p>
           <h1 style="margin:0 0 16px;color:#ffffff;font-size:26px;font-weight:800;letter-spacing:-0.5px">Welcome to Stand Tall Booking.</h1>
-          <p style="margin:0 0 28px;color:#aaa;font-size:15px;line-height:1.6">Click the link below to confirm your email and activate your account.</p>
+          <p style="margin:0 0 28px;color:#aaa;font-size:15px;line-height:1.6">Click below to confirm your email and activate your account.</p>
 
           <table cellpadding="0" cellspacing="0">
             <tr><td style="border-radius:6px;background:#8B9A7E">
@@ -61,35 +59,52 @@ function buildHtml(confirmationUrl: string): string {
 }
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { status: 204, headers: corsHeaders });
+  if (req.method !== "POST") {
+    return json({ error: "Method not allowed" }, 405);
   }
 
   const resendApiKey = Deno.env.get("RESEND_API_KEY");
   if (!resendApiKey) {
     console.error("[send-verification-email] RESEND_API_KEY secret not set");
-    return json({ error: "Email service not configured" });
+    return json({ error: { http_code: 500, message: "Email service not configured" } }, 500);
   }
 
-  let body: { email?: string; confirmationUrl?: string };
+  if (!hookSecret) {
+    console.error("[send-verification-email] SEND_EMAIL_HOOK_SECRET secret not set");
+    return json({ error: { http_code: 500, message: "Hook secret not configured" } }, 500);
+  }
+
+  const payload = await req.text();
+  const headers = Object.fromEntries(req.headers);
+
+  let user: { email: string };
+  let emailData: {
+    token_hash: string;
+    email_action_type: string;
+  };
 
   try {
-    body = await req.json();
-  } catch (e) {
-    console.error("[send-verification-email] Failed to parse body:", e);
-    return json({ error: "Invalid request body" });
+    const wh = new Webhook(hookSecret);
+    const verified = wh.verify(payload, headers) as {
+      user: { email: string };
+      email_data: { token_hash: string; email_action_type: string };
+    };
+    user = verified.user;
+    emailData = verified.email_data;
+  } catch (error) {
+    console.error("[send-verification-email] Webhook verification failed:", error);
+    return json({ error: { http_code: 401, message: "Invalid webhook signature" } }, 401);
   }
 
-  const { email, confirmationUrl } = body;
-
-  if (!email || !confirmationUrl) {
-    console.error("[send-verification-email] Missing required fields:", body);
-    return json({ error: "Missing required fields" });
+  // Only handle signup confirmation emails — other auth email types pass through untouched.
+  if (emailData.email_action_type !== "signup") {
+    console.log("[send-verification-email] Ignoring email_action_type:", emailData.email_action_type);
+    return json({});
   }
 
-  console.log("[send-verification-email] Sending to:", email);
+  const confirmationUrl = `https://mmmkachplbkaxvhauhaa.supabase.co/auth/v1/verify?token=${emailData.token_hash}&type=signup&redirect_to=https://www.standtallbooking.com`;
 
-  const html = buildHtml(confirmationUrl);
+  console.log("[send-verification-email] Sending to:", user.email);
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -99,9 +114,9 @@ Deno.serve(async (req) => {
     },
     body: JSON.stringify({
       from: "Stand Tall Booking <bookings@standtallbooking.com>",
-      to: [email],
+      to: [user.email],
       subject: "Confirm your Stand Tall Booking account",
-      html,
+      html: buildHtml(confirmationUrl),
     }),
   });
 
@@ -109,9 +124,9 @@ Deno.serve(async (req) => {
 
   if (!res.ok) {
     console.error("[send-verification-email] Resend API error:", resBody);
-    return json({ error: resBody?.message ?? "Failed to send email" });
+    return json({ error: { http_code: 500, message: resBody?.message ?? "Failed to send email" } }, 500);
   }
 
   console.log("[send-verification-email] Email sent, id:", resBody.id);
-  return json({ success: true, id: resBody.id });
+  return json({});
 });
