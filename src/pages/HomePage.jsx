@@ -302,20 +302,28 @@ function JoinTab() {
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("[auth] onAuthStateChange event:", event, "session:", session);
       if (event === "SIGNED_IN" && session) {
+        console.log("[auth] user_metadata:", session.user.user_metadata);
         const planKey = session.user.user_metadata?.plan;
         if (planKey) {
           setCheckoutRedirecting(true);
           setStage("done");
-          const { data, error } = await supabase.functions.invoke("stripe-subscription", {
-            body: { plan: planKey, customerEmail: session.user.email },
-          });
-          if (!error && data?.url) {
-            window.location.href = data.url;
-            return;
+          try {
+            const { data, error } = await supabase.functions.invoke("stripe-subscription", {
+              body: { plan: planKey, customerEmail: session.user.email },
+            });
+            console.log("[stripe-subscription] response data:", data, "error:", error);
+            if (!error && data?.url) {
+              window.location.href = data.url;
+              return;
+            }
+            console.error("[stripe-subscription] checkout error:", error);
+            setCheckoutError("We couldn't start checkout. Please try again or contact support.");
+          } catch (err) {
+            console.error("[stripe-subscription] threw exception:", err);
+            setCheckoutError("We couldn't start checkout. Please try again or contact support.");
           }
-          console.error("[stripe-subscription] checkout error:", error);
-          setCheckoutError("We couldn't start checkout. Please try again or contact support.");
           return;
         }
         setStage("done");
