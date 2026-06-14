@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Loader2, Scissors, ChevronRight, ArrowLeft, Clock, CheckCircle2, User, Calendar, Tag, Copy, Instagram, Facebook, Globe, Phone, X, CalendarClock, Users } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { format, addDays, parse, addMinutes } from "date-fns";
+import { sortBarbersForBooking, runGapMinimization } from "@/lib/scheduleOptimizer";
 
 const LOGO_URL =
   "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6993eba91209ee0a1089f355/fd9cfe023_6f5fd5cc-8fc9-4041-9d87-c24e77a3bc58.png";
@@ -1643,11 +1644,19 @@ export default function ClientBooking() {
   const [resolvedGuestBarber, setResolvedGuestBarber] = useState(null);
 
   useEffect(() => {
-    Promise.all([entities.Barber.list(), entities.Service.list(), entities.ShopSettings.list()])
-      .then(([allBarbers, svcs, settingsArr]) => {
-        setBarbers(allBarbers.filter((b) => b.is_active !== false && b.online_bookable !== false));
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    Promise.all([
+      entities.Barber.list(),
+      entities.Service.list(),
+      entities.ShopSettings.list(),
+      entities.Booking.filter({ date: todayStr }),
+    ])
+      .then(([allBarbers, svcs, settingsArr, todaysBookings]) => {
+        const settings = settingsArr[0] || {};
+        const activeBarbers = allBarbers.filter((b) => b.is_active !== false && b.online_bookable !== false);
+        setBarbers(sortBarbersForBooking(activeBarbers, todaysBookings, settings.schedule_optimizer_enabled !== false));
         setAllServices(svcs.filter((s) => s.is_active !== false));
-        setShopSettings(settingsArr[0] || {});
+        setShopSettings(settings);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -1717,6 +1726,10 @@ export default function ClientBooking() {
         visit_type: "online",
       });
 
+      if (shopSettings.schedule_optimizer_enabled !== false) {
+        await runGapMinimization(bookingBarber.id, selectedDate).catch(console.error);
+      }
+
       // Guest booking
       let bookingGuestBarber = null;
       let guestStartHHMM = null;
@@ -1758,6 +1771,10 @@ export default function ClientBooking() {
           status: "scheduled",
           visit_type: "online",
         });
+
+        if (shopSettings.schedule_optimizer_enabled !== false) {
+          await runGapMinimization(bookingGuestBarber.id, selectedDate).catch(console.error);
+        }
       }
 
       if (clientEmail) {

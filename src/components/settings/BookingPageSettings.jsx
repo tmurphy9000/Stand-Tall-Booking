@@ -63,6 +63,7 @@ export default function BookingPageSettings() {
   const [cancelPolicyEnabled, setCancelPolicyEnabled] = useState(false);
   const [cancelPolicyText, setCancelPolicyText]       = useState("");
   const [minNotice, setMinNotice]                     = useState(0);
+  const [scheduleOptimizerEnabled, setScheduleOptimizerEnabled] = useState(true);
 
   useEffect(() => {
     if (!settings.id) return;
@@ -85,6 +86,7 @@ export default function BookingPageSettings() {
     setCancelPolicyEnabled(settings.cancellation_policy_enabled === true);
     setCancelPolicyText(settings.cancellation_policy_text || "");
     setMinNotice(settings.min_booking_notice_minutes ?? 0);
+    setScheduleOptimizerEnabled(settings.schedule_optimizer_enabled !== false);
   }, [settings.id]);
 
   const save = useMutation({
@@ -151,6 +153,7 @@ export default function BookingPageSettings() {
       cancellation_policy_enabled:  cancelPolicyEnabled,
       cancellation_policy_text:     cancelPolicyText || null,
       min_booking_notice_minutes:   Number(minNotice) || 0,
+      schedule_optimizer_enabled:   scheduleOptimizerEnabled,
     });
   };
 
@@ -199,6 +202,17 @@ export default function BookingPageSettings() {
         </div>
         <p className="text-xs text-gray-400">
           How far out clients can book online. Currently set to {unitToDays(windowValue, windowUnit)} days.
+        </p>
+      </section>
+
+      {/* ── Schedule optimizer ── */}
+      <section className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Schedule Optimizer</h3>
+          <Switch checked={scheduleOptimizerEnabled} onCheckedChange={setScheduleOptimizerEnabled} />
+        </div>
+        <p className="text-xs text-gray-400">
+          Automatically minimizes gaps and balances bookings across your team.
         </p>
       </section>
 

@@ -326,12 +326,10 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
                       {barber.name?.charAt(0)}
                     </div>
                   )}
-                  <div className="flex items-center gap-0.5">
-                    <span className="text-[9px] font-medium text-gray-700 truncate max-w-full">{barber.name.split(' ')[0]}</span>
-                    <span className="text-[8px] font-bold text-[#8B9A7E] bg-[#8B9A7E]/10 px-1 py-0.5 rounded-full">
-                      {barberAppointmentCount}
-                    </span>
-                  </div>
+                  <span className="text-[9px] font-medium text-gray-700 truncate max-w-full">{barber.name.split(' ')[0]}</span>
+                  <span className="text-[8px] font-bold text-[#8B9A7E] bg-[#8B9A7E]/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                    {barberAppointmentCount} appts
+                  </span>
                 </div>
               </div>
             );

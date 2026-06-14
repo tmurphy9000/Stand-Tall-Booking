@@ -14,6 +14,7 @@ import LeaderboardCard from "../components/calendar/LeaderboardCard";
 import CheckoutModal from "../components/checkout/CheckoutModal";
 import { useViewMode } from "../lib/ViewModeContext";
 import { useAuth } from "../lib/AuthContext";
+import { runGapMinimization } from "../lib/scheduleOptimizer";
 
 const BARBERS_PER_GROUP = 5;
 
@@ -89,6 +90,9 @@ export default function CalendarPage() {
 
   const handleCreateBooking = async (data) => {
     await entities.Booking.create(data);
+    if (shopSettings.schedule_optimizer_enabled !== false) {
+      await runGapMinimization(data.barber_id, data.date).catch(console.error);
+    }
     queryClient.invalidateQueries({ queryKey: ["bookings"] });
     setShowBookingForm(false);
     setShowQuickBooking(false);
@@ -99,6 +103,15 @@ export default function CalendarPage() {
     const items = Array.isArray(bookingsData) ? bookingsData : [bookingsData];
     for (const item of items) {
       await entities.Booking.create(item);
+    }
+    if (shopSettings.schedule_optimizer_enabled !== false) {
+      const seen = new Set();
+      for (const item of items) {
+        const key = `${item.barber_id}|${item.date}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        await runGapMinimization(item.barber_id, item.date).catch(console.error);
+      }
     }
     queryClient.invalidateQueries({ queryKey: ["bookings"] });
     setShowBookingForm(false);
