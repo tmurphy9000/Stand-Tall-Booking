@@ -67,6 +67,8 @@ Deno.serve(async (req) => {
       line_items: [{ price: resolvedPriceId, quantity: 1 }],
       success_url: "https://www.standtallbooking.com?checkout=success",
       cancel_url: "https://www.standtallbooking.com?checkout=cancelled",
+      metadata: plan ? { plan } : undefined,
+      subscription_data: plan ? { metadata: { plan } } : undefined,
     });
 
     return json({ url: session.url });
