@@ -296,41 +296,33 @@ function JoinTab() {
   const [resendStatus, setResendStatus] = useState("");
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
+  const [checkoutRedirecting, setCheckoutRedirecting] = useState(false);
 
   const [termsAccepted, setTermsAccepted] = useState({ terms: false, smsEmail: false, age: false });
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session) {
+        const planKey = session.user.user_metadata?.plan;
+        if (planKey) {
+          setCheckoutRedirecting(true);
+          setStage("done");
+          const { data, error } = await supabase.functions.invoke("stripe-subscription", {
+            body: { plan: planKey, customerEmail: session.user.email },
+          });
+          if (!error && data?.url) {
+            window.location.href = data.url;
+            return;
+          }
+          console.error("[stripe-subscription] checkout error:", error);
+          setCheckoutError("We couldn't start checkout. Please try again or contact support.");
+          return;
+        }
         setStage("done");
       }
     });
     return () => subscription.unsubscribe();
   }, []);
-
-  // Send the user to Stripe Checkout for their chosen plan once they're verified.
-  useEffect(() => {
-    if (stage !== "done" || checkoutStatus) return;
-
-    const planKey = PLAN_KEYS[answers.plan];
-    if (!planKey) return;
-
-    let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase.functions.invoke("stripe-subscription", {
-        body: { plan: planKey, customerEmail: accountEmail },
-      });
-      if (cancelled) return;
-      if (error || !data?.url) {
-        console.error("[stripe-subscription] checkout error:", error);
-        setCheckoutError("We couldn't start checkout. Please try again or contact support.");
-        return;
-      }
-      window.location.href = data.url;
-    })();
-
-    return () => { cancelled = true; };
-  }, [stage, checkoutStatus, answers.plan, accountEmail]);
 
   const planOptions = [
     {
@@ -429,7 +421,7 @@ function JoinTab() {
     const { error } = await supabase.auth.signUp({
       email: accountEmail,
       password: accountPassword,
-      options: { data: { ...answers }, emailRedirectTo: "https://www.standtallbooking.com" },
+      options: { data: { ...answers, plan: PLAN_KEYS[answers.plan] }, emailRedirectTo: "https://www.standtallbooking.com" },
     });
     setSubmitting(false);
     if (error) { setAccountError(error.message); return; }
@@ -519,7 +511,7 @@ function JoinTab() {
   );
 
   // ── Redirecting to Stripe Checkout ──
-  if (stage === "done" && checkoutStatus !== "success") return (
+  if (stage === "done" && checkoutRedirecting) return (
     <div style={{minHeight:"80vh", display:"flex", alignItems:"center", justifyContent:"center", padding:"4rem 2rem"}}>
       <div style={{width:"100%", maxWidth:"420px", textAlign:"center"}}>
         <h2 style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"clamp(32px,5vw,52px)", color:FG, margin:"0 0 0.75rem", letterSpacing:"0.02em"}}>
