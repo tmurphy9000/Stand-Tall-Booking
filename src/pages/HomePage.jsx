@@ -1,4 +1,5 @@
-import { useState, Fragment } from "react";
+import { useState, useEffect, Fragment } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────
 // Palette: near-black #0D0D0D, off-white #F2F0EB, brand green #8B9A7E,
@@ -284,11 +285,20 @@ function JoinTab() {
   const [accountPassword, setAccountPassword] = useState("");
   const [accountConfirm, setAccountConfirm] = useState("");
   const [accountError, setAccountError] = useState("");
-  const [verifyCode, setVerifyCode] = useState("");
   const [verifyError, setVerifyError] = useState("");
+  const [resendStatus, setResendStatus] = useState("");
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
 
   const [termsAccepted, setTermsAccepted] = useState({ terms: false, smsEmail: false, age: false });
+
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        setStage("done");
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
 
   const planOptions = [
     {
@@ -384,18 +394,24 @@ function JoinTab() {
     if (accountPassword.length < 8) { setAccountError("Password must be at least 8 characters."); return; }
     if (accountPassword !== accountConfirm) { setAccountError("Passwords don't match."); return; }
     setSubmitting(true);
-    await new Promise(r => setTimeout(r, 1000));
+    const { error } = await supabase.auth.signUp({
+      email: accountEmail,
+      password: accountPassword,
+      options: { data: { ...answers } },
+    });
     setSubmitting(false);
+    if (error) { setAccountError(error.message); return; }
     setStage("verify");
   }
 
-  async function handleVerify() {
+  async function handleResendEmail() {
     setVerifyError("");
-    if (verifyCode.length < 4) { setVerifyError("Please enter the code we sent you."); return; }
+    setResendStatus("");
     setSubmitting(true);
-    await new Promise(r => setTimeout(r, 1000));
+    const { error } = await supabase.auth.resend({ type: "signup", email: accountEmail });
     setSubmitting(false);
-    setStage("done");
+    if (error) { setVerifyError(error.message); return; }
+    setResendStatus("Email sent! Check your inbox.");
   }
 
   // ── Account creation screen ──
@@ -444,20 +460,14 @@ function JoinTab() {
         </div>
         <h2 style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"clamp(32px,5vw,52px)", color:FG, margin:"0 0 0.75rem", letterSpacing:"0.02em"}}>Check your email.</h2>
         <p style={{fontSize:"14px", color:"#D1D5DB", maxWidth:"340px", margin:"0 auto 2rem", lineHeight:1.7}}>
-          We sent a verification code to <span style={{color:FG}}>{accountEmail}</span>. Enter it below to confirm your account.
+          We sent a verification link to <span style={{color:FG}}>{accountEmail}</span>. Click the link in that email to confirm your account — this page will continue automatically once you do.
         </p>
         <div style={{display:"flex", flexDirection:"column", gap:"12px", alignItems:"center"}}>
-          <input type="text" value={verifyCode} onChange={e=>setVerifyCode(e.target.value)} placeholder="Enter code"
-            maxLength={8}
-            onKeyDown={e=>{ if(e.key==="Enter") handleVerify(); }}
-            style={{width:"200px", padding:"14px 16px", background:"#111", border:`1px solid ${BORDER}`, color:FG, fontSize:"18px", borderRadius:"4px", fontFamily:"inherit", outline:"none", textAlign:"center", letterSpacing:"0.2em"}} />
           {verifyError && <p style={{fontSize:"13px", color:"#F87171", margin:0}}>{verifyError}</p>}
-          <button onClick={handleVerify} disabled={submitting}
-            style={{background:G, color:BG, border:"none", padding:"13px 32px", fontSize:"13px", fontWeight:600, letterSpacing:"0.08em", borderRadius:"2px", cursor:"pointer", fontFamily:"inherit"}}>
-            {submitting ? "Verifying…" : "VERIFY EMAIL →"}
-          </button>
-          <button onClick={()=>{}} style={{background:"none", border:"none", fontSize:"12px", color:"#D1D5DB", cursor:"pointer", fontFamily:"inherit", marginTop:"4px"}}>
-            Resend code
+          {resendStatus && <p style={{fontSize:"13px", color:G, margin:0}}>{resendStatus}</p>}
+          <button onClick={handleResendEmail} disabled={submitting}
+            style={{background:"transparent", border:`1px solid ${BORDER}`, color:"#D1D5DB", padding:"13px 32px", fontSize:"13px", fontWeight:500, letterSpacing:"0.06em", borderRadius:"2px", cursor:"pointer", fontFamily:"inherit"}}>
+            {submitting ? "Sending…" : "Resend email"}
           </button>
         </div>
       </div>
