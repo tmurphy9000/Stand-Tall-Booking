@@ -11,6 +11,10 @@ const LOGO_URL =
 
 const ANY_BARBER = { id: "any", name: "Any Barber" };
 
+// The public booking page has no authenticated session, so it can't use
+// useShop() — scope anon reads/writes to this shop explicitly.
+const DEFAULT_SHOP_ID = "00000000-0000-0000-0000-000000000001";
+
 const fadeSlide = {
   initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
@@ -794,7 +798,7 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
           if (working.length === 0) continue;
           try {
             if (!bookingsCacheRef.current[dateStr]) {
-              bookingsCacheRef.current[dateStr] = await entities.Booking.filter({ date: dateStr });
+              bookingsCacheRef.current[dateStr] = await entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, date: dateStr });
             }
             const dayBookings = bookingsCacheRef.current[dateStr];
             const timeToBarber = new Map();
@@ -828,7 +832,7 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
           if (!dayHours || dayHours.off || dayHours.closed) continue;
           try {
             if (!bookingsCacheRef.current[dateStr]) {
-              bookingsCacheRef.current[dateStr] = await entities.Booking.filter({ barber_id: barber.id, date: dateStr });
+              bookingsCacheRef.current[dateStr] = await entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, barber_id: barber.id, date: dateStr });
             }
             const dayBookings = bookingsCacheRef.current[dateStr];
             const daySlots = generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 30);
@@ -913,14 +917,14 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
     if (!selectedDate || !barber) return;
     setLoadingSlots(true);
     const mainQuery = isAny
-      ? entities.Booking.filter({ date: selectedDate })
-      : entities.Booking.filter({ barber_id: barber.id, date: selectedDate });
+      ? entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, date: selectedDate })
+      : entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, barber_id: barber.id, date: selectedDate });
 
     if (guestBarber) {
       const guestIsAny = guestBarber.id === "any";
       const guestQuery = (guestIsAny || isAny)
-        ? entities.Booking.filter({ date: selectedDate })
-        : entities.Booking.filter({ barber_id: guestBarber.id, date: selectedDate });
+        ? entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, date: selectedDate })
+        : entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, barber_id: guestBarber.id, date: selectedDate });
       console.log("[DateTimeStep] fetching bookings — date:", selectedDate,
         "| main barber:", isAny ? "any" : barber.id,
         "| guest barber:", guestIsAny ? "any" : guestBarber.id,
@@ -1646,10 +1650,10 @@ export default function ClientBooking() {
   useEffect(() => {
     const todayStr = format(new Date(), "yyyy-MM-dd");
     Promise.all([
-      entities.Barber.list(),
-      entities.Service.list(),
-      entities.ShopSettings.list(),
-      entities.Booking.filter({ date: todayStr }),
+      entities.Barber.filter({ shop_id: DEFAULT_SHOP_ID }),
+      entities.Service.filter({ shop_id: DEFAULT_SHOP_ID }),
+      entities.ShopSettings.filter({ shop_id: DEFAULT_SHOP_ID }),
+      entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, date: todayStr }),
     ])
       .then(([allBarbers, svcs, settingsArr, todaysBookings]) => {
         const settings = settingsArr[0] || {};
@@ -1696,7 +1700,7 @@ export default function ClientBooking() {
       let bookingBarber = selectedBarber;
       if (selectedBarber.id === "any") {
         const dayName = format(new Date(selectedDate + "T12:00:00"), "EEEE").toLowerCase();
-        const dayBookings = await entities.Booking.filter({ date: selectedDate });
+        const dayBookings = await entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, date: selectedDate });
         bookingBarber = barbers.find(b => {
           const dh = b.hours?.[dayName];
           if (!dh || dh.off || dh.closed) return false;
@@ -1708,6 +1712,7 @@ export default function ClientBooking() {
       }
 
       await entities.Booking.create({
+        shop_id: DEFAULT_SHOP_ID,
         barber_id: bookingBarber.id,
         barber_name: bookingBarber.name,
         service_id: selectedService.id,
@@ -1743,7 +1748,7 @@ export default function ClientBooking() {
         bookingGuestBarber = guestBarber;
         if (guestBarber.id === "any") {
           const dayName = format(new Date(selectedDate + "T12:00:00"), "EEEE").toLowerCase();
-          const dayBookings = await entities.Booking.filter({ date: selectedDate });
+          const dayBookings = await entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, date: selectedDate });
           bookingGuestBarber = barbers.find(b => {
             // For same_time, avoid assigning the same barber as the main client
             if (guestTiming === "same_time" && b.id === bookingBarber.id) return false;
@@ -1757,6 +1762,7 @@ export default function ClientBooking() {
         setResolvedGuestBarber(bookingGuestBarber);
 
         await entities.Booking.create({
+          shop_id: DEFAULT_SHOP_ID,
           barber_id: bookingGuestBarber.id,
           barber_name: bookingGuestBarber.name,
           service_id: guestService.id,

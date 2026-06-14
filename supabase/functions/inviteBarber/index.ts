@@ -115,6 +115,13 @@ Deno.serve(async (req) => {
     return json({ error: `Failed to look up barber record: ${lookupError.message}` });
   }
 
+  // New barbers join the inviter's shop.
+  const { data: inviterBarber } = await callerClient
+    .from("barbers")
+    .select("shop_id")
+    .eq("user_id", caller.id)
+    .maybeSingle();
+
   let barberId: string;
 
   if (existingBarber) {
@@ -144,6 +151,7 @@ Deno.serve(async (req) => {
         is_active: true,
         online_bookable: true,
         user_id: authUserId,
+        shop_id: inviterBarber?.shop_id,
       })
       .select("id")
       .single();
