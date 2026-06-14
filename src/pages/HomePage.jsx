@@ -276,10 +276,17 @@ const questions = [
   { id:"phone", type:"tel", label:"Best phone number to reach you", placeholder:"(555) 555-5555" },
 ];
 
+const PLAN_KEYS = {
+  "Basic — $29/mo": "basic",
+  "Pro — $79/mo": "pro",
+  "Elite — $149/mo per location": "elite",
+};
+
 function JoinTab() {
+  const checkoutStatus = new URLSearchParams(window.location.search).get("checkout");
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState({});
-  const [stage, setStage] = useState("questionnaire"); // questionnaire | account | verify | done
+  const [stage, setStage] = useState(checkoutStatus ? "done" : "questionnaire"); // questionnaire | account | verify | done
   const [submitting, setSubmitting] = useState(false);
   const [accountEmail, setAccountEmail] = useState("");
   const [accountPassword, setAccountPassword] = useState("");
@@ -288,6 +295,7 @@ function JoinTab() {
   const [verifyError, setVerifyError] = useState("");
   const [resendStatus, setResendStatus] = useState("");
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
+  const [checkoutError, setCheckoutError] = useState("");
 
   const [termsAccepted, setTermsAccepted] = useState({ terms: false, smsEmail: false, age: false });
 
@@ -299,6 +307,30 @@ function JoinTab() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  // Send the user to Stripe Checkout for their chosen plan once they're verified.
+  useEffect(() => {
+    if (stage !== "done" || checkoutStatus) return;
+
+    const planKey = PLAN_KEYS[answers.plan];
+    if (!planKey) return;
+
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.functions.invoke("stripe-subscription", {
+        body: { plan: planKey, customerEmail: accountEmail },
+      });
+      if (cancelled) return;
+      if (error || !data?.url) {
+        console.error("[stripe-subscription] checkout error:", error);
+        setCheckoutError("We couldn't start checkout. Please try again or contact support.");
+        return;
+      }
+      window.location.href = data.url;
+    })();
+
+    return () => { cancelled = true; };
+  }, [stage, checkoutStatus, answers.plan, accountEmail]);
 
   const planOptions = [
     {
@@ -470,6 +502,32 @@ function JoinTab() {
             {submitting ? "Sending…" : "Resend email"}
           </button>
         </div>
+      </div>
+    </div>
+  );
+
+  // ── Checkout cancelled screen ──
+  if (stage === "done" && checkoutStatus === "cancelled") return (
+    <div style={{minHeight:"80vh", display:"flex", alignItems:"center", justifyContent:"center", padding:"4rem 2rem"}}>
+      <div style={{width:"100%", maxWidth:"420px", textAlign:"center"}}>
+        <h2 style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"clamp(32px,5vw,52px)", color:FG, margin:"0 0 0.75rem", letterSpacing:"0.02em"}}>Checkout cancelled.</h2>
+        <p style={{fontSize:"14px", color:"#D1D5DB", lineHeight:1.7}}>
+          No worries — you can complete your subscription anytime from your account settings.
+        </p>
+      </div>
+    </div>
+  );
+
+  // ── Redirecting to Stripe Checkout ──
+  if (stage === "done" && checkoutStatus !== "success") return (
+    <div style={{minHeight:"80vh", display:"flex", alignItems:"center", justifyContent:"center", padding:"4rem 2rem"}}>
+      <div style={{width:"100%", maxWidth:"420px", textAlign:"center"}}>
+        <h2 style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"clamp(32px,5vw,52px)", color:FG, margin:"0 0 0.75rem", letterSpacing:"0.02em"}}>
+          {checkoutError ? "Something went wrong." : "Taking you to checkout…"}
+        </h2>
+        <p style={{fontSize:"14px", color:checkoutError ? "#F87171" : "#D1D5DB", lineHeight:1.7}}>
+          {checkoutError || "Hang tight while we set up your subscription."}
+        </p>
       </div>
     </div>
   );
@@ -742,7 +800,8 @@ function LoginTab() {
 
 // ─── ROOT ─────────────────────────────────────────────────────
 export default function HomePage() {
-  const [tab, setTab] = useState("Home");
+  const checkoutStatus = new URLSearchParams(window.location.search).get("checkout");
+  const [tab, setTab] = useState(checkoutStatus ? "Join Today" : "Home");
 
   return (
     <div style={{minHeight:"100vh", background:BG, color:FG, fontFamily:"'Inter', system-ui, sans-serif"}}>

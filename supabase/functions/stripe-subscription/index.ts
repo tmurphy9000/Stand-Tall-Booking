@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
     return json({ error: "Server configuration error" }, 500);
   }
 
-  let body: { priceId?: string; plan?: string; customerId?: string };
+  let body: { priceId?: string; plan?: string; customerId?: string; customerEmail?: string };
   try {
     body = await req.json();
   } catch (e) {
@@ -32,9 +32,9 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid request body" }, 400);
   }
 
-  const { priceId, plan, customerId } = body;
-  if (!customerId) {
-    return json({ error: "customerId is required" }, 400);
+  const { priceId, plan, customerId, customerEmail } = body;
+  if (!customerId && !customerEmail) {
+    return json({ error: "customerId or customerEmail is required" }, 400);
   }
 
   let resolvedPriceId = priceId;
@@ -56,15 +56,13 @@ Deno.serve(async (req) => {
 
   const stripe = new Stripe(secretKey, { apiVersion: "2024-06-20" });
 
-  const origin = req.headers.get("origin") ?? "";
-
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
-      customer: customerId,
+      ...(customerId ? { customer: customerId } : { customer_email: customerEmail }),
       line_items: [{ price: resolvedPriceId, quantity: 1 }],
-      success_url: `${origin}/?checkout=success`,
-      cancel_url: `${origin}/?checkout=cancelled`,
+      success_url: "https://www.standtallbooking.com?checkout=success",
+      cancel_url: "https://www.standtallbooking.com?checkout=cancelled",
     });
 
     return json({ url: session.url });
