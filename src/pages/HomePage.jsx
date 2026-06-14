@@ -765,6 +765,17 @@ export default function HomePage() {
       started = true;
       setRedirectingToCheckout(true);
       try {
+        const { data: existingSub } = await supabase
+          .from("subscriptions")
+          .select("status")
+          .eq("user_id", session.user.id)
+          .single();
+
+        if (existingSub?.status === "active") {
+          window.location.href = "/Calendar";
+          return;
+        }
+
         const { data, error } = await supabase.functions.invoke("stripe-subscription", {
           body: { plan: session.user.user_metadata.plan, customerEmail: session.user.email },
         });
