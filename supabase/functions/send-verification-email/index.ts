@@ -1,20 +1,3 @@
-import { Webhook } from "https://esm.sh/standardwebhooks@1.0.0";
-
-const hookSecret = (Deno.env.get("SEND_EMAIL_HOOK_SECRET") ?? "").replace("v1,whsec_", "");
-
-// The secret is base64 (using +/ chars) but may arrive without standard
-// padding, which makes the library's own base64 decoder choke with
-// "illegal base64 data at input byte N". Decode it ourselves — padding the
-// string out to a multiple of 4 — and hand the library raw key bytes.
-function decodeHookSecret(secret: string): Uint8Array {
-  let padded = secret.replace(/-/g, "+").replace(/_/g, "/");
-  while (padded.length % 4 !== 0) padded += "=";
-  const binary = atob(padded);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
-}
-
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -82,42 +65,14 @@ Deno.serve(async (req) => {
     return json({ error: { http_code: 500, message: "Email service not configured" } }, 500);
   }
 
-  if (!hookSecret) {
-    console.error("[send-verification-email] SEND_EMAIL_HOOK_SECRET secret not set");
-    return json({ error: { http_code: 500, message: "Hook secret not configured" } }, 500);
-  }
+  const payload = await req.json();
+  const userId: string = payload.user?.id;
+  const email: string = payload.user?.email;
+  const tokenHash: string = payload.email_data?.token_hash;
 
-  const payload = await req.text();
-  const headers = Object.fromEntries(req.headers);
+  const confirmationUrl = `https://mmmkachplbkaxvhauhaa.supabase.co/auth/v1/verify?token=${tokenHash}&type=signup&redirect_to=https://www.standtallbooking.com`;
 
-  let user: { email: string };
-  let emailData: {
-    token_hash: string;
-    email_action_type: string;
-  };
-
-  try {
-    const wh = new Webhook(decodeHookSecret(hookSecret), { format: "raw" });
-    const verified = wh.verify(payload, headers) as {
-      user: { email: string };
-      email_data: { token_hash: string; email_action_type: string };
-    };
-    user = verified.user;
-    emailData = verified.email_data;
-  } catch (error) {
-    console.error("[send-verification-email] Webhook verification failed:", error);
-    return json({ error: { http_code: 401, message: "Invalid webhook signature" } }, 401);
-  }
-
-  // Only handle signup confirmation emails — other auth email types pass through untouched.
-  if (emailData.email_action_type !== "signup") {
-    console.log("[send-verification-email] Ignoring email_action_type:", emailData.email_action_type);
-    return json({});
-  }
-
-  const confirmationUrl = `https://mmmkachplbkaxvhauhaa.supabase.co/auth/v1/verify?token=${emailData.token_hash}&type=signup&redirect_to=https://www.standtallbooking.com`;
-
-  console.log("[send-verification-email] Sending to:", user.email);
+  console.log("[send-verification-email] Sending to:", email, "user_id:", userId);
 
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -127,7 +82,7 @@ Deno.serve(async (req) => {
     },
     body: JSON.stringify({
       from: "Stand Tall Booking <bookings@standtallbooking.com>",
-      to: [user.email],
+      to: [email],
       subject: "Confirm your Stand Tall Booking account",
       html: buildHtml(confirmationUrl),
     }),
