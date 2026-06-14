@@ -19,3 +19,8 @@ entrypoint = "./functions/process-client-import/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/ai-assistant/index.ts"
+
+[functions.send-verification-email]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/send-verification-email/index.ts"
