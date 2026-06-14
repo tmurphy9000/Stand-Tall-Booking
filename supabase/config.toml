@@ -24,3 +24,8 @@ entrypoint = "./functions/ai-assistant/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/send-verification-email/index.ts"
+
+[functions.stripe-subscription]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/stripe-subscription/index.ts"
