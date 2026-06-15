@@ -721,9 +721,21 @@ function JoinTab() {
 }
 
 // ─── LOGIN TAB ───────────────────────────────────────────────
-function LoginTab() {
+function LoginTab({ setTab }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleLogin = async () => {
+    setError("");
+    if (!email || !password) { setError("Please enter your email and password."); return; }
+    setLoading(true);
+    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    setLoading(false);
+    if (authError) { setError("Invalid email or password."); return; }
+    window.location.href = "/Calendar";
+  };
 
   return (
     <div style={{minHeight:"80vh", display:"flex", alignItems:"center", justifyContent:"center", padding:"4rem 2rem"}}>
@@ -732,18 +744,22 @@ function LoginTab() {
         <h2 style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"42px", color:FG, margin:"0 0 2.5rem", letterSpacing:"0.02em"}}>Welcome back.</h2>
         <div style={{display:"flex", flexDirection:"column", gap:"12px"}}>
           <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Email address"
+            onKeyDown={e=>{ if(e.key==="Enter") handleLogin(); }}
             style={{padding:"13px 16px", background:"#111", border:`1px solid ${BORDER}`, color:FG, fontSize:"14px", borderRadius:"4px", fontFamily:"inherit", outline:"none"}} />
           <input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Password"
+            onKeyDown={e=>{ if(e.key==="Enter") handleLogin(); }}
             style={{padding:"13px 16px", background:"#111", border:`1px solid ${BORDER}`, color:FG, fontSize:"14px", borderRadius:"4px", fontFamily:"inherit", outline:"none"}} />
+          {error && <p style={{fontSize:"13px", color:"#F87171", margin:0}}>{error}</p>}
           <button
-            onClick={() => window.location.href = "/barber-login"}
-            style={{background:G, color:BG, border:"none", padding:"13px", fontSize:"13px", fontWeight:600, letterSpacing:"0.08em", borderRadius:"2px", cursor:"pointer", marginTop:"4px"}}>
-            LOG IN →
+            onClick={handleLogin}
+            disabled={loading}
+            style={{background:G, color:BG, border:"none", padding:"13px", fontSize:"13px", fontWeight:600, letterSpacing:"0.08em", borderRadius:"2px", cursor: loading ? "default" : "pointer", marginTop:"4px", opacity: loading ? 0.7 : 1}}>
+            {loading ? "Signing in…" : "LOG IN →"}
           </button>
         </div>
         <div style={{marginTop:"1.5rem", display:"flex", justifyContent:"space-between"}}>
-          <a href="/forgot-password" style={{fontSize:"12px", color:"#D1D5DB", textDecoration:"none"}}>Forgot password?</a>
-          <button onClick={() => {}} style={{background:"none", border:"none", fontSize:"12px", color:G, cursor:"pointer", padding:0}}>Sign up instead</button>
+          <a href="/barber-login" style={{fontSize:"12px", color:"#D1D5DB", textDecoration:"none"}}>Forgot password?</a>
+          <button onClick={() => setTab("Join Today")} style={{background:"none", border:"none", fontSize:"12px", color:G, cursor:"pointer", padding:0}}>Sign up instead</button>
         </div>
       </div>
     </div>
@@ -831,7 +847,7 @@ export default function HomePage() {
       {tab === "Home"       && <HomeTab setTab={setTab} />}
       {tab === "Pricing"    && <PricingTab setTab={setTab} />}
       {tab === "Join Today" && <JoinTab />}
-      {tab === "Login"      && <LoginTab />}
+      {tab === "Login"      && <LoginTab setTab={setTab} />}
       <div style={{borderTop:`1px solid ${BORDER}`, padding:"1.5rem 2rem", textAlign:"center"}}>
         <span style={{fontSize:"12px", color:"#2D2D2D"}}>© 2026 Stand Tall Booking · standtallbooking.com</span>
       </div>
