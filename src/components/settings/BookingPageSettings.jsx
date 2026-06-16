@@ -41,7 +41,8 @@ const BASE_URL = "https://standtallbooking.com";
 
 const SLUG_RE = /^[a-z0-9-]+$/;
 
-function SlugEditor({ shopId, currentSlug, onSaved }) {
+function SlugEditor({ shopId, currentSlug }) {
+  const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(currentSlug);
   const [saving, setSaving] = useState(false);
@@ -56,7 +57,7 @@ function SlugEditor({ shopId, currentSlug, onSaved }) {
     const { error } = await supabase.from("shops").update({ url_slug: cleaned }).eq("id", shopId);
     setSaving(false);
     if (error) { toast.error("That slug is already taken. Try a different one."); return; }
-    onSaved(cleaned);
+    queryClient.invalidateQueries({ queryKey: ["shopSlug", shopId] });
     setEditing(false);
     toast.success("Booking URL updated.");
   };
@@ -195,13 +196,24 @@ function CopySnippet({ value, label }) {
 export default function BookingPageSettings() {
   const queryClient = useQueryClient();
   const { shopId } = useShop();
-  const [urlSlug, setUrlSlug] = useState("");
   const [activeModal, setActiveModal] = useState(null);
 
   const { data: settingsArr = [], isLoading } = useQuery({
     queryKey: ["shopSettings"],
     queryFn: () => entities.ShopSettings.list(),
   });
+
+  const { data: slugData } = useQuery({
+    queryKey: ["shopSlug", shopId],
+    queryFn: async () => {
+      if (!shopId) return null;
+      const { data } = await supabase.from("shops").select("url_slug").eq("id", shopId).single();
+      return data;
+    },
+    enabled: !!shopId,
+    staleTime: 0,
+  });
+  const urlSlug = slugData?.url_slug ?? "";
   const settings = settingsArr[0] || {};
 
   const [windowValue, setWindowValue] = useState(60);
@@ -223,12 +235,6 @@ export default function BookingPageSettings() {
   const [cancelPolicyText, setCancelPolicyText]       = useState("");
   const [minNotice, setMinNotice]                     = useState(0);
   const [scheduleOptimizerEnabled, setScheduleOptimizerEnabled] = useState(true);
-
-  useEffect(() => {
-    if (!shopId) return;
-    supabase.from("shops").select("url_slug").eq("id", shopId).single()
-      .then(({ data }) => { if (data?.url_slug) setUrlSlug(data.url_slug); });
-  }, [shopId]);
 
   useEffect(() => {
     if (!settings.id) return;
@@ -352,31 +358,33 @@ export default function BookingPageSettings() {
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Your Booking URL</h3>
             <InfoButton onClick={() => setActiveModal("bookingUrl")} />
           </div>
-          <div className="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-            <p className="text-sm font-mono flex-1 truncate text-gray-700">
+          <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <p className="text-sm font-mono text-gray-700 break-all select-all">
               {BASE_URL}/book/{urlSlug}
             </p>
+          </div>
+          <div className="flex items-center gap-2">
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-xs gap-1 flex-shrink-0"
+              className="h-8 text-xs gap-1.5"
               onClick={() => {
                 navigator.clipboard.writeText(`${BASE_URL}/book/${urlSlug}`);
                 toast.success("Booking URL copied!");
               }}
             >
-              <Copy className="w-3 h-3" /> Copy
+              <Copy className="w-3.5 h-3.5" /> Copy URL
             </Button>
             <Button
               size="sm"
               variant="outline"
-              className="h-7 text-xs gap-1 flex-shrink-0"
+              className="h-8 text-xs gap-1.5"
               onClick={() => window.open(`${BASE_URL}/book/${urlSlug}`, "_blank")}
             >
-              <ExternalLink className="w-3 h-3" /> Open
+              <ExternalLink className="w-3.5 h-3.5" /> Open
             </Button>
           </div>
-          <SlugEditor shopId={shopId} currentSlug={urlSlug} onSaved={setUrlSlug} />
+          <SlugEditor shopId={shopId} currentSlug={urlSlug} />
         </section>
       )}
 
