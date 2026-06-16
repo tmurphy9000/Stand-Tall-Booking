@@ -44,3 +44,28 @@ entrypoint = "./functions/createStripePayment/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/stripe-connect-callback/index.ts"
+
+[functions.stripe-terminal-location]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/stripe-terminal-location/index.ts"
+
+[functions.stripe-terminal-connection-token]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/stripe-terminal-connection-token/index.ts"
+
+[functions.stripe-list-readers]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/stripe-list-readers/index.ts"
+
+[functions.stripe-register-reader]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/stripe-register-reader/index.ts"
+
+[functions.stripe-delete-reader]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/stripe-delete-reader/index.ts"

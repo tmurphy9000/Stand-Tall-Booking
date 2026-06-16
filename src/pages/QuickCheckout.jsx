@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Plus, DollarSign, CreditCard } from "lucide-react";
+import { X, Plus, DollarSign, CreditCard, Tablet } from "lucide-react";
 import { entities } from "@/api/entities";
 import { functions } from "@/api/functions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -11,6 +11,7 @@ import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useShop } from "@/lib/shopContext";
+import TerminalPayment from "@/components/checkout/TerminalPayment";
 
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
@@ -35,7 +36,7 @@ function QuickCheckoutContent() {
   const stripe = useStripe();
   const elements = useElements();
   const queryClient = useQueryClient();
-  const { shopId, stripeAccountId } = useShop();
+  const { shopId, stripeAccountId, stripeTerminalLocationId } = useShop();
 
   const { data: services = [] } = useQuery({
     queryKey: ["services"],
@@ -133,6 +134,8 @@ function QuickCheckoutContent() {
       toast.error("Please assign a barber to all items");
       return;
     }
+
+    if (paymentMethod === "reader") return; // Terminal handles its own flow
 
     if (paymentMethod === "card") {
       if (!stripe || !elements) {
@@ -386,7 +389,8 @@ function QuickCheckoutContent() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="card">Card</SelectItem>
+                <SelectItem value="card">Card (manual entry)</SelectItem>
+                {stripeAccountId && <SelectItem value="reader">Card Reader (Terminal)</SelectItem>}
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
@@ -414,6 +418,19 @@ function QuickCheckoutContent() {
                 }}
               />
             </div>
+          )}
+
+          {/* Terminal payment */}
+          {paymentMethod === "reader" && (
+            <TerminalPayment
+              shopId={shopId}
+              locationId={stripeTerminalLocationId}
+              amountCents={Math.round(total * 100)}
+              description={`Quick Checkout: ${clientName || "Client"}`}
+              metadata={{ client_name: clientName }}
+              onSuccess={() => completeCheckout()}
+              onCancel={() => setPaymentMethod("cash")}
+            />
           )}
 
           {/* Summary */}
@@ -447,14 +464,16 @@ function QuickCheckoutContent() {
           </div>
 
           {/* Actions */}
-          <Button
-            onClick={handleCheckout}
-            className="w-full bg-[#8B9A7E] hover:bg-[#6B7A5E]"
-            disabled={processing || (paymentMethod === "card" && !stripeAccountId)}
-          >
-            {paymentMethod === "card" ? <CreditCard className="w-4 h-4 mr-2" /> : <DollarSign className="w-4 h-4 mr-2" />}
-            {processing ? "Processing..." : "Complete Checkout"}
-          </Button>
+          {paymentMethod !== "reader" && (
+            <Button
+              onClick={handleCheckout}
+              className="w-full bg-[#8B9A7E] hover:bg-[#6B7A5E]"
+              disabled={processing || (paymentMethod === "card" && !stripeAccountId)}
+            >
+              {paymentMethod === "card" ? <CreditCard className="w-4 h-4 mr-2" /> : <DollarSign className="w-4 h-4 mr-2" />}
+              {processing ? "Processing..." : "Complete Checkout"}
+            </Button>
+          )}
         </div>
       </div>
     </div>

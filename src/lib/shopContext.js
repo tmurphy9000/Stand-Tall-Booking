@@ -11,6 +11,7 @@ export function useShop() {
   const [stripeAccountId, setStripeAccountId] = useState(null);
   const [depositsEnabled, setDepositsEnabled] = useState(false);
   const [depositAmount, setDepositAmount] = useState(0);
+  const [stripeTerminalLocationId, setStripeTerminalLocationId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -41,7 +42,7 @@ export function useShop() {
       if (resolvedShopId) {
         const { data: shopData } = await supabase
           .from('shops')
-          .select('stripe_account_id, deposits_enabled, deposit_amount')
+          .select('stripe_account_id, deposits_enabled, deposit_amount, stripe_terminal_location_id')
           .eq('id', resolvedShopId)
           .single();
 
@@ -49,6 +50,7 @@ export function useShop() {
           setStripeAccountId(shopData?.stripe_account_id ?? null);
           setDepositsEnabled(shopData?.deposits_enabled ?? false);
           setDepositAmount(shopData?.deposit_amount ?? 0);
+          setStripeTerminalLocationId(shopData?.stripe_terminal_location_id ?? null);
         }
       }
 
@@ -66,5 +68,5 @@ export function useShop() {
     };
   }, []);
 
-  return { shopId, tier, status, stripeAccountId, depositsEnabled, depositAmount, isLoading };
+  return { shopId, tier, status, stripeAccountId, depositsEnabled, depositAmount, stripeTerminalLocationId, isLoading };
 }

@@ -28,14 +28,20 @@ Deno.serve(async (req) => {
     return json({ error: "Server configuration error: missing STRIPE_SECRET_KEY" }, 500);
   }
 
-  let body: { amount: number; description?: string; metadata?: Record<string, string>; shopId?: string };
+  let body: {
+    amount: number;
+    description?: string;
+    metadata?: Record<string, string>;
+    shopId?: string;
+    terminal?: boolean;
+  };
   try {
     body = await req.json();
   } catch {
     return json({ error: "Invalid request body" }, 400);
   }
 
-  const { amount, description, metadata, shopId } = body;
+  const { amount, description, metadata, shopId, terminal } = body;
   if (!amount || amount < 50) {
     return json({ error: "amount must be at least 50 cents" }, 400);
   }
@@ -59,21 +65,37 @@ Deno.serve(async (req) => {
 
   const stripe = new Stripe(secretKey, { apiVersion: "2024-06-20" });
 
-  const piParams: Stripe.PaymentIntentCreateParams = {
-    amount,
-    currency: "usd",
-    description: description ?? "Stand Tall Barbershop",
-    metadata: metadata ?? {},
-  };
-
-  // Destination charge: funds flow directly to the connected account.
-  // Uses platform publishable key on the client — no client-side changes needed.
-  if (stripeAccountId) {
-    piParams.on_behalf_of = stripeAccountId;
-    piParams.transfer_data = { destination: stripeAccountId };
-  }
-
   try {
+    // Terminal (card_present) — direct charge on connected account
+    if (terminal && stripeAccountId) {
+      const piParams: Stripe.PaymentIntentCreateParams = {
+        amount,
+        currency: "usd",
+        payment_method_types: ["card_present"],
+        capture_method: "automatic",
+        description: description ?? "Stand Tall Barbershop",
+        metadata: metadata ?? {},
+      };
+      const paymentIntent = await stripe.paymentIntents.create(piParams, {
+        stripeAccount: stripeAccountId,
+      });
+      console.log("[createStripePayment] Terminal PI:", paymentIntent.id);
+      return json({ clientSecret: paymentIntent.client_secret });
+    }
+
+    // Online / manual card — destination charge so funds flow to connected account
+    const piParams: Stripe.PaymentIntentCreateParams = {
+      amount,
+      currency: "usd",
+      description: description ?? "Stand Tall Barbershop",
+      metadata: metadata ?? {},
+    };
+
+    if (stripeAccountId) {
+      piParams.on_behalf_of = stripeAccountId;
+      piParams.transfer_data = { destination: stripeAccountId };
+    }
+
     const paymentIntent = await stripe.paymentIntents.create(piParams);
     console.log("[createStripePayment] created PaymentIntent:", paymentIntent.id);
     return json({ clientSecret: paymentIntent.client_secret });
