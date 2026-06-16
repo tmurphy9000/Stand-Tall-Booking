@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { CheckCircle, XCircle, UserCheck, Trash2, User, AlertCircle, Clock } from "lucide-react";
+import { CheckCircle, XCircle, UserCheck, Trash2, User, AlertCircle, Clock, DollarSign } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../../utils";
 import NoShowDialog from "./NoShowDialog";
@@ -58,6 +58,14 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
           <div className="px-3 py-2 border-b border-gray-50">
             <p className="text-xs font-semibold text-gray-900">{booking.client_name}</p>
             <p className="text-[10px] text-gray-400">{booking.service_name} • {booking.start_time}</p>
+            {booking.deposit_amount_paid > 0 && (
+              <div className="flex items-center gap-1 mt-1">
+                <DollarSign className="w-3 h-3" style={{ color: "#16a34a" }} />
+                <span className="text-[10px] font-medium" style={{ color: "#16a34a" }}>
+                  Deposit paid: ${(booking.deposit_amount_paid / 100).toFixed(2)}
+                </span>
+              </div>
+            )}
           </div>
           {booking.client_id && (
             <Link
