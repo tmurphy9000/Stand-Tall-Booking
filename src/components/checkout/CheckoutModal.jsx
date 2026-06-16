@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Plus, DollarSign, CreditCard, Tablet } from "lucide-react";
+import { X, Plus, DollarSign, CreditCard, Tablet, ChevronsUpDown } from "lucide-react";
 import { entities } from "@/api/entities";
 import { functions } from "@/api/functions";
 import { useQuery } from "@tanstack/react-query";
@@ -13,6 +13,8 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useShop } from "@/lib/shopContext";
 import TerminalPayment from "@/components/checkout/TerminalPayment";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
@@ -253,12 +255,14 @@ function CheckoutContent({
   const { shopId, stripeAccountId, stripeTerminalLocationId } = useShop();
   const [clientSearch, setClientSearch] = useState(booking?.client_name || "");
   const [showClientDropdown, setShowClientDropdown] = useState(false);
+  const [bookingPopoverOpen, setBookingPopoverOpen] = useState(false);
 
-  const availableBookings = bookings?.filter(b => 
-    b.status === "checked_in" && 
+  const availableBookings = (bookings?.filter(b =>
+    b.status === "checked_in" &&
+    b.date === booking?.date &&
     b.id !== booking?.id &&
     !additionalBookings.includes(b.id)
-  ) || [];
+  ) || []).sort((a, b) => a.client_name.localeCompare(b.client_name));
 
   const handleSubmit = async () => {
     if (paymentMethod === "reader") return; // Terminal handles its own flow
@@ -422,18 +426,42 @@ function CheckoutContent({
 
             <div>
               <Label className="text-xs">Add Appointment</Label>
-              <Select onValueChange={addBookingToTransaction}>
-                <SelectTrigger className="h-8 text-xs">
-                  <SelectValue placeholder="Select booking" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableBookings.map(b => (
-                    <SelectItem key={b.id} value={b.id} className="text-xs">
-                      {b.client_name} - {b.service_name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={bookingPopoverOpen} onOpenChange={setBookingPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    className="h-8 w-full text-xs justify-between font-normal px-2"
+                  >
+                    <span className="text-muted-foreground">Select booking</span>
+                    <ChevronsUpDown className="ml-1 h-3 w-3 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[220px] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search client..." className="h-8 text-xs" />
+                    <CommandList>
+                      <CommandEmpty className="py-3 text-xs text-center text-gray-500">No bookings found.</CommandEmpty>
+                      <CommandGroup>
+                        {availableBookings.map(b => (
+                          <CommandItem
+                            key={b.id}
+                            value={b.client_name + " " + b.service_name}
+                            onSelect={() => {
+                              addBookingToTransaction(b.id);
+                              setBookingPopoverOpen(false);
+                            }}
+                            className="text-xs"
+                          >
+                            <span className="font-medium">{b.client_name}</span>
+                            <span className="text-gray-400 ml-1">– {b.service_name}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
           </div>
 
