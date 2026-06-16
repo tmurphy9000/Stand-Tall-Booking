@@ -29,7 +29,7 @@ const fadeSlide = {
 
 const DEPOSIT_TIP_PRESETS = [0, 15, 18, 20];
 
-function DepositStepInner({ depositAmountCents, pretipEnabled, shopId, onSuccess, onBack, logoUrl }) {
+function DepositStepInner({ depositAmountCents, servicePriceCents, pretipEnabled, shopId, onSuccess, onBack, logoUrl }) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
@@ -38,9 +38,10 @@ function DepositStepInner({ depositAmountCents, pretipEnabled, shopId, onSuccess
   const [customTip, setCustomTip] = useState("");
   const [tipMode, setTipMode] = useState("preset");
 
+  const tipBaseCents = servicePriceCents ?? depositAmountCents;
   const tipCents = tipMode === "custom"
     ? Math.round((parseFloat(customTip) || 0) * 100)
-    : Math.round(depositAmountCents * tipPercent / 100);
+    : Math.round(tipBaseCents * tipPercent / 100);
   const totalCents = depositAmountCents + tipCents;
 
   const handlePay = async () => {
@@ -138,7 +139,7 @@ function DepositStepInner({ depositAmountCents, pretipEnabled, shopId, onSuccess
               )}
               {tipMode === "preset" && tipPercent > 0 && (
                 <span className="text-sm" style={{ color: "#8B9A7E" }}>
-                  +${(depositAmountCents * tipPercent / 10000).toFixed(2)}
+                  +${(tipBaseCents * tipPercent / 10000).toFixed(2)}
                 </span>
               )}
             </div>
@@ -190,11 +191,12 @@ function DepositStepInner({ depositAmountCents, pretipEnabled, shopId, onSuccess
   );
 }
 
-function DepositStep({ depositAmountCents, pretipEnabled, shopId, onSuccess, onBack, logoUrl, stripePromise }) {
+function DepositStep({ depositAmountCents, servicePriceCents, pretipEnabled, shopId, onSuccess, onBack, logoUrl, stripePromise }) {
   return (
     <Elements stripe={stripePromise}>
       <DepositStepInner
         depositAmountCents={depositAmountCents}
+        servicePriceCents={servicePriceCents}
         pretipEnabled={pretipEnabled}
         shopId={shopId}
         onSuccess={onSuccess}
@@ -2278,6 +2280,7 @@ export default function ClientBooking() {
           <DepositStep
             key="deposit"
             depositAmountCents={depositAmountCents}
+            servicePriceCents={selectedService?.price ? Math.round(selectedService.price * 100) : depositAmountCents}
             pretipEnabled={pretipEnabled}
             shopId={shopId}
             logoUrl={logoUrl}
