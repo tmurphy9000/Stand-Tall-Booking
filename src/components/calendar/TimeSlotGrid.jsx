@@ -315,7 +315,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
         />
         <span className="text-[9px] text-gray-400 flex-shrink-0">↔</span>
       </div>
-    <div ref={gridRef} className="overflow-auto flex-1">
+    <div ref={gridRef} className="overflow-auto flex-1" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="inline-block min-w-full relative">
         {/* Barber header columns */}
         <div className="sticky top-0 z-20 bg-[#FAFAF8] flex border-b border-gray-100">
