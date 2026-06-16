@@ -48,6 +48,9 @@ function DepositStepInner({ depositAmountCents, servicePriceCents, pretipEnabled
     if (!stripe || !elements) return;
     setProcessing(true);
     setError("");
+    // Always create a brand-new PaymentIntent for each attempt so stale or
+    // failed intents are never reused.
+    let clientSecret;
     try {
       const { data, error: fnError } = await supabase.functions.invoke("createStripePayment", {
         body: {
@@ -57,14 +60,38 @@ function DepositStepInner({ depositAmountCents, servicePriceCents, pretipEnabled
           shopId,
         },
       });
-      if (fnError) throw new Error(fnError.message || "Failed to create payment");
-      const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(data.clientSecret, {
-        payment_method: { card: elements.getElement(CardElement) },
+      if (fnError || !data?.clientSecret) {
+        setError("Unable to start payment. Please try again.");
+        return;
+      }
+      clientSecret = data.clientSecret;
+    } catch {
+      setError("Unable to start payment. Please try again.");
+      return;
+    } finally {
+      // Only clear processing if we're returning early (errors above).
+      // If clientSecret was obtained, processing stays true until confirm finishes.
+      if (!clientSecret) setProcessing(false);
+    }
+
+    try {
+      const cardElement = elements.getElement(CardElement);
+      const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: { card: cardElement },
       });
-      if (confirmError) throw new Error(confirmError.message);
+      if (confirmError) {
+        // Show user-facing card errors (e.g. "Your card was declined.") as-is.
+        // Hide all other Stripe errors (API errors, PI IDs, etc.).
+        if (confirmError.type === "card_error") {
+          setError(confirmError.message);
+        } else {
+          setError("Payment failed. Please try again.");
+        }
+        return;
+      }
       onSuccess(paymentIntent.id, totalCents);
-    } catch (err) {
-      setError(err.message || "Payment failed. Please try again.");
+    } catch {
+      setError("Payment failed. Please try again.");
     } finally {
       setProcessing(false);
     }
@@ -143,6 +170,9 @@ function DepositStepInner({ depositAmountCents, servicePriceCents, pretipEnabled
                 </span>
               )}
             </div>
+            <p className="text-xs mt-3" style={{ color: "#6B7280" }}>
+              Tip percentages are based on your total service price, not the deposit amount.
+            </p>
           </div>
         )}
 
@@ -1829,9 +1859,13 @@ export default function ClientBooking() {
   const [depositPending, setDepositPending] = useState(false);
   const [depositAmountCents, setDepositAmountCents] = useState(0);
 
+  // PaymentIntents are created as destination charges on the platform account,
+  // so the client must use the platform publishable key with no stripeAccount option.
+  // Using stripeAccount here would cause "No such payment_intent" because Stripe
+  // would look for the PI on the connected account instead of the platform.
   const depositStripePromise = useMemo(() => {
     if (!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || !shopStripeAccountId) return null;
-    return loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY, { stripeAccount: shopStripeAccountId });
+    return loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
   }, [shopStripeAccountId]);
 
   // My Appointments sub-flow: null | "phone" | "otp" | "list"
