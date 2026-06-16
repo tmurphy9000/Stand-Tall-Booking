@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { entities } from "@/api/entities";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -28,12 +29,17 @@ import SubscriptionManager from "../components/settings/SubscriptionManager";
 import ClientNotificationsSettings from "../components/settings/ClientNotificationsSettings";
 import BookingPageSettings from "../components/settings/BookingPageSettings";
 import { usePermissions } from "../components/permissions/usePermissions";
+import { usePlanGate } from "@/hooks/usePlanGate";
+import PlanGateModal from "@/components/PlanGateModal";
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
   const { isAdmin, isSuperAdmin, hasFullAccess } = usePermissions();
+  const [searchParams] = useSearchParams();
   const [showInviteForm, setShowInviteForm] = useState(false);
-  const [activeTab, setActiveTab] = useState("barbers");
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "barbers");
+  const [gateResult, setGateResult] = useState(null);
+  const { checkBarberLimit } = usePlanGate();
   const [draftHours, setDraftHours] = useState(null);
   const [draftProductTax, setDraftProductTax] = useState(null);
   const [draftServiceTax, setDraftServiceTax] = useState(null);
@@ -153,7 +159,19 @@ export default function SettingsPage() {
           <TermsAndConditions />
           {hasFullAccess && (
             <button
-              onClick={() => setShowInviteForm(true)}
+              onClick={() => {
+                const activeCount = barbers.filter(b => b.is_active !== false).length;
+                const result = checkBarberLimit(activeCount);
+                if (!result.allowed) {
+                  toast.error(`${result.planName} plan limit reached`, {
+                    description: `You've reached the ${result.limit}-barber limit. Upgrade your plan to add more barbers.`,
+                    action: { label: 'Upgrade', onClick: () => { window.location.href = '/Settings?tab=subscription'; } },
+                  });
+                  setGateResult(result);
+                  return;
+                }
+                setShowInviteForm(true);
+              }}
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left text-white/60 hover:text-white hover:bg-white/10 w-full"
             >
               <Mail className="w-4 h-4 flex-shrink-0" />
@@ -281,6 +299,14 @@ export default function SettingsPage() {
         open={showInviteForm}
         onClose={() => setShowInviteForm(false)}
         onSuccess={() => queryClient.invalidateQueries({ queryKey: ["barberSensitiveInfo"] })}
+      />
+
+      <PlanGateModal
+        open={!!gateResult}
+        onClose={() => setGateResult(null)}
+        feature={gateResult?.feature}
+        planName={gateResult?.planName}
+        limit={gateResult?.limit}
       />
     </div>
   );

@@ -11,6 +11,8 @@ import BarberHoursEditor from "./BarberHoursEditor";
 import BarberServiceDurations from "./BarberServiceDurations";
 import ServiceManager from "./ServiceManager";
 import { toast } from "sonner";
+import { usePlanGate } from "@/hooks/usePlanGate";
+import PlanGateModal from "@/components/PlanGateModal";
 
 const ALL_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 const DEFAULT_DAY = { start: "09:00", end: "18:00", off: false };
@@ -35,8 +37,20 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
     name: "", email: "", phone: "", service_commission_rate: 50, product_commission_rate: 10,
     is_active: true, photo_url: "",
   });
+  const [gateResult, setGateResult] = useState(null);
+  const { checkBarberLimit } = usePlanGate();
 
   const openNew = () => {
+    const activeCount = barbers.filter(b => b.is_active !== false).length;
+    const result = checkBarberLimit(activeCount);
+    if (!result.allowed) {
+      toast.error(`${result.planName} plan limit reached`, {
+        description: `You've reached the ${result.limit}-barber limit. Upgrade your plan to add more barbers.`,
+        action: { label: 'Upgrade', onClick: () => { window.location.href = '/Settings?tab=subscription'; } },
+      });
+      setGateResult(result);
+      return;
+    }
     setEditing(null);
     setForm({ name: "", email: "", phone: "", service_commission_rate: 50, product_commission_rate: 10, is_active: true, photo_url: "" });
     setShowForm(true);
@@ -289,6 +303,14 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
           onClose={() => setShowDurations(null)}
         />
       )}
+
+      <PlanGateModal
+        open={!!gateResult}
+        onClose={() => setGateResult(null)}
+        feature={gateResult?.feature}
+        planName={gateResult?.planName}
+        limit={gateResult?.limit}
+      />
     </div>
   );
 }

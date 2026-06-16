@@ -145,7 +145,7 @@ function PricingTab({ setTab }) {
   const tiers = [
     { id:"basic", name:"Basic", price:"$29", per:"/ mo", sub:"1 barber · 1 location", desc:"Everything a solo barber needs to look professional and stay booked.", highlight:false, enterprise:false },
     { id:"pro", name:"Pro", price:"$79", per:"/ mo", sub:"Up to 10 barbers · 1 location", desc:"The full shop experience. Team tools, AI features, and flat-rate pricing that doesn't punish growth.", highlight:true, enterprise:false },
-    { id:"elite", name:"Elite", price:"$149", per:"/ mo per location", sub:"Up to 12 barbers · up to 5 locations", desc:"Multi-location ownership, centralized control, and custom branding per shop.", highlight:false, enterprise:false },
+    { id:"elite", name:"Elite", price:"$149", per:"/ mo per location", sub:"Unlimited barbers · up to 5 locations", desc:"Multi-location ownership, centralized control, and custom branding per shop.", highlight:false, enterprise:false },
     { id:"enterprise", name:"Enterprise", price:"Custom", per:"pricing", sub:"Unlimited barbers · unlimited locations", desc:"For large chains and franchise groups. White-labeling, dedicated support, and negotiated rates.", highlight:false, enterprise:true },
   ];
 
@@ -165,7 +165,7 @@ function PricingTab({ setTab }) {
       { label:"SMS notifications", basic:true, pro:true, elite:true, enterprise:true },
     ]},
     { category:"Team & staff", rows:[
-      { label:"Barbers", basic:"1", pro:"Up to 10", elite:"Up to 12/location", enterprise:"Unlimited" },
+      { label:"Barbers", basic:"1", pro:"Up to 10", elite:"Unlimited", enterprise:"Unlimited" },
       { label:"Locations", basic:"1", pro:"1", elite:"Up to 5", enterprise:"Unlimited" },
       { label:"Role-based access", basic:false, pro:true, elite:true, enterprise:true },
       { label:"Commission tracking", basic:false, pro:true, elite:true, enterprise:true },
@@ -194,7 +194,13 @@ function PricingTab({ setTab }) {
     <div style={{maxWidth:"1100px", margin:"0 auto", padding:"4rem 2rem"}}>
       <p style={{fontSize:"11px", letterSpacing:"0.15em", color:G, fontWeight:500, marginBottom:"1rem", textTransform:"uppercase"}}>Pricing</p>
       <h2 style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"clamp(40px,6vw,72px)", letterSpacing:"0.02em", lineHeight:1, margin:"0 0 1rem", color:FG}}>Simple pricing.<br/>No surprises.</h2>
-      <p style={{fontSize:"15px", color:"#D1D5DB", maxWidth:"480px", marginBottom:"3rem", lineHeight:1.7}}>Every tier includes SMS and email at no extra cost. No per-barber fees. No hidden charges to your clients. Month 2 free when you sign up today.</p>
+      <p style={{fontSize:"15px", color:"#D1D5DB", maxWidth:"480px", marginBottom:"2rem", lineHeight:1.7}}>Every tier includes SMS and email at no extra cost. No per-barber fees. No hidden charges to your clients. Month 2 free when you sign up today.</p>
+
+      <div style={{display:"inline-flex", alignItems:"center", gap:"10px", background:"rgba(176,191,164,0.08)", border:"1px solid rgba(176,191,164,0.25)", borderRadius:"4px", padding:"10px 18px", marginBottom:"2.5rem"}}>
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="9" fill="#B0BFA4" fillOpacity="0.2"/><path d="M5 9.5L7.5 12L13 6.5" stroke="#B0BFA4" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        <span style={{fontSize:"13px", color:"#B0BFA4", fontWeight:600, letterSpacing:"0.01em"}}>SMS & email reminders included on every plan</span>
+        <span style={{fontSize:"12px", color:"#6B7280"}}>— no extra charge, ever.</span>
+      </div>
 
       <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(220px, 1fr))", gap:"12px", marginBottom:"3rem"}}>
         {tiers.map(t => (
@@ -205,7 +211,8 @@ function PricingTab({ setTab }) {
               <span style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"42px", letterSpacing:"0.02em", color:FG}}>{t.price}</span>
               <span style={{fontSize:"13px", color:"#D1D5DB", marginLeft:"6px"}}>{t.per}</span>
             </div>
-            <div style={{fontSize:"12px", color:"#D1D5DB", marginBottom:"1rem"}}>{t.sub}</div>
+            <div style={{fontSize:"12px", color:"#D1D5DB", marginBottom:"0.75rem"}}>{t.sub}</div>
+            {!t.enterprise && <div style={{display:"inline-flex", alignItems:"center", gap:"5px", background:"rgba(176,191,164,0.12)", border:"1px solid rgba(176,191,164,0.3)", borderRadius:"3px", padding:"3px 8px", fontSize:"11px", color:"#B0BFA4", fontWeight:500, marginBottom:"1rem"}}>✓ SMS & email reminders included</div>}
             <p style={{fontSize:"13px", color:"#D1D5DB", lineHeight:1.6, flex:1, marginBottom:"1.5rem"}}>{t.desc}</p>
             <button onClick={() => t.enterprise ? window.location.href="mailto:Tanner@standtallbarbering.com" : setTab("Join Today")} style={{display:"block", width:"100%", padding:"10px 0", fontSize:"13px", fontWeight:500, letterSpacing:"0.05em", cursor:"pointer", border:t.highlight?`1px solid ${G}`:t.enterprise?`1px solid ${GOLD}`:`1px solid #2D2D2D`, color:t.highlight?BG:t.enterprise?GOLD:FG, background:t.highlight?G:"transparent", borderRadius:"2px"}}>
               {t.enterprise ? "Contact us ↗" : "Get started →"}
@@ -311,7 +318,7 @@ function JoinTab() {
     },
     {
       id:"Elite — $149/mo per location", name:"Elite", price:"$149/mo", tag:"Per location · up to 5 locations", gold:true,
-      pros:["Up to 12 barbers per location","Up to 5 locations","Custom branding per location","Centralized multi-location dashboard","Everything in Pro included","Best value for growing chains","Check-in kiosk (tablet app)"],
+      pros:["Unlimited barbers per location","Up to 5 locations","Custom branding per location","Centralized multi-location dashboard","Everything in Pro included","Best value for growing chains","Check-in kiosk (tablet app)"],
       cons:["Capped at 5 locations","Payroll is an additional cost"],
     },
   ];
@@ -326,7 +333,7 @@ function JoinTab() {
           {[
             {name:"Basic",price:"$29/mo",sub:"1 barber · 1 location",c:G,h:false},
             {name:"Pro",price:"$79/mo",sub:"Up to 10 barbers · 1 location",c:G,h:true},
-            {name:"Elite",price:"$149/mo",sub:"Up to 12 barbers · 5 locations",c:GOLD,h:false},
+            {name:"Elite",price:"$149/mo",sub:"Unlimited barbers · 5 locations",c:GOLD,h:false},
             {name:"Enterprise",price:"Custom",sub:"Unlimited barbers & locations",c:GOLD,h:false,ent:true},
           ].map(t=>(
             <div key={t.name} style={{background:t.h?"#161616":BG,border:`1px solid ${t.h?G:t.c===GOLD?GOLD:BORDER}`,borderRadius:"4px",padding:"1.25rem",position:"relative"}}>

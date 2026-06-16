@@ -11,6 +11,8 @@ import { toast } from "sonner";
 import AddBarberDialog from "../components/payroll/AddBarberDialog";
 import PastPayrollReports from "../components/payroll/PastPayrollReports";
 import { usePermissions } from "../components/permissions/usePermissions";
+import { usePlanGate } from "@/hooks/usePlanGate";
+import PlanGateModal from "@/components/PlanGateModal";
 
 export default function PayrollPage() {
   const { hasFullAccess } = usePermissions();
@@ -28,6 +30,8 @@ export default function PayrollPage() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pastReportsOpen, setPastReportsOpen] = useState(false);
   const [expandedBarber, setExpandedBarber] = useState(null);
+  const [gateResult, setGateResult] = useState(null);
+  const { checkBarberLimit } = usePlanGate();
 
   const { data: barbers = [], isLoading: barbersLoading } = useQuery({
     queryKey: ["barbers"],
@@ -114,7 +118,19 @@ export default function PayrollPage() {
             Past Payroll Reports
           </Button>
           <Button
-            onClick={() => setDialogOpen(true)}
+            onClick={() => {
+              const activeCount = barbers.filter(b => b.is_active !== false).length;
+              const result = checkBarberLimit(activeCount);
+              if (!result.allowed) {
+                toast.error(`${result.planName} plan limit reached`, {
+                  description: `You've reached the ${result.limit}-barber limit. Upgrade your plan to add more barbers.`,
+                  action: { label: 'Upgrade', onClick: () => { window.location.href = '/Settings?tab=subscription'; } },
+                });
+                setGateResult(result);
+                return;
+              }
+              setDialogOpen(true);
+            }}
             className="bg-[#8B9A7E] hover:bg-[#6B7A5E]"
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -146,6 +162,13 @@ export default function PayrollPage() {
 
       <AddBarberDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       <PastPayrollReports open={pastReportsOpen} onClose={() => setPastReportsOpen(false)} />
+      <PlanGateModal
+        open={!!gateResult}
+        onClose={() => setGateResult(null)}
+        feature={gateResult?.feature}
+        planName={gateResult?.planName}
+        limit={gateResult?.limit}
+      />
 
       {/* Summary Card */}
       <Card className="mb-6 bg-gradient-to-br from-[#8B9A7E]/10 to-[#B0BFA4]/10 border-[#8B9A7E]/20">

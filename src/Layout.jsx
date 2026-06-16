@@ -29,7 +29,7 @@ export default function Layout({ children, currentPageName }) {
   const showTabs = !["ClientList"].includes(currentPageName);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { hasFullAccess, currentBarber, user } = usePermissions();
-  const { logout } = useAuth();
+  const { logout, user: authUser } = useAuth();
   const { isMobile, setIsMobile } = useViewMode();
 
   return (
@@ -65,12 +65,14 @@ export default function Layout({ children, currentPageName }) {
 
           {/* User/Sign In Section */}
           <div className={cn("px-2 py-3 border-b border-white/10 flex-shrink-0", sidebarCollapsed && "opacity-0")}>
-            {user ? (
+            {(user || authUser) ? (
               <div className="flex flex-col items-center gap-1">
                 <div className="w-10 h-10 rounded-full bg-[#B0BFA4] flex items-center justify-center text-white font-bold text-sm">
-                  {user.full_name?.charAt(0) || 'U'}
+                  {(user?.full_name || authUser?.email || 'U').charAt(0).toUpperCase()}
                 </div>
-                <span className="text-[9px] text-[#FAFAF8]/80 text-center leading-tight">{user.full_name}</span>
+                <span className="text-[9px] text-[#FAFAF8]/80 text-center leading-tight max-w-full truncate px-1">
+                  {user?.full_name || authUser?.email}
+                </span>
                 <button
                   onClick={logout}
                   className="mt-1 flex items-center gap-1 text-[9px] text-white/40 hover:text-white/70 transition-colors"
