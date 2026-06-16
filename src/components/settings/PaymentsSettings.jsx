@@ -305,7 +305,7 @@ export default function PaymentsSettings() {
           {depositConfig.deposit_enabled && (
             <>
               <div className="space-y-1">
-                <Label className="text-xs text-gray-500">Deposit percentage</Label>
+                <Label className="text-xs text-gray-500">Deposit percentage (%)</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number"
@@ -323,7 +323,7 @@ export default function PaymentsSettings() {
                   <span className="text-sm text-gray-500">%</span>
                 </div>
                 <p className="text-[10px] text-gray-400">
-                  Percentage of service price charged at booking.
+                  Clients pay this % of their service total at the time of booking.
                 </p>
               </div>
 
@@ -342,14 +342,14 @@ export default function PaymentsSettings() {
                   }
                 />
                 <p className="text-[10px] text-gray-400">
-                  Refund deposit if cancelled more than {depositConfig.deposit_refund_hours}h before appointment.
+                  Refund if cancelled more than {depositConfig.deposit_refund_hours}h before appointment.
                 </p>
               </div>
 
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
                 <div>
-                  <Label className="text-sm font-medium">Allow tip at deposit</Label>
-                  <p className="text-xs text-gray-500">Let clients add a tip when paying the deposit</p>
+                  <Label className="text-sm font-medium">Allow pre-tip</Label>
+                  <p className="text-xs text-gray-500">Allow clients to add a tip when paying their deposit</p>
                 </div>
                 <Switch
                   checked={depositConfig.deposit_pretip_enabled}
