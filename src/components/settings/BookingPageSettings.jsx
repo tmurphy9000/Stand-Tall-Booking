@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2, Upload, Instagram, Facebook, Globe, Phone, Mail, Copy, CheckCircle2, ExternalLink, Code } from "lucide-react";
+import { Loader2, Upload, Instagram, Facebook, Globe, Phone, Mail, Copy, CheckCircle2, ExternalLink, Code, Info, X } from "lucide-react";
 
 const SOCIAL_PLATFORMS = [
   { key: "instagram", label: "Instagram", Icon: Instagram, placeholder: "https://instagram.com/yourshop" },
@@ -39,18 +39,23 @@ function parseSocialLinks(raw) {
 
 const BASE_URL = "https://standtallbooking.com";
 
+const SLUG_RE = /^[a-z0-9-]+$/;
+
 function SlugEditor({ shopId, currentSlug, onSaved }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(currentSlug);
   const [saving, setSaving] = useState(false);
 
+  const cleaned = value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+  const hasInvalid = value !== cleaned && value.trim() !== "";
+  const isValid = SLUG_RE.test(cleaned) && cleaned.length > 0;
+
   const handleSave = async () => {
-    const cleaned = value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
-    if (!cleaned || cleaned === currentSlug) { setEditing(false); return; }
+    if (!isValid || cleaned === currentSlug) { setEditing(false); return; }
     setSaving(true);
     const { error } = await supabase.from("shops").update({ url_slug: cleaned }).eq("id", shopId);
     setSaving(false);
-    if (error) { toast.error("Slug already taken or invalid: " + error.message); return; }
+    if (error) { toast.error("That slug is already taken. Try a different one."); return; }
     onSaved(cleaned);
     setEditing(false);
     toast.success("Booking URL updated.");
@@ -65,20 +70,102 @@ function SlugEditor({ shopId, currentSlug, onSaved }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
-      <span className="text-xs text-gray-400 flex-shrink-0">{BASE_URL}/book/</span>
-      <Input
-        value={value}
-        onChange={e => setValue(e.target.value)}
-        className="h-7 text-xs font-mono flex-1"
-        autoFocus
-        onKeyDown={e => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditing(false); }}
-      />
-      <Button size="sm" className="h-7 text-xs bg-[#8B9A7E] hover:bg-[#6B7A5E] text-white" onClick={handleSave} disabled={saving}>
-        {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save"}
-      </Button>
-      <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditing(false)}>Cancel</Button>
+    <div className="space-y-1.5">
+      <div className="flex items-center gap-2">
+        <span className="text-xs text-gray-400 flex-shrink-0">{BASE_URL}/book/</span>
+        <Input
+          value={value}
+          onChange={e => setValue(e.target.value)}
+          className={`h-7 text-xs font-mono flex-1 ${hasInvalid ? "border-amber-400 focus-visible:ring-amber-400" : ""}`}
+          autoFocus
+          onKeyDown={e => { if (e.key === "Enter") handleSave(); if (e.key === "Escape") setEditing(false); }}
+          placeholder="my-shop-name"
+        />
+        <Button size="sm" className="h-7 text-xs bg-[#8B9A7E] hover:bg-[#6B7A5E] text-white" onClick={handleSave} disabled={saving || !isValid}>
+          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : "Save"}
+        </Button>
+        <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditing(false)}>Cancel</Button>
+      </div>
+      {hasInvalid ? (
+        <p className="text-[10px] text-amber-600">
+          Will be saved as: <span className="font-mono font-semibold">{cleaned || "…"}</span>
+          {" "}(only lowercase letters, numbers, and hyphens allowed)
+        </p>
+      ) : (
+        <p className="text-[10px] text-gray-400">Only lowercase letters, numbers, and hyphens (a–z, 0–9, -).</p>
+      )}
     </div>
+  );
+}
+
+// ── Info Modal ────────────────────────────────────────────────────────────────
+
+function InfoModal({ title, children, onClose }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: "rgba(0,0,0,0.45)", backdropFilter: "blur(3px)" }}
+      onClick={onClose}
+    >
+      <div
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
+          <button onClick={onClose} className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="px-5 py-4">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+function InfoButton({ onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center justify-center w-4 h-4 rounded-full text-gray-400 hover:text-[#8B9A7E] hover:bg-[#8B9A7E]/10 transition-colors flex-shrink-0"
+      title="Learn more"
+    >
+      <Info className="w-3.5 h-3.5" />
+    </button>
+  );
+}
+
+// Simple phone illustration showing booking UI inside
+function PhoneIllustration() {
+  return (
+    <svg viewBox="0 0 160 280" className="w-28 h-auto mx-auto my-3" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Phone body */}
+      <rect x="12" y="4" width="136" height="272" rx="22" fill="#1a1a1a"/>
+      <rect x="16" y="8" width="128" height="264" rx="18" fill="#0A0A0A"/>
+      {/* Screen */}
+      <rect x="20" y="20" width="120" height="240" rx="14" fill="#111"/>
+      {/* Logo area */}
+      <rect x="56" y="32" width="48" height="20" rx="6" fill="#8B9A7E" opacity="0.7"/>
+      {/* Shop name */}
+      <rect x="36" y="60" width="88" height="6" rx="3" fill="#444"/>
+      <rect x="48" y="70" width="64" height="4" rx="2" fill="#333"/>
+      {/* Book button */}
+      <rect x="28" y="86" width="104" height="22" rx="8" fill="#8B9A7E"/>
+      <rect x="50" y="91" width="60" height="6" rx="3" fill="#fff" opacity="0.8"/>
+      {/* Barber cards */}
+      <rect x="28" y="118" width="46" height="40" rx="8" fill="#1f1f1f"/>
+      <circle cx="51" cy="132" r="8" fill="#333"/>
+      <rect x="36" y="144" width="30" height="4" rx="2" fill="#444"/>
+      <rect x="82" y="118" width="46" height="40" rx="8" fill="#1f2a1f"/>
+      <circle cx="105" cy="132" r="8" fill="#2a3a2a"/>
+      <rect x="90" y="144" width="30" height="4" rx="2" fill="#8B9A7E" opacity="0.6"/>
+      {/* Time slots */}
+      <rect x="28" y="168" width="28" height="16" rx="5" fill="#8B9A7E" opacity="0.8"/>
+      <rect x="62" y="168" width="28" height="16" rx="5" fill="#1f1f1f"/>
+      <rect x="96" y="168" width="28" height="16" rx="5" fill="#1f1f1f"/>
+      {/* Bottom nav indicator */}
+      <rect x="64" y="252" width="32" height="4" rx="2" fill="#333"/>
+    </svg>
   );
 }
 
@@ -109,6 +196,7 @@ export default function BookingPageSettings() {
   const queryClient = useQueryClient();
   const { shopId } = useShop();
   const [urlSlug, setUrlSlug] = useState("");
+  const [activeModal, setActiveModal] = useState(null);
 
   const { data: settingsArr = [], isLoading } = useQuery({
     queryKey: ["shopSettings"],
@@ -260,7 +348,10 @@ export default function BookingPageSettings() {
       {/* ── Booking URL ── */}
       {urlSlug && (
         <section className="space-y-3">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Your Booking URL</h3>
+          <div className="flex items-center gap-1.5">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Your Booking URL</h3>
+            <InfoButton onClick={() => setActiveModal("bookingUrl")} />
+          </div>
           <div className="flex items-center gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg">
             <p className="text-sm font-mono flex-1 truncate text-gray-700">
               {BASE_URL}/book/{urlSlug}
@@ -298,14 +389,20 @@ export default function BookingPageSettings() {
           </div>
           <div className="space-y-3">
             <div className="space-y-1.5">
-              <p className="text-xs text-gray-500 font-medium">Option A — iFrame</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs text-gray-500 font-medium">Option A — iFrame</p>
+                <InfoButton onClick={() => setActiveModal("iframe")} />
+              </div>
               <CopySnippet
                 label="Copy"
                 value={`<iframe src="${BASE_URL}/book/${urlSlug}?embed=true" width="100%" height="700" frameborder="0" style="border-radius:12px;"></iframe>`}
               />
             </div>
             <div className="space-y-1.5">
-              <p className="text-xs text-gray-500 font-medium">Option B — Script tag</p>
+              <div className="flex items-center gap-1.5">
+                <p className="text-xs text-gray-500 font-medium">Option B — Script tag</p>
+                <InfoButton onClick={() => setActiveModal("scriptTag")} />
+              </div>
               <CopySnippet
                 label="Copy"
                 value={`<script src="${BASE_URL}/embed.js" data-shop="${urlSlug}"></script>`}
@@ -494,6 +591,58 @@ export default function BookingPageSettings() {
           Save
         </Button>
       </div>
+
+      {/* ── Info Modals ── */}
+      {activeModal === "bookingUrl" && (
+        <InfoModal title="Your Booking URL" onClose={() => setActiveModal(null)}>
+          <PhoneIllustration />
+          <p className="text-sm text-gray-600 leading-relaxed">
+            This is your shop's unique online booking link. Share it anywhere — text it to clients,
+            add it to your Instagram bio, your Google Business profile, or anywhere else you promote your shop.
+          </p>
+          <p className="text-xs text-gray-400 mt-3">
+            You can customize the URL slug below to make it easier to remember.
+          </p>
+        </InfoModal>
+      )}
+
+      {activeModal === "iframe" && (
+        <InfoModal title="Embed with iFrame" onClose={() => setActiveModal(null)}>
+          <div className="flex items-center justify-center w-full h-20 mb-3 bg-gray-50 rounded-xl border border-gray-100">
+            <div className="flex flex-col items-center gap-1">
+              <div className="w-24 h-10 rounded-lg bg-gray-200 flex items-center justify-center">
+                <div className="w-16 h-6 rounded bg-[#8B9A7E]/50" />
+              </div>
+              <div className="text-[10px] text-gray-400 font-mono">{'<iframe … />'}</div>
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 leading-relaxed">
+            An iFrame embeds the booking form directly into any webpage. Just paste the snippet
+            into your site's HTML where you want the form to appear — no JavaScript knowledge needed.
+          </p>
+          <p className="text-xs text-gray-400 mt-3">
+            Best for: Squarespace, Wix, Webflow, or any HTML page where you can add a custom code block.
+          </p>
+        </InfoModal>
+      )}
+
+      {activeModal === "scriptTag" && (
+        <InfoModal title="Embed with Script Tag" onClose={() => setActiveModal(null)}>
+          <div className="flex items-center justify-center w-full h-20 mb-3 bg-gray-50 rounded-xl border border-gray-100">
+            <div className="text-[10px] text-gray-400 font-mono px-4 text-center leading-relaxed">
+              {'<script src="…"'}<br />{'  data-shop="your-shop"'}<br />{'></script>'}
+            </div>
+          </div>
+          <p className="text-sm text-gray-600 leading-relaxed">
+            The script tag embed is a lightweight alternative — it injects the booking form automatically
+            when the page loads. Just drop the one-line snippet wherever you want the widget to appear.
+          </p>
+          <p className="text-xs text-gray-400 mt-3">
+            Best for: WordPress, custom HTML sites, or developers who prefer a single-line drop-in.
+            The widget is responsive and works on any screen size.
+          </p>
+        </InfoModal>
+      )}
     </div>
   );
 }
