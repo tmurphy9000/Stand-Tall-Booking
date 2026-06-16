@@ -1852,11 +1852,13 @@ export default function ClientBooking() {
   useEffect(() => {
     const init = async () => {
       if (!shopSlug) { setShopNotFound(true); setLoading(false); return; }
-      const { data: shopRow } = await supabase
+      console.log("[ClientBooking] looking up shop by url_slug:", shopSlug);
+      const { data: shopRow, error: shopError } = await supabase
         .from("shops")
         .select("id, stripe_account_id")
         .eq("url_slug", shopSlug)
         .single();
+      console.log("[ClientBooking] shop query result:", { shopRow, shopError });
       if (!shopRow) { setShopNotFound(true); setLoading(false); return; }
 
       const resolvedShopId = shopRow.id;
