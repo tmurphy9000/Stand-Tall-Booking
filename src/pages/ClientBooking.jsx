@@ -1879,23 +1879,29 @@ export default function ClientBooking() {
       setBusinessEmail(contactData?.business_email || "");
 
       const todayStr = format(new Date(), "yyyy-MM-dd");
-      const [allBarbers, svcs, settingsArr, todaysBookings, { data: depositSettings }] = await Promise.all([
+      const [allBarbers, svcs, settingsArr, todaysBookings, depositResult] = await Promise.all([
         entities.Barber.filter({ shop_id: resolvedShopId }),
         entities.Service.filter({ shop_id: resolvedShopId }),
         entities.ShopSettings.filter({ shop_id: resolvedShopId }),
         entities.Booking.filter({ shop_id: resolvedShopId, date: todayStr }),
         supabase.from("shop_settings").select("deposit_enabled, deposit_percentage, deposit_pretip_enabled").eq("shop_id", resolvedShopId).single(),
       ]);
+      const depositSettings = depositResult?.data;
+      const depositError = depositResult?.error;
       const settings = settingsArr[0] || {};
+      console.log("[ClientBooking] shop_settings full object:", settings);
+      console.log("[ClientBooking] deposit settings query — data:", depositSettings, "| error:", depositError);
       const activeBarbers = allBarbers.filter((b) => b.is_active !== false && b.online_bookable !== false && !b.bookings_blocked);
       setBarbers(sortBarbersForBooking(activeBarbers, todaysBookings, settings.schedule_optimizer_enabled !== false));
       setAllServices(svcs.filter((s) => s.is_active !== false));
       setShopSettings(settings);
-      setDepositConfig({
+      const resolvedDepositConfig = {
         enabled: depositSettings?.deposit_enabled ?? false,
         percentage: depositSettings?.deposit_percentage ?? 20,
         pretipEnabled: depositSettings?.deposit_pretip_enabled ?? false,
-      });
+      };
+      console.log("[ClientBooking] resolved depositConfig:", resolvedDepositConfig);
+      setDepositConfig(resolvedDepositConfig);
       setLoading(false);
     };
     init().catch(e => { console.error(e); setLoading(false); });
@@ -1911,16 +1917,27 @@ export default function ClientBooking() {
 
   const handlePreConfirm = async () => {
     const needsDeposit = async () => {
-      if (!shopStripeAccountId || !depositStripePromise) return false;
-      if (depositConfig.enabled) return true;
+      console.log("[ClientBooking] needsDeposit check — depositConfig:", depositConfig, "| shopStripeAccountId:", shopStripeAccountId, "| depositStripePromise:", !!depositStripePromise);
+      if (!shopStripeAccountId || !depositStripePromise) {
+        console.log("[ClientBooking] needsDeposit → false (no Stripe account or no Stripe promise)");
+        return false;
+      }
+      if (depositConfig.enabled) {
+        console.log("[ClientBooking] needsDeposit → true (deposit_enabled = true)");
+        return true;
+      }
       if (clientPhone || clientEmail) {
         const all = await entities.Client.list();
         const existing = all.find(c =>
           (clientPhone && (c.phone || "").replace(/\D/g, "") === clientPhone.replace(/\D/g, "")) ||
           (clientEmail && c.email?.toLowerCase() === clientEmail.toLowerCase())
         );
-        if (existing?.deposit_required) return true;
+        if (existing?.deposit_required) {
+          console.log("[ClientBooking] needsDeposit → true (client has deposit_required flag)");
+          return true;
+        }
       }
+      console.log("[ClientBooking] needsDeposit → false (no conditions met)");
       return false;
     };
     if (await needsDeposit()) {
