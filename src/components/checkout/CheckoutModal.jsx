@@ -226,6 +226,7 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
           subtotal={subtotal}
           taxAmount={taxAmount}
           discountAmount={discountAmount}
+          depositPaid={depositPaid}
           total={total}
           services={services}
           products={products}
@@ -244,7 +245,7 @@ function CheckoutContent({
   discount, setDiscount, tip, setTip, paymentMethod, setPaymentMethod,
   additionalBookings, setAdditionalBookings, addProduct, addService,
   addBookingToTransaction, removeItem, subtotal, taxAmount, discountAmount,
-  total, services, products, barbers, bookings, presetDiscounts = [], clients = []
+  depositPaid, total, services, products, barbers, bookings, presetDiscounts = [], clients = []
 }) {
   const stripe = useStripe();
   const elements = useElements();
