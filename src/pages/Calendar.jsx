@@ -312,7 +312,7 @@ export default function CalendarPage() {
 
   return (
     <div
-      className={isMobile ? "flex flex-col h-[100dvh]" : "flex h-[calc(100dvh-120px)]"}
+      className={isMobile ? "flex flex-col h-full" : "flex h-full"}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
