@@ -14,6 +14,7 @@ export default function PaymentsSettings() {
   const [shop, setShop] = useState(null);
   const [loadingShop, setLoadingShop] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   const [searchParams] = useSearchParams();
 
   // Card Readers state
@@ -61,20 +62,35 @@ export default function PaymentsSettings() {
   }, [shopId]);
 
   useEffect(() => {
-    if (searchParams.get("connected") === "true" && shopId) {
-      loadShopData();
-      toast.success("Stripe account connected!");
+    const stripeParam = searchParams.get("stripe");
+    if (!shopId) return;
+    if (stripeParam === "success") {
+      supabase.functions.invoke("stripe-connect-status", { body: { shopId } })
+        .then(({ data, error }) => {
+          if (error || data?.error) {
+            toast.error("Failed to verify Stripe connection: " + (error?.message || data?.error));
+          } else {
+            loadShopData();
+            toast.success("Stripe account connected!");
+          }
+        });
+    } else if (stripeParam === "refresh") {
+      toast.info("Stripe session expired. Click Connect Stripe to try again.");
     }
   }, [searchParams, shopId]);
 
-  const connectStripe = () => {
-    const clientId = import.meta.env.VITE_STRIPE_CONNECT_CLIENT_ID;
-    if (!clientId) {
-      toast.error("Stripe Connect is not configured (missing VITE_STRIPE_CONNECT_CLIENT_ID).");
+  const connectStripe = async () => {
+    if (!shopId) return;
+    setConnecting(true);
+    const { data, error } = await supabase.functions.invoke("stripe-connect-onboard", {
+      body: { shopId },
+    });
+    setConnecting(false);
+    if (error || data?.error) {
+      toast.error("Failed to start Stripe onboarding: " + (error?.message || data?.error));
       return;
     }
-    const redirectUri = encodeURIComponent("https://standtallbooking.com/stripe/callback");
-    window.location.href = `https://connect.stripe.com/oauth/authorize?response_type=code&client_id=${clientId}&scope=read_write&redirect_uri=${redirectUri}`;
+    window.location.href = data.url;
   };
 
   const disconnectStripe = async () => {
@@ -211,8 +227,11 @@ export default function PaymentsSettings() {
               size="sm"
               className="text-xs h-8 bg-[#635BFF] hover:bg-[#4B44D8] text-white flex-shrink-0"
               onClick={connectStripe}
+              disabled={connecting}
             >
-              <ExternalLink className="w-3.5 h-3.5 mr-1.5" />
+              {connecting
+                ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                : <ExternalLink className="w-3.5 h-3.5 mr-1.5" />}
               Connect Stripe
             </Button>
           )}
