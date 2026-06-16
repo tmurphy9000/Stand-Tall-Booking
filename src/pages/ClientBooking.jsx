@@ -550,16 +550,16 @@ function parseSocialLinks(raw) {
   return raw;
 }
 
-function WelcomeStep({ onStart, onViewAppointments, shopName, logoUrl, shopAddress, shopPhone, showShopPhone, shopEmail, showShopEmail, socialLinks }) {
+function WelcomeStep({ onStart, onViewAppointments, shopName, logoUrl, shopAddress, businessPhone, businessEmail, socialLinks }) {
   const [legalModal, setLegalModal] = useState(null); // "terms" | "privacy" | null
   const displayLogo = logoUrl || LOGO_URL;
   const displayName = shopName || "Stand Tall Barbershop";
   const enabledSocials = Object.entries(socialLinks || {}).filter(([, v]) => v?.enabled && v?.url);
 
   const contactRows = [
-    shopAddress                          && { label: shopAddress,  text: shopAddress },
-    showShopPhone && shopPhone           && { label: shopPhone,    text: shopPhone   },
-    showShopEmail && shopEmail           && { label: shopEmail,    text: shopEmail   },
+    shopAddress   && { label: shopAddress,   text: shopAddress   },
+    businessPhone && { label: businessPhone, text: businessPhone },
+    businessEmail && { label: businessEmail, text: businessEmail },
   ].filter(Boolean);
 
   return (
@@ -1668,7 +1668,7 @@ function CopyButton({ text }) {
   );
 }
 
-function SuccessStep({ barber, service, date, time, clientName, shopAddress, shopPhone, showShopPhone, shopEmail, showShopEmail, onReset, guest = null }) {
+function SuccessStep({ barber, service, date, time, clientName, shopAddress, businessPhone, businessEmail, onReset, guest = null }) {
   const dateLabel = format(new Date(date + "T12:00:00"), "EEEE, MMMM d");
   const timeLabel = format(parse(time, "HH:mm", new Date()), "h:mm a");
 
@@ -1734,7 +1734,7 @@ function SuccessStep({ barber, service, date, time, clientName, shopAddress, sho
         </div>
       )}
 
-      {(shopAddress || (showShopPhone && shopPhone) || (showShopEmail && shopEmail)) && (
+      {(shopAddress || businessPhone || businessEmail) && (
         <div className="rounded-2xl border w-full max-w-sm text-left overflow-hidden mb-8" style={{ borderColor: "#2a2a2a", background: "#111" }}>
           <div className="px-5 py-4 border-b border-white/5">
             <p className="text-white/40 text-xs uppercase tracking-widest font-semibold">Shop Location & Contact</p>
@@ -1748,21 +1748,21 @@ function SuccessStep({ barber, service, date, time, clientName, shopAddress, sho
               </div>
             </div>
           )}
-          {showShopPhone && shopPhone && (
+          {businessPhone && (
             <div className="flex justify-between items-center px-5 py-3 border-b border-white/5 last:border-0">
               <span className="text-white/40 text-sm">Phone</span>
               <div className="flex items-center">
-                <span className="text-white text-sm font-medium">{shopPhone}</span>
-                <CopyButton text={shopPhone} />
+                <span className="text-white text-sm font-medium">{businessPhone}</span>
+                <CopyButton text={businessPhone} />
               </div>
             </div>
           )}
-          {showShopEmail && shopEmail && (
+          {businessEmail && (
             <div className="flex justify-between items-center px-5 py-3">
               <span className="text-white/40 text-sm">Email</span>
               <div className="flex items-center">
-                <span className="text-white text-sm font-medium">{shopEmail}</span>
-                <CopyButton text={shopEmail} />
+                <span className="text-white text-sm font-medium">{businessEmail}</span>
+                <CopyButton text={businessEmail} />
               </div>
             </div>
           )}
@@ -1817,6 +1817,8 @@ export default function ClientBooking() {
 
   const [step, setStep] = useState(0);
   const [shopId, setShopId] = useState(null);
+  const [businessPhone, setBusinessPhone] = useState("");
+  const [businessEmail, setBusinessEmail] = useState("");
   const [shopNotFound, setShopNotFound] = useState(false);
   const [barbers, setBarbers] = useState([]);
   const [allServices, setAllServices] = useState([]);
@@ -1855,7 +1857,7 @@ export default function ClientBooking() {
       console.log("[ClientBooking] looking up shop by url_slug:", shopSlug);
       const { data: shopRow, error: shopError } = await supabase
         .from("shops")
-        .select("id, stripe_account_id")
+        .select("id, stripe_account_id, business_phone, business_email")
         .eq("url_slug", shopSlug)
         .single();
       console.log("[ClientBooking] shop query result:", { shopRow, shopError });
@@ -1864,6 +1866,8 @@ export default function ClientBooking() {
       const resolvedShopId = shopRow.id;
       setShopId(resolvedShopId);
       setShopStripeAccountId(shopRow.stripe_account_id ?? null);
+      setBusinessPhone(shopRow.business_phone || "");
+      setBusinessEmail(shopRow.business_email || "");
 
       const todayStr = format(new Date(), "yyyy-MM-dd");
       const [allBarbers, svcs, settingsArr, todaysBookings, { data: depositSettings }] = await Promise.all([
@@ -2041,7 +2045,7 @@ export default function ClientBooking() {
           end_time: endTime,
           shop_name: shopName || undefined,
           shop_address: shopAddress || undefined,
-          shop_phone: shopPhone || undefined,
+          shop_phone: businessPhone || undefined,
         };
         if (hasGuest && guestService && bookingGuestBarber) {
           emailBody.guest_name = guestName;
@@ -2085,10 +2089,6 @@ export default function ClientBooking() {
   const logoUrl       = shopSettings.booking_logo_url || null;
   const shopName      = shopSettings.shop_name      || "";
   const shopAddress   = shopSettings.shop_address   || "";
-  const shopPhone     = shopSettings.shop_phone     || "";
-  const showShopPhone = shopSettings.show_shop_phone !== false;
-  const shopEmail     = shopSettings.shop_email     || "";
-  const showShopEmail = shopSettings.show_shop_email !== false;
   const socialLinks           = parseSocialLinks(shopSettings.social_links);
   const maxDays               = shopSettings.max_booking_days_ahead || 60;
   const minBookingNotice      = shopSettings.min_booking_notice_minutes ?? 0;
@@ -2151,8 +2151,8 @@ export default function ClientBooking() {
         {!myAppts && step === 0 && (
           <WelcomeStep key="welcome" onStart={() => setStep(1)} onViewAppointments={() => setMyAppts("phone")}
             shopName={shopName} logoUrl={logoUrl}
-            shopAddress={shopAddress} shopPhone={shopPhone} showShopPhone={showShopPhone}
-            shopEmail={shopEmail} showShopEmail={showShopEmail} socialLinks={socialLinks} />
+            shopAddress={shopAddress} businessPhone={businessPhone} businessEmail={businessEmail}
+            socialLinks={socialLinks} />
         )}
         {step === 1 && (
           <BarberStep
@@ -2268,10 +2268,8 @@ export default function ClientBooking() {
             time={selectedTime}
             clientName={clientName}
             shopAddress={shopAddress}
-            shopPhone={shopPhone}
-            showShopPhone={showShopPhone}
-            shopEmail={shopEmail}
-            showShopEmail={showShopEmail}
+            businessPhone={businessPhone}
+            businessEmail={businessEmail}
             onReset={handleReset}
             guest={hasGuest ? { name: guestName, service: guestService, barber: guestBarber, resolvedBarber: resolvedGuestBarber, timing: guestTiming } : null}
           />

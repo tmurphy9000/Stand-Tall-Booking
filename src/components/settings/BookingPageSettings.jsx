@@ -57,7 +57,7 @@ function SlugEditor({ shopId, currentSlug }) {
     const { error } = await supabase.from("shops").update({ url_slug: cleaned }).eq("id", shopId);
     setSaving(false);
     if (error) { toast.error("That slug is already taken. Try a different one."); return; }
-    queryClient.invalidateQueries({ queryKey: ["shopSlug", shopId] });
+    queryClient.invalidateQueries({ queryKey: ["shopData", shopId] });
     setEditing(false);
     toast.success("Booking URL updated.");
   };
@@ -203,30 +203,32 @@ export default function BookingPageSettings() {
     queryFn: () => entities.ShopSettings.list(),
   });
 
-  const { data: slugData } = useQuery({
-    queryKey: ["shopSlug", shopId],
+  const { data: shopData } = useQuery({
+    queryKey: ["shopData", shopId],
     queryFn: async () => {
       if (!shopId) return null;
-      const { data } = await supabase.from("shops").select("url_slug").eq("id", shopId).single();
+      const { data } = await supabase
+        .from("shops")
+        .select("url_slug, business_phone, business_email")
+        .eq("id", shopId)
+        .single();
       return data;
     },
     enabled: !!shopId,
     staleTime: 0,
   });
-  const urlSlug = slugData?.url_slug ?? "";
+  const urlSlug = shopData?.url_slug ?? "";
   const settings = settingsArr[0] || {};
 
-  const [windowValue, setWindowValue] = useState(60);
-  const [windowUnit, setWindowUnit]   = useState("days");
-  const [logoUrl, setLogoUrl]         = useState("");
-  const [uploading, setUploading]     = useState(false);
-  const [shopName, setShopName]       = useState("");
-  const [shopAddress, setShopAddress] = useState("");
-  const [shopPhone, setShopPhone]     = useState("");
-  const [showPhone, setShowPhone]     = useState(true);
-  const [shopEmail, setShopEmail]     = useState("");
-  const [showEmail, setShowEmail]     = useState(true);
-  const [social, setSocial]           = useState({
+  const [windowValue, setWindowValue]     = useState(60);
+  const [windowUnit, setWindowUnit]       = useState("days");
+  const [logoUrl, setLogoUrl]             = useState("");
+  const [uploading, setUploading]         = useState(false);
+  const [shopName, setShopName]           = useState("");
+  const [shopAddress, setShopAddress]     = useState("");
+  const [businessPhone, setBusinessPhone] = useState("");
+  const [businessEmail, setBusinessEmail] = useState("");
+  const [social, setSocial]               = useState({
     instagram: { enabled: false, url: "" },
     facebook:  { enabled: false, url: "" },
     tiktok:    { enabled: false, url: "" },
@@ -244,10 +246,6 @@ export default function BookingPageSettings() {
     setLogoUrl(settings.booking_logo_url || "");
     setShopName(settings.shop_name || "");
     setShopAddress(settings.shop_address || "");
-    setShopPhone(settings.shop_phone || "");
-    setShowPhone(settings.show_shop_phone !== false);
-    setShopEmail(settings.shop_email || "");
-    setShowEmail(settings.show_shop_email !== false);
     const links = parseSocialLinks(settings.social_links);
     setSocial({
       instagram: { enabled: false, url: "", ...(links.instagram || {}) },
@@ -259,6 +257,11 @@ export default function BookingPageSettings() {
     setMinNotice(settings.min_booking_notice_minutes ?? 0);
     setScheduleOptimizerEnabled(settings.schedule_optimizer_enabled !== false);
   }, [settings.id]);
+
+  useEffect(() => {
+    setBusinessPhone(shopData?.business_phone || "");
+    setBusinessEmail(shopData?.business_email || "");
+  }, [shopData?.business_phone, shopData?.business_email]);
 
   const save = useMutation({
     mutationFn: (data) =>
@@ -309,17 +312,30 @@ export default function BookingPageSettings() {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    // Save business contact info directly to the shops table
+    if (shopId) {
+      const { error: shopErr } = await supabase
+        .from("shops")
+        .update({
+          business_phone: businessPhone.trim() || null,
+          business_email: businessEmail.trim() || null,
+        })
+        .eq("id", shopId);
+      if (shopErr) {
+        toast.error("Failed to save business contact: " + shopErr.message);
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ["shopData", shopId] });
+    }
+
+    // Save the rest to shop_settings
     save.mutate({
       ...settings,
       max_booking_days_ahead: unitToDays(windowValue, windowUnit),
       booking_logo_url: logoUrl || null,
       shop_name:       shopName,
       shop_address:    shopAddress,
-      shop_phone:      shopPhone,
-      show_shop_phone: showPhone,
-      shop_email:      shopEmail,
-      show_shop_email:             showEmail,
       social_links:                social,
       cancellation_policy_enabled:  cancelPolicyEnabled,
       cancellation_policy_text:     cancelPolicyText || null,
@@ -513,31 +529,32 @@ export default function BookingPageSettings() {
             <Label className="text-xs text-gray-500">Address</Label>
             <Input value={shopAddress} onChange={e => setShopAddress(e.target.value)} placeholder="123 Main St, City, ST 00000" className="mt-1" />
           </div>
-          {/* Phone with visibility toggle */}
-          <div className="flex items-center gap-3">
-            <Switch checked={showPhone} onCheckedChange={setShowPhone} />
-            <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <Input
-              value={shopPhone}
-              onChange={e => setShopPhone(e.target.value)}
-              placeholder="(555) 000-0000"
-              disabled={!showPhone}
-              className="flex-1 text-sm"
-            />
+          <div>
+            <Label className="text-xs text-gray-500">Business Phone <span className="text-gray-300 font-normal">(optional)</span></Label>
+            <div className="flex items-center gap-2 mt-1">
+              <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <Input
+                value={businessPhone}
+                onChange={e => setBusinessPhone(e.target.value)}
+                placeholder="(555) 000-0000"
+                className="flex-1 text-sm"
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Your shop's business line — shown on the booking page. Leave blank to hide.</p>
           </div>
-          {/* Email with visibility toggle */}
-          <div className="flex items-center gap-3">
-            <Switch checked={showEmail} onCheckedChange={setShowEmail} />
-            <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <Input
-              value={shopEmail}
-              onChange={e => setShopEmail(e.target.value)}
-              placeholder="info@shop.com"
-              disabled={!showEmail}
-              className="flex-1 text-sm"
-            />
+          <div>
+            <Label className="text-xs text-gray-500">Business Email <span className="text-gray-300 font-normal">(optional)</span></Label>
+            <div className="flex items-center gap-2 mt-1">
+              <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <Input
+                value={businessEmail}
+                onChange={e => setBusinessEmail(e.target.value)}
+                placeholder="info@yourshop.com"
+                className="flex-1 text-sm"
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Your shop's contact email — shown on the booking page. Leave blank to hide.</p>
           </div>
-          <p className="text-xs text-gray-400">Toggle to show or hide phone and email on the booking success screen.</p>
         </div>
       </section>
 
