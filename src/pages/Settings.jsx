@@ -131,8 +131,8 @@ export default function SettingsPage() {
       { value: "payroll", label: "Payroll", icon: DollarSign },
     ] : []),
     ...(hasFullAccess ? [{ value: "permissions", label: "Permissions", icon: Shield }] : []),
-    ...(isAdmin ? [{ value: "subscription", label: "Subscription", icon: CreditCard }] : []),
-    ...(isAdmin ? [{ value: "payments", label: "Payments", icon: Wallet }] : []),
+    { value: "subscription", label: "Subscription", icon: CreditCard },
+    { value: "payments", label: "Payments", icon: Wallet },
     ...(hasFullAccess ? [{ value: "calloff", label: "Call-Off", icon: PhoneOff }] : []),
   ];
 
@@ -287,8 +287,8 @@ export default function SettingsPage() {
         {hasFullAccess && activeTab === "calloff" && <CallOffManager />}
         {hasFullAccess && activeTab === "payroll" && <PayrollManager />}
 
-        {isAdmin && activeTab === "subscription" && <SubscriptionManager />}
-        {isAdmin && activeTab === "payments" && <PaymentsSettings />}
+        {activeTab === "subscription" && <SubscriptionManager />}
+        {activeTab === "payments" && <PaymentsSettings />}
 
         {hasFullAccess && activeTab === "permissions" && (
           <div className="space-y-4">
