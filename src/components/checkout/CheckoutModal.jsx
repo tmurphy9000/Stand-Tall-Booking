@@ -136,7 +136,7 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
     ? subtotal * (parseFloat(discount.value) / 100)
     : discount.type === "fixed" ? parseFloat(discount.value) || 0 : 0;
   
-  const depositPaid = (booking.deposit_amount_paid || 0) / 100;
+  const depositPaid = (booking?.deposit_amount_paid || 0) / 100;
   const total = subtotal + taxAmount - discountAmount + (parseFloat(tip) || 0) - depositPaid;
 
   const handleCheckout = async (paymentIntentId = null) => {
