@@ -15,7 +15,7 @@ export function usePermissions() {
     user: currentBarber
       ? { id: currentBarber.id, email: currentBarber.email, full_name: currentBarber.name, role: permissionLevel }
       : null,
-    isAdmin: false,
+    isAdmin: isOwner || isSuperAdmin,
     isSuperAdmin,
     isOwner,
     isManager,
