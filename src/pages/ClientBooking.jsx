@@ -1855,9 +1855,10 @@ export default function ClientBooking() {
     const init = async () => {
       if (!shopSlug) { setShopNotFound(true); setLoading(false); return; }
       console.log("[ClientBooking] looking up shop by url_slug:", shopSlug);
+      // Resolve the shop by slug — only core columns so this never breaks on missing migrations.
       const { data: shopRow, error: shopError } = await supabase
         .from("shops")
-        .select("id, stripe_account_id, business_phone, business_email")
+        .select("id, stripe_account_id")
         .eq("url_slug", shopSlug)
         .single();
       console.log("[ClientBooking] shop query result:", { shopRow, shopError });
@@ -1866,8 +1867,16 @@ export default function ClientBooking() {
       const resolvedShopId = shopRow.id;
       setShopId(resolvedShopId);
       setShopStripeAccountId(shopRow.stripe_account_id ?? null);
-      setBusinessPhone(shopRow.business_phone || "");
-      setBusinessEmail(shopRow.business_email || "");
+
+      // Business contact info lives in optional columns added by a later migration.
+      // Fetch separately so the booking page still loads if the migration hasn't run yet.
+      const { data: contactData } = await supabase
+        .from("shops")
+        .select("business_phone, business_email")
+        .eq("id", resolvedShopId)
+        .single();
+      setBusinessPhone(contactData?.business_phone || "");
+      setBusinessEmail(contactData?.business_email || "");
 
       const todayStr = format(new Date(), "yyyy-MM-dd");
       const [allBarbers, svcs, settingsArr, todaysBookings, { data: depositSettings }] = await Promise.all([
@@ -1878,7 +1887,7 @@ export default function ClientBooking() {
         supabase.from("shop_settings").select("deposit_enabled, deposit_percentage, deposit_pretip_enabled").eq("shop_id", resolvedShopId).single(),
       ]);
       const settings = settingsArr[0] || {};
-      const activeBarbers = allBarbers.filter((b) => b.is_active !== false && b.online_bookable !== false);
+      const activeBarbers = allBarbers.filter((b) => b.is_active !== false && b.online_bookable !== false && !b.bookings_blocked);
       setBarbers(sortBarbersForBooking(activeBarbers, todaysBookings, settings.schedule_optimizer_enabled !== false));
       setAllServices(svcs.filter((s) => s.is_active !== false));
       setShopSettings(settings);
