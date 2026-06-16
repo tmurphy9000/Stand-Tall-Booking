@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { useShop } from "@/lib/shopContext";
 
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
@@ -34,6 +35,7 @@ function QuickCheckoutContent() {
   const stripe = useStripe();
   const elements = useElements();
   const queryClient = useQueryClient();
+  const { shopId, stripeAccountId } = useShop();
 
   const { data: services = [] } = useQuery({
     queryKey: ["services"],
@@ -143,7 +145,8 @@ function QuickCheckoutContent() {
         const { data: { clientSecret } } = await functions.invoke("createStripePayment", {
           amount: Math.round(total * 100),
           description: `Quick Checkout: ${clientName}`,
-          metadata: { client_name: clientName }
+          metadata: { client_name: clientName },
+          shopId,
         });
 
         const { error } = await stripe.confirmCardPayment(clientSecret, {
@@ -389,8 +392,14 @@ function QuickCheckoutContent() {
             </Select>
           </div>
 
-          {/* Stripe Card Element */}
-          {paymentMethod === "card" && (
+          {/* Card payment — requires connected Stripe account */}
+          {paymentMethod === "card" && !stripeAccountId && (
+            <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+              <CreditCard className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <span>Connect your Stripe account in <strong>Settings → Payments</strong> to enable card payments.</span>
+            </div>
+          )}
+          {paymentMethod === "card" && stripeAccountId && (
             <div className="border border-gray-200 rounded-md p-3">
               <Label className="text-xs mb-2 block">Card Details</Label>
               <CardElement
@@ -438,10 +447,10 @@ function QuickCheckoutContent() {
           </div>
 
           {/* Actions */}
-          <Button 
-            onClick={handleCheckout} 
+          <Button
+            onClick={handleCheckout}
             className="w-full bg-[#8B9A7E] hover:bg-[#6B7A5E]"
-            disabled={processing}
+            disabled={processing || (paymentMethod === "card" && !stripeAccountId)}
           >
             {paymentMethod === "card" ? <CreditCard className="w-4 h-4 mr-2" /> : <DollarSign className="w-4 h-4 mr-2" />}
             {processing ? "Processing..." : "Complete Checkout"}

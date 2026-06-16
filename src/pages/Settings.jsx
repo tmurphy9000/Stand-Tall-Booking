@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff, Tag, Monitor, Cpu, CreditCard, Bell, BookOpen, Lock } from "lucide-react";
+import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff, Tag, Monitor, Cpu, CreditCard, Bell, BookOpen, Lock, Wallet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { cn } from "@/lib/utils";
@@ -26,6 +26,7 @@ import DiscountManager from "../components/settings/DiscountManager";
 import DisplaySettings from "../components/settings/DisplaySettings";
 import HardwareSettings from "../components/settings/HardwareSettings";
 import SubscriptionManager from "../components/settings/SubscriptionManager";
+import PaymentsSettings from "../components/settings/PaymentsSettings";
 import ClientNotificationsSettings from "../components/settings/ClientNotificationsSettings";
 import BookingPageSettings from "../components/settings/BookingPageSettings";
 import { usePermissions } from "../components/permissions/usePermissions";
@@ -131,6 +132,7 @@ export default function SettingsPage() {
     ] : []),
     ...(hasFullAccess ? [{ value: "permissions", label: "Permissions", icon: Shield }] : []),
     ...(isAdmin ? [{ value: "subscription", label: "Subscription", icon: CreditCard }] : []),
+    ...(isAdmin ? [{ value: "payments", label: "Payments", icon: Wallet }] : []),
     ...(hasFullAccess ? [{ value: "calloff", label: "Call-Off", icon: PhoneOff }] : []),
   ];
 
@@ -286,6 +288,7 @@ export default function SettingsPage() {
         {hasFullAccess && activeTab === "payroll" && <PayrollManager />}
 
         {isAdmin && activeTab === "subscription" && <SubscriptionManager />}
+        {isAdmin && activeTab === "payments" && <PaymentsSettings />}
 
         {hasFullAccess && activeTab === "permissions" && (
           <div className="space-y-4">

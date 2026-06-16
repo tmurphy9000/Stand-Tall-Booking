@@ -8,6 +8,9 @@ export function useShop() {
   const [shopId, setShopId] = useState(null);
   const [tier, setTier] = useState(null);
   const [status, setStatus] = useState(null);
+  const [stripeAccountId, setStripeAccountId] = useState(null);
+  const [depositsEnabled, setDepositsEnabled] = useState(false);
+  const [depositAmount, setDepositAmount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -34,6 +37,21 @@ export function useShop() {
         resolvedShopId = subscription?.shop_id ?? null;
       }
 
+      // Load Stripe Connect info and deposit config from shops table
+      if (resolvedShopId) {
+        const { data: shopData } = await supabase
+          .from('shops')
+          .select('stripe_account_id, deposits_enabled, deposit_amount')
+          .eq('id', resolvedShopId)
+          .single();
+
+        if (isMounted) {
+          setStripeAccountId(shopData?.stripe_account_id ?? null);
+          setDepositsEnabled(shopData?.deposits_enabled ?? false);
+          setDepositAmount(shopData?.deposit_amount ?? 0);
+        }
+      }
+
       if (!isMounted) return;
       setShopId(resolvedShopId);
       setTier(subscription?.tier ?? null);
@@ -48,5 +66,5 @@ export function useShop() {
     };
   }, []);
 
-  return { shopId, tier, status, isLoading };
+  return { shopId, tier, status, stripeAccountId, depositsEnabled, depositAmount, isLoading };
 }

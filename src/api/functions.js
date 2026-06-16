@@ -52,6 +52,14 @@ export const functions = {
         return { data };
       }
 
+      case 'stripeConnectCallback': {
+        const { data, error } = await supabase.functions.invoke('stripe-connect-callback', {
+          body: payload,
+        });
+        if (error) throw error;
+        return { data };
+      }
+
       case 'gustoPayroll': {
         const { data, error } = await supabase.functions.invoke('gustoPayroll', {
           body: payload,

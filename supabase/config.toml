@@ -34,3 +34,13 @@ entrypoint = "./functions/stripe-subscription/index.ts"
 enabled = true
 verify_jwt = false
 entrypoint = "./functions/stripe-webhook/index.ts"
+
+[functions.createStripePayment]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/createStripePayment/index.ts"
+
+[functions.stripe-connect-callback]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/stripe-connect-callback/index.ts"

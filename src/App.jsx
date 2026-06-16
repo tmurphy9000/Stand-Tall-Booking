@@ -13,10 +13,11 @@ import ClientBooking from './pages/ClientBooking';
 import HomePage from './pages/HomePage';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import StripeCallback from './pages/StripeCallback';
 
 const { Pages, Layout } = pagesConfig;
 
-const PUBLIC_PATHS = ['/', '/barber-login', '/book', '/ChangePassword', '/terms', '/privacy'];
+const PUBLIC_PATHS = ['/', '/barber-login', '/book', '/ChangePassword', '/terms', '/privacy', '/stripe/callback'];
 
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
@@ -59,6 +60,7 @@ const AuthenticatedApp = () => {
       <Route path="/barber-login" element={<BarberLogin />} />
       <Route path="/ChangePassword" element={<ChangePassword />} />
       <Route path="/book" element={<ClientBooking />} />
+      <Route path="/stripe/callback" element={<StripeCallback />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

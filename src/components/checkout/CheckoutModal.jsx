@@ -11,6 +11,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { useShop } from "@/lib/shopContext";
 
 const stripePublishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = stripePublishableKey ? loadStripe(stripePublishableKey) : null;
@@ -246,6 +247,7 @@ function CheckoutContent({
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
+  const { shopId, stripeAccountId } = useShop();
   const [clientSearch, setClientSearch] = useState(booking?.client_name || "");
   const [showClientDropdown, setShowClientDropdown] = useState(false);
 
@@ -267,7 +269,8 @@ function CheckoutContent({
         const { data: { clientSecret } } = await functions.invoke("createStripePayment", {
           amount: Math.round(total * 100),
           description: `Checkout: ${booking.client_name}`,
-          metadata: { booking_id: booking.id }
+          metadata: { booking_id: booking.id },
+          shopId,
         });
 
         const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
@@ -515,8 +518,14 @@ function CheckoutContent({
             </Select>
           </div>
 
-          {/* Stripe Card Element */}
-          {paymentMethod === "card" && (
+          {/* Card payment — requires connected Stripe account */}
+          {paymentMethod === "card" && !stripeAccountId && (
+            <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
+              <CreditCard className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <span>Connect your Stripe account in <strong>Settings → Payments</strong> to enable card payments.</span>
+            </div>
+          )}
+          {paymentMethod === "card" && stripeAccountId && (
             <div className="border border-gray-200 rounded-md p-3">
               <Label className="text-xs mb-2 block">Card Details</Label>
               <CardElement
@@ -568,7 +577,7 @@ function CheckoutContent({
             <Button variant="outline" onClick={onClose} className="flex-1" disabled={processing}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} className="flex-1 bg-[#8B9A7E] hover:bg-[#6B7A5E]" disabled={processing}>
+            <Button onClick={handleSubmit} className="flex-1 bg-[#8B9A7E] hover:bg-[#6B7A5E]" disabled={processing || (paymentMethod === "card" && !stripeAccountId)}>
               {paymentMethod === "card" ? <CreditCard className="w-4 h-4 mr-2" /> : <DollarSign className="w-4 h-4 mr-2" />}
               {processing ? "Processing..." : "Complete Checkout"}
             </Button>

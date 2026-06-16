@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { entities } from "@/api/entities";
 import { supabase } from "@/lib/supabaseClient";
-import { Loader2, Scissors, ChevronRight, ArrowLeft, Clock, CheckCircle2, User, Calendar, Tag, Copy, Instagram, Facebook, Globe, Phone, X, CalendarClock, Users } from "lucide-react";
+import { Loader2, Scissors, ChevronRight, ArrowLeft, Clock, CheckCircle2, User, Calendar, Tag, Copy, Instagram, Facebook, Globe, Phone, X, CalendarClock, Users, CreditCard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { format, addDays, parse, addMinutes } from "date-fns";
 import { sortBarbersForBooking, runGapMinimization } from "@/lib/scheduleOptimizer";
 
@@ -21,6 +23,112 @@ const fadeSlide = {
   exit: { opacity: 0, y: -16 },
   transition: { duration: 0.22, ease: "easeOut" },
 };
+
+// Stripe promise for deposit payments (platform key; server uses destination charges)
+const depositStripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
+  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
+  : null;
+
+function DepositStepInner({ depositAmount, onSuccess, onBack, logoUrl }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState("");
+
+  const handlePay = async () => {
+    if (!stripe || !elements) return;
+    setProcessing(true);
+    setError("");
+    try {
+      const { data, error: fnError } = await supabase.functions.invoke("createStripePayment", {
+        body: {
+          amount: depositAmount,
+          description: "Booking deposit",
+          metadata: {},
+          shopId: DEFAULT_SHOP_ID,
+        },
+      });
+      if (fnError) throw new Error(fnError.message || "Failed to create payment");
+      const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(data.clientSecret, {
+        payment_method: { card: elements.getElement(CardElement) },
+      });
+      if (confirmError) throw new Error(confirmError.message);
+      onSuccess(paymentIntent.id);
+    } catch (err) {
+      setError(err.message || "Payment failed. Please try again.");
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  const dollarAmount = (depositAmount / 100).toFixed(2);
+
+  return (
+    <motion.div {...fadeSlide} className="min-h-screen flex flex-col" style={{ background: "#0A0A0A", color: "#FAFAF8" }}>
+      <StepHeader stepLabel="Final Step" title="Pay Deposit" onBack={onBack} progress={100} logoUrl={logoUrl} />
+      <div className="flex-1 px-6 py-8 flex flex-col gap-6 max-w-md mx-auto w-full">
+        <div className="rounded-xl p-4 flex items-start gap-3" style={{ background: "#141414", border: "1px solid #2D2D2D" }}>
+          <CreditCard className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: "#8B9A7E" }} />
+          <div>
+            <p className="font-semibold text-sm">Deposit required: ${dollarAmount}</p>
+            <p className="text-xs mt-1" style={{ color: "#9CA3AF" }}>
+              Charged now to secure your appointment. Non-refundable per our cancellation policy.
+            </p>
+          </div>
+        </div>
+
+        <div className="rounded-xl p-4" style={{ background: "#141414", border: "1px solid #2D2D2D" }}>
+          <p className="text-xs font-medium mb-3" style={{ color: "#9CA3AF" }}>Card details</p>
+          <CardElement
+            options={{
+              style: {
+                base: { fontSize: "16px", color: "#FAFAF8", "::placeholder": { color: "#6B7280" } },
+                invalid: { color: "#EF4444" },
+              },
+            }}
+          />
+        </div>
+
+        {error && (
+          <p className="text-sm rounded-lg px-4 py-3" style={{ background: "#2D0A0A", color: "#F87171", border: "1px solid #7F1D1D" }}>
+            {error}
+          </p>
+        )}
+
+        <button
+          onClick={handlePay}
+          disabled={processing || !stripe}
+          className="w-full py-4 rounded-xl font-semibold text-sm transition-all"
+          style={{
+            background: processing ? "#4B5563" : "#8B9A7E",
+            color: "#FAFAF8",
+            cursor: processing ? "not-allowed" : "pointer",
+          }}
+        >
+          {processing ? (
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin" /> Processing…
+            </span>
+          ) : (
+            `Pay $${dollarAmount} deposit`
+          )}
+        </button>
+
+        <p className="text-xs text-center" style={{ color: "#6B7280" }}>
+          Payments are processed securely via Stripe. Your card details are never stored.
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
+function DepositStep({ depositAmount, onSuccess, onBack, logoUrl }) {
+  return (
+    <Elements stripe={depositStripePromise}>
+      <DepositStepInner depositAmount={depositAmount} onSuccess={onSuccess} onBack={onBack} logoUrl={logoUrl} />
+    </Elements>
+  );
+}
 
 function StepHeader({ stepLabel, title, onBack, progress, logoUrl }) {
   return (
@@ -1624,6 +1732,10 @@ export default function ClientBooking() {
   const [allServices, setAllServices] = useState([]);
   const [shopSettings, setShopSettings] = useState({});
   const [loading, setLoading] = useState(true);
+  const [shopStripeAccountId, setShopStripeAccountId] = useState(null);
+  const [depositsEnabled, setDepositsEnabled] = useState(false);
+  const [depositAmount, setDepositAmount] = useState(2000);
+  const [depositPending, setDepositPending] = useState(false);
 
   // My Appointments sub-flow: null | "phone" | "otp" | "list"
   const [myAppts, setMyAppts]             = useState(null);
@@ -1654,13 +1766,17 @@ export default function ClientBooking() {
       entities.Service.filter({ shop_id: DEFAULT_SHOP_ID }),
       entities.ShopSettings.filter({ shop_id: DEFAULT_SHOP_ID }),
       entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, date: todayStr }),
+      supabase.from("shops").select("stripe_account_id, deposits_enabled, deposit_amount").eq("id", DEFAULT_SHOP_ID).single(),
     ])
-      .then(([allBarbers, svcs, settingsArr, todaysBookings]) => {
+      .then(([allBarbers, svcs, settingsArr, todaysBookings, { data: shopData }]) => {
         const settings = settingsArr[0] || {};
         const activeBarbers = allBarbers.filter((b) => b.is_active !== false && b.online_bookable !== false);
         setBarbers(sortBarbersForBooking(activeBarbers, todaysBookings, settings.schedule_optimizer_enabled !== false));
         setAllServices(svcs.filter((s) => s.is_active !== false));
         setShopSettings(settings);
+        setShopStripeAccountId(shopData?.stripe_account_id ?? null);
+        setDepositsEnabled(shopData?.deposits_enabled ?? false);
+        setDepositAmount(shopData?.deposit_amount ?? 2000);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -1674,7 +1790,15 @@ export default function ClientBooking() {
     return allServices.filter((s) => ids.includes(s.id));
   }, [selectedBarber, allServices]);
 
-  const handleConfirm = async () => {
+  const handlePreConfirm = () => {
+    if (depositsEnabled && shopStripeAccountId && depositStripePromise) {
+      setDepositPending(true);
+    } else {
+      handleConfirm();
+    }
+  };
+
+  const handleConfirm = async (depositPaymentIntentId = null) => {
     setSubmitting(true);
     try {
       // Find or create client
@@ -1729,6 +1853,7 @@ export default function ClientBooking() {
         final_price: selectedService.price ?? 0,
         status: "scheduled",
         visit_type: "online",
+        ...(depositPaymentIntentId && { deposit_payment_intent_id: depositPaymentIntentId }),
       });
 
       if (shopSettings.schedule_optimizer_enabled !== false) {
@@ -1963,7 +2088,7 @@ export default function ClientBooking() {
             onBack={() => setStep(5)}
           />
         )}
-        {step === 7 && (
+        {step === 7 && !depositPending && (
           <ConfirmStep
             key="confirm"
             barber={selectedBarber}
@@ -1973,12 +2098,24 @@ export default function ClientBooking() {
             clientName={clientName}
             clientPhone={clientPhone}
             clientEmail={clientEmail}
-            onConfirm={handleConfirm}
+            onConfirm={handlePreConfirm}
             onBack={() => setStep(6)}
             submitting={submitting}
             cancelPolicyEnabled={cancelPolicyEnabled}
             cancelPolicyText={cancelPolicyText}
             guest={hasGuest ? { name: guestName, service: guestService, barber: guestBarber, timing: guestTiming } : null}
+          />
+        )}
+        {step === 7 && depositPending && (
+          <DepositStep
+            key="deposit"
+            depositAmount={depositAmount}
+            logoUrl={logoUrl}
+            onBack={() => setDepositPending(false)}
+            onSuccess={(paymentIntentId) => {
+              setDepositPending(false);
+              handleConfirm(paymentIntentId);
+            }}
           />
         )}
         {step === 8 && (
