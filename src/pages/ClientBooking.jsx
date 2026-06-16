@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { entities } from "@/api/entities";
 import { supabase } from "@/lib/supabaseClient";
+import { useParams, useSearchParams } from "react-router-dom";
 import { Loader2, Scissors, ChevronRight, ArrowLeft, Clock, CheckCircle2, User, Calendar, Tag, Copy, Instagram, Facebook, Globe, Phone, X, CalendarClock, Users, CreditCard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { loadStripe } from "@stripe/stripe-js";
@@ -13,9 +14,8 @@ const LOGO_URL =
 
 const ANY_BARBER = { id: "any", name: "Any Barber" };
 
-// The public booking page has no authenticated session, so it can't use
-// useShop() — scope anon reads/writes to this shop explicitly.
-const DEFAULT_SHOP_ID = "00000000-0000-0000-0000-000000000001";
+// The public booking page has no authenticated session.
+// Shop ID is resolved dynamically from the URL slug (/book/:shopSlug).
 
 const fadeSlide = {
   initial: { opacity: 0, y: 16 },
@@ -31,7 +31,7 @@ const depositStripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
 
 const DEPOSIT_TIP_PRESETS = [0, 15, 18, 20];
 
-function DepositStepInner({ depositAmountCents, pretipEnabled, onSuccess, onBack, logoUrl }) {
+function DepositStepInner({ depositAmountCents, pretipEnabled, shopId, onSuccess, onBack, logoUrl }) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
@@ -55,7 +55,7 @@ function DepositStepInner({ depositAmountCents, pretipEnabled, onSuccess, onBack
           amount: totalCents,
           description: "Booking deposit",
           metadata: { tip_cents: String(tipCents) },
-          shopId: DEFAULT_SHOP_ID,
+          shopId,
         },
       });
       if (fnError) throw new Error(fnError.message || "Failed to create payment");
@@ -192,12 +192,13 @@ function DepositStepInner({ depositAmountCents, pretipEnabled, onSuccess, onBack
   );
 }
 
-function DepositStep({ depositAmountCents, pretipEnabled, onSuccess, onBack, logoUrl }) {
+function DepositStep({ depositAmountCents, pretipEnabled, shopId, onSuccess, onBack, logoUrl }) {
   return (
     <Elements stripe={depositStripePromise}>
       <DepositStepInner
         depositAmountCents={depositAmountCents}
         pretipEnabled={pretipEnabled}
+        shopId={shopId}
         onSuccess={onSuccess}
         onBack={onBack}
         logoUrl={logoUrl}
@@ -365,7 +366,7 @@ function OtpEntryScreen({ phone, onBack, onVerified }) {
   );
 }
 
-function AppointmentsScreen({ client, bookings: initialBookings, onBack }) {
+function AppointmentsScreen({ client, bookings: initialBookings, shopId, onBack }) {
   const [bookings, setBookings] = useState(initialBookings);
   const [cancelling, setCancelling] = useState(null);
 
@@ -375,7 +376,7 @@ function AppointmentsScreen({ client, bookings: initialBookings, onBack }) {
       const booking = bookings.find(b => b.id === id);
       if (booking?.deposit_payment_intent_id) {
         await supabase.functions.invoke("stripe-refund-deposit", {
-          body: { bookingId: id, shopId: DEFAULT_SHOP_ID },
+          body: { bookingId: id, shopId },
         });
       } else {
         await entities.Booking.update(id, { status: "cancelled" });
@@ -951,7 +952,7 @@ function isSlotTaken(slotTime, duration, bookings) {
   });
 }
 
-function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarbers = [], minNotice = 0, guestService = null, guestBarber = null, guestTiming = "back_to_back" }) {
+function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack, allBarbers = [], minNotice = 0, guestService = null, guestBarber = null, guestTiming = "back_to_back" }) {
   const [selectedDate, setSelectedDate] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [guestBookings, setGuestBookings] = useState([]);
@@ -989,7 +990,7 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
           if (working.length === 0) continue;
           try {
             if (!bookingsCacheRef.current[dateStr]) {
-              bookingsCacheRef.current[dateStr] = await entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, date: dateStr });
+              bookingsCacheRef.current[dateStr] = await entities.Booking.filter({ shop_id: shopId, date: dateStr });
             }
             const dayBookings = bookingsCacheRef.current[dateStr];
             const timeToBarber = new Map();
@@ -1023,7 +1024,7 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
           if (!dayHours || dayHours.off || dayHours.closed) continue;
           try {
             if (!bookingsCacheRef.current[dateStr]) {
-              bookingsCacheRef.current[dateStr] = await entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, barber_id: barber.id, date: dateStr });
+              bookingsCacheRef.current[dateStr] = await entities.Booking.filter({ shop_id: shopId, barber_id: barber.id, date: dateStr });
             }
             const dayBookings = bookingsCacheRef.current[dateStr];
             const daySlots = generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 30);
@@ -1108,14 +1109,14 @@ function DateTimeStep({ barber, service, maxDays = 60, onSelect, onBack, allBarb
     if (!selectedDate || !barber) return;
     setLoadingSlots(true);
     const mainQuery = isAny
-      ? entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, date: selectedDate })
-      : entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, barber_id: barber.id, date: selectedDate });
+      ? entities.Booking.filter({ shop_id: shopId, date: selectedDate })
+      : entities.Booking.filter({ shop_id: shopId, barber_id: barber.id, date: selectedDate });
 
     if (guestBarber) {
       const guestIsAny = guestBarber.id === "any";
       const guestQuery = (guestIsAny || isAny)
-        ? entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, date: selectedDate })
-        : entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, barber_id: guestBarber.id, date: selectedDate });
+        ? entities.Booking.filter({ shop_id: shopId, date: selectedDate })
+        : entities.Booking.filter({ shop_id: shopId, barber_id: guestBarber.id, date: selectedDate });
       console.log("[DateTimeStep] fetching bookings — date:", selectedDate,
         "| main barber:", isAny ? "any" : barber.id,
         "| guest barber:", guestIsAny ? "any" : guestBarber.id,
@@ -1810,7 +1811,13 @@ function SuccessStep({ barber, service, date, time, clientName, shopAddress, sho
 // ─── Root Component ───────────────────────────────────────────────────────────
 
 export default function ClientBooking() {
+  const { shopSlug } = useParams();
+  const [searchParams] = useSearchParams();
+  const isEmbed = searchParams.get("embed") === "true";
+
   const [step, setStep] = useState(0);
+  const [shopId, setShopId] = useState(null);
+  const [shopNotFound, setShopNotFound] = useState(false);
   const [barbers, setBarbers] = useState([]);
   const [allServices, setAllServices] = useState([]);
   const [shopSettings, setShopSettings] = useState({});
@@ -1843,31 +1850,41 @@ export default function ClientBooking() {
   const [resolvedGuestBarber, setResolvedGuestBarber] = useState(null);
 
   useEffect(() => {
-    const todayStr = format(new Date(), "yyyy-MM-dd");
-    Promise.all([
-      entities.Barber.filter({ shop_id: DEFAULT_SHOP_ID }),
-      entities.Service.filter({ shop_id: DEFAULT_SHOP_ID }),
-      entities.ShopSettings.filter({ shop_id: DEFAULT_SHOP_ID }),
-      entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, date: todayStr }),
-      supabase.from("shops").select("stripe_account_id").eq("id", DEFAULT_SHOP_ID).single(),
-      supabase.from("shop_settings").select("deposit_enabled, deposit_percentage, deposit_pretip_enabled").eq("shop_id", DEFAULT_SHOP_ID).single(),
-    ])
-      .then(([allBarbers, svcs, settingsArr, todaysBookings, { data: shopData }, { data: depositSettings }]) => {
-        const settings = settingsArr[0] || {};
-        const activeBarbers = allBarbers.filter((b) => b.is_active !== false && b.online_bookable !== false);
-        setBarbers(sortBarbersForBooking(activeBarbers, todaysBookings, settings.schedule_optimizer_enabled !== false));
-        setAllServices(svcs.filter((s) => s.is_active !== false));
-        setShopSettings(settings);
-        setShopStripeAccountId(shopData?.stripe_account_id ?? null);
-        setDepositConfig({
-          enabled: depositSettings?.deposit_enabled ?? false,
-          percentage: depositSettings?.deposit_percentage ?? 20,
-          pretipEnabled: depositSettings?.deposit_pretip_enabled ?? false,
-        });
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+    const init = async () => {
+      if (!shopSlug) { setShopNotFound(true); setLoading(false); return; }
+      const { data: shopRow } = await supabase
+        .from("shops")
+        .select("id, stripe_account_id")
+        .eq("url_slug", shopSlug)
+        .single();
+      if (!shopRow) { setShopNotFound(true); setLoading(false); return; }
+
+      const resolvedShopId = shopRow.id;
+      setShopId(resolvedShopId);
+      setShopStripeAccountId(shopRow.stripe_account_id ?? null);
+
+      const todayStr = format(new Date(), "yyyy-MM-dd");
+      const [allBarbers, svcs, settingsArr, todaysBookings, { data: depositSettings }] = await Promise.all([
+        entities.Barber.filter({ shop_id: resolvedShopId }),
+        entities.Service.filter({ shop_id: resolvedShopId }),
+        entities.ShopSettings.filter({ shop_id: resolvedShopId }),
+        entities.Booking.filter({ shop_id: resolvedShopId, date: todayStr }),
+        supabase.from("shop_settings").select("deposit_enabled, deposit_percentage, deposit_pretip_enabled").eq("shop_id", resolvedShopId).single(),
+      ]);
+      const settings = settingsArr[0] || {};
+      const activeBarbers = allBarbers.filter((b) => b.is_active !== false && b.online_bookable !== false);
+      setBarbers(sortBarbersForBooking(activeBarbers, todaysBookings, settings.schedule_optimizer_enabled !== false));
+      setAllServices(svcs.filter((s) => s.is_active !== false));
+      setShopSettings(settings);
+      setDepositConfig({
+        enabled: depositSettings?.deposit_enabled ?? false,
+        percentage: depositSettings?.deposit_percentage ?? 20,
+        pretipEnabled: depositSettings?.deposit_pretip_enabled ?? false,
+      });
+      setLoading(false);
+    };
+    init().catch(e => { console.error(e); setLoading(false); });
+  }, [shopSlug]);
 
   // Services available for the selected barber
   const availableServices = useMemo(() => {
@@ -1926,7 +1943,7 @@ export default function ClientBooking() {
       let bookingBarber = selectedBarber;
       if (selectedBarber.id === "any") {
         const dayName = format(new Date(selectedDate + "T12:00:00"), "EEEE").toLowerCase();
-        const dayBookings = await entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, date: selectedDate });
+        const dayBookings = await entities.Booking.filter({ shop_id: shopId, date: selectedDate });
         bookingBarber = barbers.find(b => {
           const dh = b.hours?.[dayName];
           if (!dh || dh.off || dh.closed) return false;
@@ -1938,7 +1955,7 @@ export default function ClientBooking() {
       }
 
       await entities.Booking.create({
-        shop_id: DEFAULT_SHOP_ID,
+        shop_id: shopId,
         barber_id: bookingBarber.id,
         barber_name: bookingBarber.name,
         service_id: selectedService.id,
@@ -1976,7 +1993,7 @@ export default function ClientBooking() {
         bookingGuestBarber = guestBarber;
         if (guestBarber.id === "any") {
           const dayName = format(new Date(selectedDate + "T12:00:00"), "EEEE").toLowerCase();
-          const dayBookings = await entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, date: selectedDate });
+          const dayBookings = await entities.Booking.filter({ shop_id: shopId, date: selectedDate });
           bookingGuestBarber = barbers.find(b => {
             // For same_time, avoid assigning the same barber as the main client
             if (guestTiming === "same_time" && b.id === bookingBarber.id) return false;
@@ -1990,7 +2007,7 @@ export default function ClientBooking() {
         setResolvedGuestBarber(bookingGuestBarber);
 
         await entities.Booking.create({
-          shop_id: DEFAULT_SHOP_ID,
+          shop_id: shopId,
           barber_id: bookingGuestBarber.id,
           barber_name: bookingGuestBarber.name,
           service_id: guestService.id,
@@ -2088,6 +2105,20 @@ export default function ClientBooking() {
     );
   }
 
+  if (shopNotFound) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "#0A0A0A", color: "#FAFAF8" }}>
+        <div className="flex flex-col items-center gap-4 text-center px-6">
+          <img src={LOGO_URL} alt="" className="w-16 h-16 rounded-xl opacity-40 object-cover" />
+          <h1 className="text-2xl font-bold">Shop not found</h1>
+          <p className="text-sm" style={{ color: "#9CA3AF" }}>
+            The booking page you're looking for doesn't exist. Check the link and try again.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
       <AnimatePresence mode="wait">
@@ -2111,6 +2142,7 @@ export default function ClientBooking() {
             key="appt-list"
             client={myApptClient}
             bookings={myApptBookings}
+            shopId={shopId}
             onBack={() => setMyAppts(null)}
           />
         )}
@@ -2165,6 +2197,7 @@ export default function ClientBooking() {
         {step === 5 && (
           <DateTimeStep
             key="datetime"
+            shopId={shopId}
             barber={selectedBarber}
             service={selectedService}
             maxDays={maxDays}
@@ -2215,6 +2248,7 @@ export default function ClientBooking() {
             key="deposit"
             depositAmountCents={depositAmountCents}
             pretipEnabled={pretipEnabled}
+            shopId={shopId}
             logoUrl={logoUrl}
             onBack={() => setDepositPending(false)}
             onSuccess={(paymentIntentId, totalCents) => {

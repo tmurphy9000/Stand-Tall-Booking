@@ -51,12 +51,23 @@ async function findUserIdByEmail(email: string): Promise<string | null> {
   }
 }
 
+function generateSlug(email: string, suffix: string): string {
+  const base = email.split("@")[0]
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return (base || "shop") + "-" + suffix.slice(0, 8);
+}
+
 // Creates a new shop for a subscriber who doesn't have one yet, then links
 // it back to their subscription row and auth user metadata.
 async function provisionShopForNewSubscriber(userId: string, email: string): Promise<void> {
+  // Generate a temporary slug from the email — owner can update it in Settings
+  const tempSlug = generateSlug(email, userId);
+
   const { data: shop, error: shopError } = await supabaseAdmin
     .from("shops")
-    .insert({ name: email })
+    .insert({ name: email, url_slug: tempSlug })
     .select("id")
     .single();
 
