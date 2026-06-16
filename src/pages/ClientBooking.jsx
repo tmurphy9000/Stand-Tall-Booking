@@ -24,10 +24,8 @@ const fadeSlide = {
   transition: { duration: 0.22, ease: "easeOut" },
 };
 
-// Stripe promise for deposit payments (platform key; server uses destination charges)
-const depositStripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
-  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
-  : null;
+// depositStripePromise is created inside the component (see useMemo below)
+// so it can include the shop's connected Stripe account ID.
 
 const DEPOSIT_TIP_PRESETS = [0, 15, 18, 20];
 
@@ -192,9 +190,9 @@ function DepositStepInner({ depositAmountCents, pretipEnabled, shopId, onSuccess
   );
 }
 
-function DepositStep({ depositAmountCents, pretipEnabled, shopId, onSuccess, onBack, logoUrl }) {
+function DepositStep({ depositAmountCents, pretipEnabled, shopId, onSuccess, onBack, logoUrl, stripePromise }) {
   return (
-    <Elements stripe={depositStripePromise}>
+    <Elements stripe={stripePromise}>
       <DepositStepInner
         depositAmountCents={depositAmountCents}
         pretipEnabled={pretipEnabled}
@@ -1829,6 +1827,11 @@ export default function ClientBooking() {
   const [depositPending, setDepositPending] = useState(false);
   const [depositAmountCents, setDepositAmountCents] = useState(0);
 
+  const depositStripePromise = useMemo(() => {
+    if (!import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || !shopStripeAccountId) return null;
+    return loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY, { stripeAccount: shopStripeAccountId });
+  }, [shopStripeAccountId]);
+
   // My Appointments sub-flow: null | "phone" | "otp" | "list"
   const [myAppts, setMyAppts]             = useState(null);
   const [myApptPhone, setMyApptPhone]     = useState("");
@@ -2278,6 +2281,7 @@ export default function ClientBooking() {
             pretipEnabled={pretipEnabled}
             shopId={shopId}
             logoUrl={logoUrl}
+            stripePromise={depositStripePromise}
             onBack={() => setDepositPending(false)}
             onSuccess={(paymentIntentId, totalCents) => {
               setDepositPending(false);
