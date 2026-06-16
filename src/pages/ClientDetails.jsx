@@ -1,10 +1,11 @@
 import React from "react";
 import { entities } from "@/api/entities";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, User, Phone, Mail, Loader2 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { ArrowLeft, User, Phone, Mail, Loader2, ShieldAlert } from "lucide-react";
 import { createPageUrl, formatPhoneNumber } from "../utils";
 import { usePermissions } from "../components/permissions/usePermissions";
 import { CopyButton } from "@/components/ui/copy-button";
@@ -13,6 +14,12 @@ export default function ClientDetails() {
   const [searchParams] = useSearchParams();
   const clientId = searchParams.get("id");
   const { hasFullAccess } = usePermissions();
+  const queryClient = useQueryClient();
+
+  const toggleDepositRequired = useMutation({
+    mutationFn: (required) => entities.Client.update(clientId, { deposit_required: required }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["client", clientId] }),
+  });
 
   const { data: client, isLoading: clientLoading } = useQuery({
     queryKey: ["client", clientId],
@@ -117,6 +124,26 @@ export default function ClientDetails() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Deposit Required */}
+        {hasFullAccess && (
+          <Card className="mb-6">
+            <CardContent className="p-4 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <ShieldAlert className="w-4 h-4 text-orange-500" />
+                <div>
+                  <p className="text-sm font-medium">Deposit Required</p>
+                  <p className="text-xs text-gray-500">Always collect a deposit from this client before booking</p>
+                </div>
+              </div>
+              <Switch
+                checked={!!client.deposit_required}
+                onCheckedChange={(val) => toggleDepositRequired.mutate(val)}
+                disabled={toggleDepositRequired.isPending}
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {/* Staff Notes */}
         {client.staff_notes && (

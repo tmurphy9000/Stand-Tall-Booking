@@ -184,6 +184,11 @@ export default function ClientList() {
                         </div>
                       </div>
                       <div className="flex items-center gap-4 text-sm">
+                        {client.deposit_required && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full font-semibold bg-orange-100 text-orange-700">
+                            Deposit Req.
+                          </span>
+                        )}
                         <div className="text-center">
                           <p className="font-bold text-lg">{client.total_visits || 0}</p>
                           <p className="text-xs text-gray-500">Visits</p>

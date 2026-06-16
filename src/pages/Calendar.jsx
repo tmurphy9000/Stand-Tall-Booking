@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { entities } from "@/api/entities";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { format, addDays, startOfWeek } from "date-fns";
 import CalendarHeader from "../components/calendar/CalendarHeader";
@@ -231,7 +232,22 @@ export default function CalendarPage() {
       return;
     }
 
-    const statusMap = { confirm: "confirmed", checked_in: "checked_in", completed: "completed", cancel: "cancelled" };
+    if (action === "cancel") {
+      const booking = bookings.find(b => b.id === bookingId);
+      if (booking?.deposit_payment_intent_id) {
+        await supabase.functions.invoke("stripe-refund-deposit", {
+          body: { bookingId, shopId: booking.shop_id },
+        });
+        queryClient.invalidateQueries({ queryKey: ["bookings"] });
+        return;
+      }
+      const cancelData = { status: "cancelled" };
+      if (extra?.cancel_reason) cancelData.cancel_reason = extra.cancel_reason;
+      updateBooking.mutate({ id: bookingId, data: cancelData });
+      return;
+    }
+
+    const statusMap = { confirm: "confirmed", checked_in: "checked_in", completed: "completed" };
     const data = { status: statusMap[action] || action };
     if (extra?.cancel_reason) data.cancel_reason = extra.cancel_reason;
     updateBooking.mutate({ id: bookingId, data });

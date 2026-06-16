@@ -29,11 +29,21 @@ const depositStripePromise = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY
   ? loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY)
   : null;
 
-function DepositStepInner({ depositAmount, onSuccess, onBack, logoUrl }) {
+const DEPOSIT_TIP_PRESETS = [0, 15, 18, 20];
+
+function DepositStepInner({ depositAmountCents, pretipEnabled, onSuccess, onBack, logoUrl }) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
+  const [tipPercent, setTipPercent] = useState(0);
+  const [customTip, setCustomTip] = useState("");
+  const [tipMode, setTipMode] = useState("preset");
+
+  const tipCents = tipMode === "custom"
+    ? Math.round((parseFloat(customTip) || 0) * 100)
+    : Math.round(depositAmountCents * tipPercent / 100);
+  const totalCents = depositAmountCents + tipCents;
 
   const handlePay = async () => {
     if (!stripe || !elements) return;
@@ -42,9 +52,9 @@ function DepositStepInner({ depositAmount, onSuccess, onBack, logoUrl }) {
     try {
       const { data, error: fnError } = await supabase.functions.invoke("createStripePayment", {
         body: {
-          amount: depositAmount,
+          amount: totalCents,
           description: "Booking deposit",
-          metadata: {},
+          metadata: { tip_cents: String(tipCents) },
           shopId: DEFAULT_SHOP_ID,
         },
       });
@@ -53,7 +63,7 @@ function DepositStepInner({ depositAmount, onSuccess, onBack, logoUrl }) {
         payment_method: { card: elements.getElement(CardElement) },
       });
       if (confirmError) throw new Error(confirmError.message);
-      onSuccess(paymentIntent.id);
+      onSuccess(paymentIntent.id, totalCents);
     } catch (err) {
       setError(err.message || "Payment failed. Please try again.");
     } finally {
@@ -61,7 +71,8 @@ function DepositStepInner({ depositAmount, onSuccess, onBack, logoUrl }) {
     }
   };
 
-  const dollarAmount = (depositAmount / 100).toFixed(2);
+  const depositDollars = (depositAmountCents / 100).toFixed(2);
+  const totalDollars = (totalCents / 100).toFixed(2);
 
   return (
     <motion.div {...fadeSlide} className="min-h-screen flex flex-col" style={{ background: "#0A0A0A", color: "#FAFAF8" }}>
@@ -70,12 +81,71 @@ function DepositStepInner({ depositAmount, onSuccess, onBack, logoUrl }) {
         <div className="rounded-xl p-4 flex items-start gap-3" style={{ background: "#141414", border: "1px solid #2D2D2D" }}>
           <CreditCard className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: "#8B9A7E" }} />
           <div>
-            <p className="font-semibold text-sm">Deposit required: ${dollarAmount}</p>
+            <p className="font-semibold text-sm">Deposit required: ${depositDollars}</p>
             <p className="text-xs mt-1" style={{ color: "#9CA3AF" }}>
-              Charged now to secure your appointment. Non-refundable per our cancellation policy.
+              Charged now to secure your appointment. Refundable if you cancel within the policy window.
             </p>
           </div>
         </div>
+
+        {pretipEnabled && (
+          <div className="rounded-xl p-4" style={{ background: "#141414", border: "1px solid #2D2D2D" }}>
+            <p className="text-xs font-medium mb-3" style={{ color: "#9CA3AF" }}>Add a tip (optional)</p>
+            <div className="grid grid-cols-4 gap-2 mb-3">
+              {DEPOSIT_TIP_PRESETS.map(p => {
+                const active = tipMode === "preset" && tipPercent === p;
+                return (
+                  <button
+                    key={p}
+                    onClick={() => { setTipPercent(p); setTipMode("preset"); setCustomTip(""); }}
+                    className="py-2 rounded-lg text-sm font-medium transition-all"
+                    style={{
+                      background: active ? "#8B9A7E" : "#1f1f1f",
+                      color: active ? "#fff" : "#9CA3AF",
+                      border: `1px solid ${active ? "#8B9A7E" : "#2D2D2D"}`,
+                    }}
+                  >
+                    {p === 0 ? "No tip" : `${p}%`}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setTipMode("custom")}
+                className="text-xs px-3 py-1.5 rounded-lg transition-all"
+                style={{
+                  background: tipMode === "custom" ? "#1f2a1f" : "#1a1a1a",
+                  color: tipMode === "custom" ? "#8B9A7E" : "#6B7280",
+                  border: `1px solid ${tipMode === "custom" ? "#8B9A7E" : "#2D2D2D"}`,
+                }}
+              >
+                Custom $
+              </button>
+              {tipMode === "custom" && (
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm" style={{ color: "#9CA3AF" }}>$</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={customTip}
+                    onChange={e => setCustomTip(e.target.value)}
+                    placeholder="0.00"
+                    autoFocus
+                    className="w-full pl-6 pr-3 py-1.5 rounded-lg text-sm bg-transparent outline-none"
+                    style={{ border: "1px solid #2D2D2D", color: "#FAFAF8" }}
+                  />
+                </div>
+              )}
+              {tipMode === "preset" && tipPercent > 0 && (
+                <span className="text-sm" style={{ color: "#8B9A7E" }}>
+                  +${(depositAmountCents * tipPercent / 10000).toFixed(2)}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="rounded-xl p-4" style={{ background: "#141414", border: "1px solid #2D2D2D" }}>
           <p className="text-xs font-medium mb-3" style={{ color: "#9CA3AF" }}>Card details</p>
@@ -110,7 +180,7 @@ function DepositStepInner({ depositAmount, onSuccess, onBack, logoUrl }) {
               <Loader2 className="w-4 h-4 animate-spin" /> Processing…
             </span>
           ) : (
-            `Pay $${dollarAmount} deposit`
+            `Pay $${totalDollars}${pretipEnabled && tipCents > 0 ? " (deposit + tip)" : " deposit"}`
           )}
         </button>
 
@@ -122,10 +192,16 @@ function DepositStepInner({ depositAmount, onSuccess, onBack, logoUrl }) {
   );
 }
 
-function DepositStep({ depositAmount, onSuccess, onBack, logoUrl }) {
+function DepositStep({ depositAmountCents, pretipEnabled, onSuccess, onBack, logoUrl }) {
   return (
     <Elements stripe={depositStripePromise}>
-      <DepositStepInner depositAmount={depositAmount} onSuccess={onSuccess} onBack={onBack} logoUrl={logoUrl} />
+      <DepositStepInner
+        depositAmountCents={depositAmountCents}
+        pretipEnabled={pretipEnabled}
+        onSuccess={onSuccess}
+        onBack={onBack}
+        logoUrl={logoUrl}
+      />
     </Elements>
   );
 }
@@ -296,7 +372,14 @@ function AppointmentsScreen({ client, bookings: initialBookings, onBack }) {
   const handleCancel = async (id) => {
     setCancelling(id);
     try {
-      await entities.Booking.update(id, { status: "cancelled" });
+      const booking = bookings.find(b => b.id === id);
+      if (booking?.deposit_payment_intent_id) {
+        await supabase.functions.invoke("stripe-refund-deposit", {
+          body: { bookingId: id, shopId: DEFAULT_SHOP_ID },
+        });
+      } else {
+        await entities.Booking.update(id, { status: "cancelled" });
+      }
       setBookings(prev => prev.filter(b => b.id !== id));
     } finally {
       setCancelling(null);
@@ -1733,9 +1816,9 @@ export default function ClientBooking() {
   const [shopSettings, setShopSettings] = useState({});
   const [loading, setLoading] = useState(true);
   const [shopStripeAccountId, setShopStripeAccountId] = useState(null);
-  const [depositsEnabled, setDepositsEnabled] = useState(false);
-  const [depositAmount, setDepositAmount] = useState(2000);
+  const [depositConfig, setDepositConfig] = useState({ enabled: false, percentage: 20, pretipEnabled: false });
   const [depositPending, setDepositPending] = useState(false);
+  const [depositAmountCents, setDepositAmountCents] = useState(0);
 
   // My Appointments sub-flow: null | "phone" | "otp" | "list"
   const [myAppts, setMyAppts]             = useState(null);
@@ -1766,17 +1849,21 @@ export default function ClientBooking() {
       entities.Service.filter({ shop_id: DEFAULT_SHOP_ID }),
       entities.ShopSettings.filter({ shop_id: DEFAULT_SHOP_ID }),
       entities.Booking.filter({ shop_id: DEFAULT_SHOP_ID, date: todayStr }),
-      supabase.from("shops").select("stripe_account_id, deposits_enabled, deposit_amount").eq("id", DEFAULT_SHOP_ID).single(),
+      supabase.from("shops").select("stripe_account_id").eq("id", DEFAULT_SHOP_ID).single(),
+      supabase.from("shop_settings").select("deposit_enabled, deposit_percentage, deposit_pretip_enabled").eq("shop_id", DEFAULT_SHOP_ID).single(),
     ])
-      .then(([allBarbers, svcs, settingsArr, todaysBookings, { data: shopData }]) => {
+      .then(([allBarbers, svcs, settingsArr, todaysBookings, { data: shopData }, { data: depositSettings }]) => {
         const settings = settingsArr[0] || {};
         const activeBarbers = allBarbers.filter((b) => b.is_active !== false && b.online_bookable !== false);
         setBarbers(sortBarbersForBooking(activeBarbers, todaysBookings, settings.schedule_optimizer_enabled !== false));
         setAllServices(svcs.filter((s) => s.is_active !== false));
         setShopSettings(settings);
         setShopStripeAccountId(shopData?.stripe_account_id ?? null);
-        setDepositsEnabled(shopData?.deposits_enabled ?? false);
-        setDepositAmount(shopData?.deposit_amount ?? 2000);
+        setDepositConfig({
+          enabled: depositSettings?.deposit_enabled ?? false,
+          percentage: depositSettings?.deposit_percentage ?? 20,
+          pretipEnabled: depositSettings?.deposit_pretip_enabled ?? false,
+        });
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -1790,15 +1877,30 @@ export default function ClientBooking() {
     return allServices.filter((s) => ids.includes(s.id));
   }, [selectedBarber, allServices]);
 
-  const handlePreConfirm = () => {
-    if (depositsEnabled && shopStripeAccountId && depositStripePromise) {
+  const handlePreConfirm = async () => {
+    const needsDeposit = async () => {
+      if (!shopStripeAccountId || !depositStripePromise) return false;
+      if (depositConfig.enabled) return true;
+      if (clientPhone || clientEmail) {
+        const all = await entities.Client.list();
+        const existing = all.find(c =>
+          (clientPhone && (c.phone || "").replace(/\D/g, "") === clientPhone.replace(/\D/g, "")) ||
+          (clientEmail && c.email?.toLowerCase() === clientEmail.toLowerCase())
+        );
+        if (existing?.deposit_required) return true;
+      }
+      return false;
+    };
+    if (await needsDeposit()) {
+      const svcPrice = selectedService?.price ?? 0;
+      setDepositAmountCents(Math.round(svcPrice * depositConfig.percentage));
       setDepositPending(true);
     } else {
       handleConfirm();
     }
   };
 
-  const handleConfirm = async (depositPaymentIntentId = null) => {
+  const handleConfirm = async (depositPaymentIntentId = null, depositAmountPaid = null) => {
     setSubmitting(true);
     try {
       // Find or create client
@@ -1854,6 +1956,7 @@ export default function ClientBooking() {
         status: "scheduled",
         visit_type: "online",
         ...(depositPaymentIntentId && { deposit_payment_intent_id: depositPaymentIntentId }),
+        ...(depositAmountPaid !== null && { deposit_amount_paid: depositAmountPaid }),
       });
 
       if (shopSettings.schedule_optimizer_enabled !== false) {
@@ -1972,6 +2075,7 @@ export default function ClientBooking() {
   const minBookingNotice      = shopSettings.min_booking_notice_minutes ?? 0;
   const cancelPolicyEnabled   = shopSettings.cancellation_policy_enabled === true;
   const cancelPolicyText      = shopSettings.cancellation_policy_text || "";
+  const pretipEnabled         = depositConfig.pretipEnabled;
 
   if (loading) {
     return (
@@ -2109,12 +2213,13 @@ export default function ClientBooking() {
         {step === 7 && depositPending && (
           <DepositStep
             key="deposit"
-            depositAmount={depositAmount}
+            depositAmountCents={depositAmountCents}
+            pretipEnabled={pretipEnabled}
             logoUrl={logoUrl}
             onBack={() => setDepositPending(false)}
-            onSuccess={(paymentIntentId) => {
+            onSuccess={(paymentIntentId, totalCents) => {
               setDepositPending(false);
-              handleConfirm(paymentIntentId);
+              handleConfirm(paymentIntentId, totalCents);
             }}
           />
         )}

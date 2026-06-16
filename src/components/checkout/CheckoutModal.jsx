@@ -136,7 +136,8 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
     ? subtotal * (parseFloat(discount.value) / 100)
     : discount.type === "fixed" ? parseFloat(discount.value) || 0 : 0;
   
-  const total = subtotal + taxAmount - discountAmount + (parseFloat(tip) || 0);
+  const depositPaid = (booking.deposit_amount_paid || 0) / 100;
+  const total = subtotal + taxAmount - discountAmount + (parseFloat(tip) || 0) - depositPaid;
 
   const handleCheckout = async (paymentIntentId = null) => {
     try {
@@ -583,9 +584,15 @@ function CheckoutContent({
                 <span>${(parseFloat(tip)).toFixed(2)}</span>
               </div>
             )}
+            {depositPaid > 0 && (
+              <div className="flex justify-between text-sm text-green-600">
+                <span>Deposit collected:</span>
+                <span>-${depositPaid.toFixed(2)}</span>
+              </div>
+            )}
             <div className="flex justify-between text-lg font-bold border-t pt-1">
               <span>Total:</span>
-              <span>${total.toFixed(2)}</span>
+              <span>${Math.max(0, total).toFixed(2)}</span>
             </div>
           </div>
 

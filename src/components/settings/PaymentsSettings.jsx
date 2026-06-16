@@ -16,6 +16,13 @@ export default function PaymentsSettings() {
   const [saving, setSaving] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [searchParams] = useSearchParams();
+  const [depositConfig, setDepositConfig] = useState({
+    _id: null,
+    deposit_enabled: false,
+    deposit_percentage: 20,
+    deposit_refund_hours: 24,
+    deposit_pretip_enabled: false,
+  });
 
   // Card Readers state
   const [readers, setReaders] = useState([]);
@@ -27,14 +34,31 @@ export default function PaymentsSettings() {
 
   const loadShopData = async () => {
     if (!shopId) return;
-    const { data } = await supabase
-      .from("shops")
-      .select("stripe_account_id, stripe_connect_status, deposits_enabled, deposit_amount, stripe_terminal_location_id")
-      .eq("id", shopId)
-      .single();
-    setShop(data);
+    const [{ data: shopData }, { data: settingsRows }] = await Promise.all([
+      supabase
+        .from("shops")
+        .select("stripe_account_id, stripe_connect_status, stripe_terminal_location_id")
+        .eq("id", shopId)
+        .single(),
+      supabase
+        .from("shop_settings")
+        .select("id, deposit_enabled, deposit_percentage, deposit_refund_hours, deposit_pretip_enabled")
+        .eq("shop_id", shopId)
+        .limit(1),
+    ]);
+    setShop(shopData);
+    if (settingsRows?.[0]) {
+      const s = settingsRows[0];
+      setDepositConfig({
+        _id: s.id,
+        deposit_enabled: s.deposit_enabled ?? false,
+        deposit_percentage: s.deposit_percentage ?? 20,
+        deposit_refund_hours: s.deposit_refund_hours ?? 24,
+        deposit_pretip_enabled: s.deposit_pretip_enabled ?? false,
+      });
+    }
     setLoadingShop(false);
-    return data;
+    return shopData;
   };
 
   const loadReaders = async (locationId) => {
@@ -108,13 +132,24 @@ export default function PaymentsSettings() {
 
   const saveDepositSettings = async () => {
     setSaving(true);
-    const { error } = await supabase
-      .from("shops")
-      .update({
-        deposits_enabled: shop.deposits_enabled,
-        deposit_amount: shop.deposit_amount,
-      })
-      .eq("id", shopId);
+    const payload = {
+      deposit_enabled: depositConfig.deposit_enabled,
+      deposit_percentage: depositConfig.deposit_percentage,
+      deposit_refund_hours: depositConfig.deposit_refund_hours,
+      deposit_pretip_enabled: depositConfig.deposit_pretip_enabled,
+    };
+    let error;
+    if (depositConfig._id) {
+      ({ error } = await supabase.from("shop_settings").update(payload).eq("id", depositConfig._id));
+    } else {
+      const { data: inserted, error: insertErr } = await supabase
+        .from("shop_settings")
+        .insert({ shop_id: shopId, ...payload })
+        .select("id")
+        .single();
+      error = insertErr;
+      if (inserted) setDepositConfig(p => ({ ...p, _id: inserted.id }));
+    }
     setSaving(false);
     if (error) { toast.error("Failed to save: " + error.message); return; }
     toast.success("Deposit settings saved.");
@@ -248,47 +283,80 @@ export default function PaymentsSettings() {
       {isConnected && (
         <section className="space-y-3">
           <div>
-            <h3 className="text-sm font-semibold">Online Deposits</h3>
+            <h3 className="text-sm font-semibold">Deposits</h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              Require a deposit when clients book online. Charged immediately at booking.
+              Collect a percentage deposit when clients book online to secure their appointment.
             </p>
           </div>
 
           <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
             <div>
-              <Label className="text-sm font-medium">Require deposit</Label>
+              <Label className="text-sm font-medium">Require deposit for all online bookings</Label>
               <p className="text-xs text-gray-500">
-                {shop?.deposits_enabled
-                  ? "Clients pay a deposit when booking online"
-                  : "No deposit required at booking"}
+                {depositConfig.deposit_enabled ? "Deposit required at booking" : "No deposit required"}
               </p>
             </div>
             <Switch
-              checked={!!shop?.deposits_enabled}
-              onCheckedChange={(v) => setShop((prev) => ({ ...prev, deposits_enabled: v }))}
+              checked={depositConfig.deposit_enabled}
+              onCheckedChange={(v) => setDepositConfig((p) => ({ ...p, deposit_enabled: v }))}
             />
           </div>
 
-          {shop?.deposits_enabled && (
-            <div className="space-y-1">
-              <Label className="text-xs text-gray-500">Deposit amount ($)</Label>
-              <Input
-                type="number"
-                min="1"
-                step="1"
-                className="max-w-[160px]"
-                value={Math.round((shop.deposit_amount ?? 2000) / 100)}
-                onChange={(e) =>
-                  setShop((prev) => ({
-                    ...prev,
-                    deposit_amount: Math.max(1, Math.round(parseFloat(e.target.value) || 20)) * 100,
-                  }))
-                }
-              />
-              <p className="text-[10px] text-gray-400">
-                Amount charged at the time of booking. Non-refundable per your cancellation policy.
-              </p>
-            </div>
+          {depositConfig.deposit_enabled && (
+            <>
+              <div className="space-y-1">
+                <Label className="text-xs text-gray-500">Deposit percentage</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min="1"
+                    max="100"
+                    className="max-w-[120px]"
+                    value={depositConfig.deposit_percentage}
+                    onChange={(e) =>
+                      setDepositConfig((p) => ({
+                        ...p,
+                        deposit_percentage: Math.min(100, Math.max(1, parseInt(e.target.value) || 20)),
+                      }))
+                    }
+                  />
+                  <span className="text-sm text-gray-500">%</span>
+                </div>
+                <p className="text-[10px] text-gray-400">
+                  Percentage of service price charged at booking.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-gray-500">Refund window (hours)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  className="max-w-[160px]"
+                  value={depositConfig.deposit_refund_hours}
+                  onChange={(e) =>
+                    setDepositConfig((p) => ({
+                      ...p,
+                      deposit_refund_hours: Math.max(0, parseInt(e.target.value) || 24),
+                    }))
+                  }
+                />
+                <p className="text-[10px] text-gray-400">
+                  Refund deposit if cancelled more than {depositConfig.deposit_refund_hours}h before appointment.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+                <div>
+                  <Label className="text-sm font-medium">Allow tip at deposit</Label>
+                  <p className="text-xs text-gray-500">Let clients add a tip when paying the deposit</p>
+                </div>
+                <Switch
+                  checked={depositConfig.deposit_pretip_enabled}
+                  onCheckedChange={(v) => setDepositConfig((p) => ({ ...p, deposit_pretip_enabled: v }))}
+                />
+              </div>
+            </>
           )}
 
           <Button
