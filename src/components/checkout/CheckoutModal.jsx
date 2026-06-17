@@ -253,6 +253,8 @@ function CheckoutContent({
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
   const [cardError, setCardError] = useState(null);
+  const [tipMode, setTipMode] = useState("preset"); // "preset" | "custom"
+  const [tipPct, setTipPct] = useState(null); // null = nothing selected
   const { shopId, stripeAccountId, stripeTerminalLocationId } = useShop();
   const [clientSearch, setClientSearch] = useState(booking?.client_name || "");
   const [showClientDropdown, setShowClientDropdown] = useState(false);
@@ -555,13 +557,72 @@ function CheckoutContent({
           {/* Tip */}
           <div>
             <Label className="text-xs">Tip</Label>
-            <Input
-              type="number"
-              className="h-8 text-xs"
-              value={tip}
-              onChange={(e) => setTip(e.target.value)}
-              placeholder="0.00"
-            />
+            <div className="grid grid-cols-4 gap-1.5 mt-1.5">
+              {/* No Tip */}
+              <button
+                type="button"
+                onClick={() => { setTipPct(0); setTipMode("preset"); setTip("0"); }}
+                className={`py-2 rounded-lg border text-xs font-medium transition-all ${
+                  tipMode === "preset" && tipPct === 0
+                    ? "bg-[#8B9A7E] border-[#8B9A7E] text-white"
+                    : "bg-white border-gray-200 text-gray-600 hover:border-[#8B9A7E]/50"
+                }`}
+              >
+                No Tip
+              </button>
+
+              {/* Percentage presets */}
+              {[10, 15, 20, 25, 30].map(pct => {
+                const dollars = subtotal * pct / 100;
+                const active = tipMode === "preset" && tipPct === pct;
+                return (
+                  <button
+                    key={pct}
+                    type="button"
+                    onClick={() => { setTipPct(pct); setTipMode("preset"); setTip(dollars.toFixed(2)); }}
+                    className={`py-2 rounded-lg border text-xs transition-all ${
+                      active
+                        ? "bg-[#8B9A7E] border-[#8B9A7E] text-white"
+                        : "bg-white border-gray-200 text-gray-600 hover:border-[#8B9A7E]/50"
+                    }`}
+                  >
+                    <div className="font-semibold">{pct}%</div>
+                    <div className={`text-[10px] mt-0.5 ${active ? "text-white/80" : "text-gray-400"}`}>
+                      ${dollars.toFixed(2)}
+                    </div>
+                  </button>
+                );
+              })}
+
+              {/* Custom $ */}
+              <button
+                type="button"
+                onClick={() => { setTipMode("custom"); setTipPct(null); }}
+                className={`py-2 rounded-lg border text-xs font-medium transition-all ${
+                  tipMode === "custom"
+                    ? "bg-[#8B9A7E]/10 border-[#8B9A7E] text-[#8B9A7E]"
+                    : "bg-white border-gray-200 text-gray-600 hover:border-[#8B9A7E]/50"
+                }`}
+              >
+                Custom $
+              </button>
+            </div>
+
+            {tipMode === "custom" && (
+              <div className="relative mt-2">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  className="h-8 text-xs pl-6"
+                  value={tip}
+                  onChange={(e) => setTip(e.target.value)}
+                  placeholder="0.00"
+                  autoFocus
+                />
+              </div>
+            )}
           </div>
 
           {/* Payment Method */}
