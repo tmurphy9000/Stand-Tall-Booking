@@ -25,7 +25,8 @@ function buildGustoAuthUrl(clientId, state) {
     response_type: "code",
     state,
   });
-  return `https://api.gusto.com/oauth/authorize?${params.toString()}`;
+  // TODO: switch to api.gusto.com once the app is approved for production in the Gusto developer dashboard
+  return `https://api.gusto-demo.com/oauth/authorize?${params.toString()}`;
 }
 
 export default function PayrollManager() {

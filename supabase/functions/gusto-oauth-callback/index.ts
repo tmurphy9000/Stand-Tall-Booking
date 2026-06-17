@@ -41,8 +41,11 @@ Deno.serve(async (req) => {
 
   console.log("[gusto-oauth-callback] exchanging code for shopId:", shopId);
 
+  // TODO: switch to api.gusto.com once the app is approved for production in the Gusto developer dashboard
+  const GUSTO_BASE = "https://api.gusto-demo.com";
+
   // Exchange authorization code for access + refresh tokens
-  const tokenRes = await fetch("https://api.gusto.com/oauth/token", {
+  const tokenRes = await fetch(`${GUSTO_BASE}/oauth/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -71,7 +74,7 @@ Deno.serve(async (req) => {
   let companyUuid: string | null = null;
   let companyName: string | null = null;
   try {
-    const meRes = await fetch("https://api.gusto.com/v1/me", {
+    const meRes = await fetch(`${GUSTO_BASE}/v1/me`, {
       headers: { Authorization: `Bearer ${access_token}` },
     });
     if (meRes.ok) {
