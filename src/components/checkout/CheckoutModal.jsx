@@ -649,6 +649,7 @@ function CheckoutContent({
                 <CardElement
                   onChange={() => setCardError(null)}
                   options={{
+                    disableLink: true,
                     style: {
                       base: {
                         fontSize: '14px',
