@@ -37,7 +37,8 @@ export default function CalendarPage() {
   const [isNarrowScreen, setIsNarrowScreen] = useState(() => window.innerWidth < 768);
   const [mobileCalView, setMobileCalView] = useState("mine");
   const { isMobile } = useViewMode();
-  const { currentBarber } = useAuth();
+  const { currentBarber, user } = useAuth();
+  const isOwner = currentBarber?.permission_level === 'owner';
 
   useEffect(() => {
     const handler = () => setIsNarrowScreen(window.innerWidth < 768);
@@ -282,6 +283,14 @@ export default function CalendarPage() {
     queryClient.invalidateQueries({ queryKey: ["shopSettings"] });
   };
 
+  const handleToggleLeaderboard = async (newValue) => {
+    if (!shopSettings.id) return;
+    await supabase.from('shop_settings').update({ leaderboard_visible: newValue }).eq('id', shopSettings.id);
+    queryClient.invalidateQueries({ queryKey: ["shopSettings"] });
+  };
+
+  const leaderboardVisible = shopSettings.leaderboard_visible !== false;
+
   const getTouchDistance = (touches) => {
     const dx = touches[0].clientX - touches[1].clientX;
     const dy = touches[0].clientY - touches[1].clientY;
@@ -480,8 +489,8 @@ export default function CalendarPage() {
       </Button>
       </div>
 
-      {/* Leaderboard Sidebar - hidden in mobile mode */}
-      {!isMobile && (
+      {/* Leaderboard Sidebar — hidden in mobile mode; hidden for non-owners when leaderboardVisible is false */}
+      {!isMobile && (leaderboardVisible || isOwner) && (
         <div
           className="flex-shrink-0 border-l border-gray-100 bg-white flex flex-col transition-all duration-300 overflow-hidden"
           style={{ width: leaderboardCollapsed ? "2.5rem" : "20rem" }}
@@ -509,6 +518,10 @@ export default function CalendarPage() {
                 cashTransactions={cashTransactions}
                 barbers={barbers}
                 onCollapse={() => setLeaderboardCollapsed(true)}
+                isOwner={isOwner}
+                leaderboardVisible={leaderboardVisible}
+                onToggleVisibility={handleToggleLeaderboard}
+                currentUserEmail={user?.email}
               />
             </div>
           )}
