@@ -15,6 +15,7 @@ import LeaderboardCard from "../components/calendar/LeaderboardCard";
 import CheckoutModal from "../components/checkout/CheckoutModal";
 import { useViewMode } from "../lib/ViewModeContext";
 import { useAuth } from "../lib/AuthContext";
+import { usePermissions } from "../components/permissions/usePermissions";
 import { runGapMinimization } from "../lib/scheduleOptimizer";
 
 const BARBERS_PER_GROUP = 5;
@@ -38,7 +39,8 @@ export default function CalendarPage() {
   const [mobileCalView, setMobileCalView] = useState("mine");
   const { isMobile } = useViewMode();
   const { currentBarber, user } = useAuth();
-  const isOwner = currentBarber?.permission_level === 'owner';
+  const { isOwner } = usePermissions();
+  console.log('[Calendar] currentBarber:', currentBarber, '| permission_level:', currentBarber?.permission_level, '| isOwner:', isOwner);
 
   useEffect(() => {
     const handler = () => setIsNarrowScreen(window.innerWidth < 768);
