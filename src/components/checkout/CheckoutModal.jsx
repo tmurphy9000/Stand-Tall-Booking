@@ -634,7 +634,7 @@ function CheckoutContent({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="cash">Cash</SelectItem>
-                {stripePublishableKey && stripeAccountId && <SelectItem value="card">Charge Card</SelectItem>}
+                {stripePublishableKey && stripeAccountId && <SelectItem value="card">Manual Card Entry</SelectItem>}
                 {stripeAccountId && <SelectItem value="reader">Card Reader (Terminal)</SelectItem>}
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
