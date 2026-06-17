@@ -7,6 +7,10 @@ html, body {
   overflow: hidden;
 }
 
+/* Hide Stripe Link button in card elements */
+iframe[name*="__privateStripeLink"] { display: none !important; }
+.Link { display: none !important; }
+
 @layer base {
   :root {
     --background: 0 0% 100%;

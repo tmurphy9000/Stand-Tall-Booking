@@ -205,7 +205,7 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <Elements stripe={stripePromise}>
+      <Elements stripe={stripePromise} options={{ loader: 'never' }}>
         <CheckoutContent
           booking={booking}
           onClose={onClose}
