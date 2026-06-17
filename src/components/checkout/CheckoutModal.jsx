@@ -252,6 +252,7 @@ function CheckoutContent({
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
+  const [cardError, setCardError] = useState(null);
   const { shopId, stripeAccountId, stripeTerminalLocationId } = useShop();
   const [clientSearch, setClientSearch] = useState(booking?.client_name || "");
   const [showClientDropdown, setShowClientDropdown] = useState(false);
@@ -269,39 +270,61 @@ function CheckoutContent({
   ) || []).sort((a, b) => a.client_name.localeCompare(b.client_name));
   console.log("[CheckoutModal] availableBookings:", availableBookings.map(b => ({ client: b.client_name, date: b.date, status: b.status })));
 
+  const friendlyCardError = (err) => {
+    if (!err) return "Payment failed. Please try again.";
+    const code = err.code || "";
+    if (code === "card_declined") return "The card was declined. Please try a different card.";
+    if (code === "insufficient_funds") return "This card has insufficient funds.";
+    if (code === "incorrect_cvc") return "The security code (CVC) is incorrect.";
+    if (code === "expired_card") return "This card has expired.";
+    if (code === "incorrect_number" || code === "invalid_number") return "The card number is incorrect.";
+    if (err.type === "card_error") return err.message || "The card was declined.";
+    return "Payment failed. Please try again or use a different payment method.";
+  };
+
   const handleSubmit = async () => {
     if (paymentMethod === "reader") return; // Terminal handles its own flow
 
     if (paymentMethod === "card") {
       if (!stripe || !elements) {
-        toast.error("Stripe not loaded");
+        setCardError("Payment system not ready. Please refresh and try again.");
+        return;
+      }
+      if (!stripeAccountId) {
+        setCardError("Card payments require a connected Stripe account. Go to Settings → Payments.");
         return;
       }
 
+      setCardError(null);
       setProcessing(true);
+      const chargeAmount = Math.round(Math.max(0, total) * 100);
       try {
-        const { data: { clientSecret } } = await functions.invoke("createStripePayment", {
-          amount: Math.round(total * 100),
+        const { data, error: fnError } = await functions.invoke("createStripePayment", {
+          amount: chargeAmount,
           description: `Checkout: ${booking.client_name}`,
           metadata: { booking_id: booking.id },
           shopId,
         });
 
-        const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
-          payment_method: {
-            card: elements.getElement(CardElement),
-          },
+        if (fnError || !data?.clientSecret) {
+          setCardError(data?.error || "Could not create payment. Please try again.");
+          setProcessing(false);
+          return;
+        }
+
+        const { error, paymentIntent } = await stripe.confirmCardPayment(data.clientSecret, {
+          payment_method: { card: elements.getElement(CardElement) },
         });
 
         if (error) {
-          toast.error(error.message);
+          setCardError(friendlyCardError(error));
           setProcessing(false);
           return;
         }
 
         await handleCheckout(paymentIntent.id);
-      } catch (error) {
-        toast.error("Payment failed: " + error.message);
+      } catch (err) {
+        setCardError("Payment failed. Please try again or use a different method.");
         setProcessing(false);
       }
     } else {
@@ -550,34 +573,44 @@ function CheckoutContent({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="cash">Cash</SelectItem>
-                {stripePublishableKey && <SelectItem value="card">Card (manual entry)</SelectItem>}
+                {stripePublishableKey && stripeAccountId && <SelectItem value="card">Charge Card</SelectItem>}
                 {stripeAccountId && <SelectItem value="reader">Card Reader (Terminal)</SelectItem>}
                 <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Card payment — requires connected Stripe account */}
-          {paymentMethod === "card" && !stripeAccountId && (
-            <div className="flex items-start gap-2 rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
-              <CreditCard className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <span>Connect your Stripe account in <strong>Settings → Payments</strong> to enable card payments.</span>
-            </div>
-          )}
-          {paymentMethod === "card" && stripeAccountId && (
-            <div className="border border-gray-200 rounded-md p-3">
-              <Label className="text-xs mb-2 block">Card Details</Label>
-              <CardElement
-                options={{
-                  style: {
-                    base: {
-                      fontSize: '14px',
-                      color: '#424770',
-                      '::placeholder': { color: '#aab7c4' },
+          {/* Card payment */}
+          {paymentMethod === "card" && (
+            <div className="space-y-2">
+              <div className="rounded-lg border border-gray-200 bg-white p-3">
+                <Label className="text-xs text-gray-500 mb-2 block">Card Details</Label>
+                <CardElement
+                  onChange={() => setCardError(null)}
+                  options={{
+                    style: {
+                      base: {
+                        fontSize: '14px',
+                        fontFamily: 'system-ui, -apple-system, sans-serif',
+                        color: '#111827',
+                        '::placeholder': { color: '#9ca3af' },
+                      },
+                      invalid: { color: '#ef4444', iconColor: '#ef4444' },
                     },
-                  },
-                }}
-              />
+                  }}
+                />
+              </div>
+              {cardError && (
+                <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 p-3 text-sm text-red-700">
+                  <CreditCard className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>{cardError}</span>
+                </div>
+              )}
+              {depositPaid > 0 && (
+                <p className="text-xs text-gray-500">
+                  Deposit of ${depositPaid.toFixed(2)} already collected — only the remaining balance will be charged.
+                </p>
+              )}
             </div>
           )}
 
@@ -636,9 +669,13 @@ function CheckoutContent({
               <Button variant="outline" onClick={onClose} className="flex-1" disabled={processing}>
                 Cancel
               </Button>
-              <Button onClick={handleSubmit} className="flex-1 bg-[#8B9A7E] hover:bg-[#6B7A5E]" disabled={processing || (paymentMethod === "card" && !stripeAccountId)}>
+              <Button onClick={handleSubmit} className="flex-1 bg-[#8B9A7E] hover:bg-[#6B7A5E]" disabled={processing}>
                 {paymentMethod === "card" ? <CreditCard className="w-4 h-4 mr-2" /> : <DollarSign className="w-4 h-4 mr-2" />}
-                {processing ? "Processing..." : "Complete Checkout"}
+                {processing
+                  ? "Processing..."
+                  : paymentMethod === "card"
+                  ? `Charge $${Math.max(0, total).toFixed(2)}`
+                  : "Complete Checkout"}
               </Button>
             </div>
           )}
