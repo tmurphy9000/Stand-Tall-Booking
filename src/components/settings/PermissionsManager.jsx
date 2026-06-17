@@ -72,7 +72,7 @@ export default function PermissionsManager() {
               </div>
             </div>
 
-            {barber.permission_level !== "owner" && (
+            {barber.permission_level !== "owner" && barber.permission_level !== "superadmin" && (
               <div className="flex items-center gap-3 pl-4 border-l-2">
                 <Switch
                   id={`manager-${barber.id}`}

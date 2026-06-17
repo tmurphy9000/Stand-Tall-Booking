@@ -5,7 +5,7 @@ export function usePermissions() {
 
   const permissionLevel = currentBarber?.permission_level ?? null;
   const isSuperAdmin = permissionLevel === 'superadmin';
-  const isOwner = permissionLevel === 'owner';
+  const isOwner = permissionLevel === 'owner' || permissionLevel === 'superadmin';
   const isManager = permissionLevel === 'manager';
   const isServiceProvider = permissionLevel === 'service_provider';
   const hasFullAccess = isOwner || isManager || isSuperAdmin;
