@@ -10,7 +10,7 @@ import { functions } from "@/api/functions";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { loadStripe } from "@stripe/stripe-js";
-import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useShop } from "@/lib/shopContext";
 import TerminalPayment from "@/components/checkout/TerminalPayment";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -205,7 +205,19 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <Elements stripe={stripePromise} options={{ loader: 'never' }}>
+      <Elements
+        stripe={stripePromise}
+        options={{
+          mode: 'payment',
+          amount: Math.max(50, Math.round(Math.max(0, total) * 100)),
+          currency: 'usd',
+          paymentMethodCreation: 'manual',
+          appearance: { theme: 'night' },
+          loader: 'never',
+          paymentMethodTypes: ['card'],
+          wallets: { applePay: 'never', googlePay: 'never' },
+        }}
+      >
         <CheckoutContent
           booking={booking}
           onClose={onClose}
@@ -255,6 +267,12 @@ function CheckoutContent({
   const [cardError, setCardError] = useState(null);
   const [tipMode, setTipMode] = useState("preset"); // "preset" | "custom"
   const [tipPct, setTipPct] = useState(null); // null = nothing selected
+
+  // Keep Elements amount in sync with the checkout total (Stripe ignores options prop after mount)
+  useEffect(() => {
+    if (!elements) return;
+    elements.update({ amount: Math.max(50, Math.round(Math.max(0, total) * 100)) }).catch(() => {});
+  }, [total, elements]);
   const { shopId, stripeAccountId, stripeTerminalLocationId } = useShop();
   const [clientSearch, setClientSearch] = useState(booking?.client_name || "");
   const [showClientDropdown, setShowClientDropdown] = useState(false);
@@ -299,8 +317,25 @@ function CheckoutContent({
 
       setCardError(null);
       setProcessing(true);
-      const chargeAmount = Math.round(Math.max(0, total) * 100);
       try {
+        // Step 1: validate the PaymentElement form
+        const { error: submitError } = await elements.submit();
+        if (submitError) {
+          setCardError(friendlyCardError(submitError));
+          setProcessing(false);
+          return;
+        }
+
+        // Step 2: tokenise the card (manual creation — no PI needed yet)
+        const { paymentMethod: pm, error: pmError } = await stripe.createPaymentMethod({ elements });
+        if (pmError) {
+          setCardError(friendlyCardError(pmError));
+          setProcessing(false);
+          return;
+        }
+
+        // Step 3: create the PaymentIntent on the server
+        const chargeAmount = Math.max(50, Math.round(Math.max(0, total) * 100));
         const { data, error: fnError } = await functions.invoke("createStripePayment", {
           amount: chargeAmount,
           description: `Checkout: ${booking.client_name}`,
@@ -314,12 +349,15 @@ function CheckoutContent({
           return;
         }
 
-        const { error, paymentIntent } = await stripe.confirmCardPayment(data.clientSecret, {
-          payment_method: { card: elements.getElement(CardElement) },
+        // Step 4: confirm the payment
+        const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
+          clientSecret: data.clientSecret,
+          confirmParams: { payment_method: pm.id },
+          redirect: 'if_required',
         });
 
-        if (error) {
-          setCardError(friendlyCardError(error));
+        if (confirmError) {
+          setCardError(friendlyCardError(confirmError));
           setProcessing(false);
           return;
         }
@@ -644,21 +682,13 @@ function CheckoutContent({
           {/* Card payment */}
           {paymentMethod === "card" && (
             <div className="space-y-2">
-              <div className="rounded-lg border border-gray-200 bg-white p-3">
-                <Label className="text-xs text-gray-500 mb-2 block">Card Details</Label>
-                <CardElement
+              <div className="rounded-lg border border-gray-700 bg-[#0f0f0f] p-4">
+                <Label className="text-xs text-gray-400 mb-3 block">Card Details</Label>
+                <PaymentElement
                   onChange={() => setCardError(null)}
                   options={{
-                    disableLink: true,
-                    style: {
-                      base: {
-                        fontSize: '14px',
-                        fontFamily: 'system-ui, -apple-system, sans-serif',
-                        color: '#111827',
-                        '::placeholder': { color: '#9ca3af' },
-                      },
-                      invalid: { color: '#ef4444', iconColor: '#ef4444' },
-                    },
+                    layout: 'compact',
+                    wallets: { applePay: 'never', googlePay: 'never' },
                   }}
                 />
               </div>
