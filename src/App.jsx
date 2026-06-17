@@ -14,10 +14,11 @@ import HomePage from './pages/HomePage';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import StripeCallback from './pages/StripeCallback';
+import GustoCallback from './pages/GustoCallback';
 
 const { Pages, Layout } = pagesConfig;
 
-const PUBLIC_PATHS = ['/', '/barber-login', '/book', '/ChangePassword', '/terms', '/privacy', '/stripe/callback', '/embed.js'];
+const PUBLIC_PATHS = ['/', '/barber-login', '/book', '/ChangePassword', '/terms', '/privacy', '/stripe/callback', '/gusto/callback', '/embed.js'];
 
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
@@ -62,6 +63,7 @@ const AuthenticatedApp = () => {
       <Route path="/book/:shopSlug" element={<ClientBooking />} />
       <Route path="/book" element={<ClientBooking />} />
       <Route path="/stripe/callback" element={<StripeCallback />} />
+      <Route path="/gusto/callback" element={<GustoCallback />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

@@ -1,25 +1,44 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { entities } from "@/api/entities";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
+import { supabase } from "@/lib/supabaseClient";
+import { useShop } from "@/lib/shopContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Pencil, Trash2, DollarSign, Eye, EyeOff, PlayCircle, Upload, CheckCircle, AlertCircle } from "lucide-react";
+import { Pencil, Trash2, DollarSign, Eye, EyeOff, PlayCircle, Upload, CheckCircle, AlertCircle, Link2, Link2Off, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissions } from "../permissions/usePermissions";
 import AccessDenied from "./AccessDenied";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../../utils";
 
+const GUSTO_REDIRECT_URI = `${window.location.origin}/gusto/callback`;
+
+function buildGustoAuthUrl(clientId, state) {
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: GUSTO_REDIRECT_URI,
+    response_type: "code",
+    state,
+  });
+  return `https://api.gusto.com/oauth/authorize?${params.toString()}`;
+}
+
 export default function PayrollManager() {
   const queryClient = useQueryClient();
   const { hasFullAccess } = usePermissions();
+  const { shopId } = useShop();
+  const [searchParams] = useSearchParams();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [showSSN, setShowSSN] = useState({});
   const [showAccount, setShowAccount] = useState({});
+  const [connectingGusto, setConnectingGusto] = useState(false);
+  const [disconnectingGusto, setDisconnectingGusto] = useState(false);
 
   const { data: barbers = [] } = useQuery({
     queryKey: ["barbers"],
@@ -31,6 +50,29 @@ export default function PayrollManager() {
     queryFn: () => entities.BarberSensitiveInfo.list(),
     enabled: hasFullAccess,
   });
+
+  const { data: gustoConnection, isLoading: gustoLoading, refetch: refetchGusto } = useQuery({
+    queryKey: ["gustoConnection", shopId],
+    queryFn: async () => {
+      if (!shopId) return null;
+      const { data, error } = await supabase
+        .from("gusto_connections")
+        .select("company_uuid, company_name, connected_at")
+        .eq("shop_id", shopId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: hasFullAccess && !!shopId,
+  });
+
+  // Handle redirect back from Gusto with ?gusto=connected
+  useEffect(() => {
+    if (searchParams.get("gusto") === "connected") {
+      refetchGusto();
+      toast.success("Gusto connected successfully!");
+    }
+  }, [searchParams]);
 
   const updateInfo = useMutation({
     mutationFn: ({ id, data }) => entities.BarberSensitiveInfo.update(id, data),
@@ -77,6 +119,34 @@ export default function PayrollManager() {
     }
   };
 
+  const handleConnectGusto = () => {
+    const clientId = import.meta.env.VITE_GUSTO_CLIENT_ID;
+    if (!clientId) {
+      toast.error("Gusto client ID is not configured. Contact support.");
+      return;
+    }
+    setConnectingGusto(true);
+    const state = crypto.randomUUID();
+    sessionStorage.setItem("gusto_oauth_state", state);
+    window.location.href = buildGustoAuthUrl(clientId, state);
+  };
+
+  const handleDisconnectGusto = async () => {
+    if (!window.confirm("Disconnect Gusto? You can reconnect at any time.")) return;
+    setDisconnectingGusto(true);
+    const { error } = await supabase
+      .from("gusto_connections")
+      .delete()
+      .eq("shop_id", shopId);
+    setDisconnectingGusto(false);
+    if (error) {
+      toast.error("Failed to disconnect Gusto: " + error.message);
+      return;
+    }
+    refetchGusto();
+    toast.success("Gusto disconnected.");
+  };
+
   const maskSSN = (ssn) => {
     if (!ssn) return "N/A";
     return `***-**-${ssn.slice(-4)}`;
@@ -91,6 +161,8 @@ export default function PayrollManager() {
     return <AccessDenied />;
   }
 
+  const isGustoConnected = !!gustoConnection;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -101,6 +173,78 @@ export default function PayrollManager() {
           </Button>
         </Link>
       </div>
+
+      {/* Gusto Connection Card */}
+      <Card className="border-[#F5A623]/30 bg-amber-50/40">
+        <CardContent className="p-4">
+          {gustoLoading ? (
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Loading Gusto status…
+            </div>
+          ) : isGustoConnected ? (
+            <div className="space-y-3">
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-green-500 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-green-700">Connected to Gusto</p>
+                    {gustoConnection.company_name && (
+                      <p className="text-xs text-gray-600">{gustoConnection.company_name}</p>
+                    )}
+                    {gustoConnection.connected_at && (
+                      <p className="text-[10px] text-gray-400">
+                        Connected {new Date(gustoConnection.connected_at).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs text-red-500 border-red-200 hover:bg-red-50 gap-1"
+                  onClick={handleDisconnectGusto}
+                  disabled={disconnectingGusto}
+                >
+                  {disconnectingGusto ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Link2Off className="w-3 h-3" />
+                  )}
+                  Disconnect
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold">Connect Gusto for Payroll</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Run payroll, file taxes, and manage benefits directly through Gusto.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  className="shrink-0 h-8 text-xs bg-[#F5A623] hover:bg-[#e09620] text-white gap-1"
+                  onClick={handleConnectGusto}
+                  disabled={connectingGusto}
+                >
+                  {connectingGusto ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Link2 className="w-3 h-3" />
+                  )}
+                  Connect Gusto
+                </Button>
+              </div>
+              <p className="text-[10px] text-gray-400 leading-relaxed border-t border-amber-100 pt-2">
+                Payroll processing is powered by Gusto. Plans start at $40/month + $6 per person, billed directly by Gusto. Stand Tall Booking never marks up or adds fees on top of third-party integrations.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="space-y-3">
         {sensitiveInfo.map(info => {
@@ -114,17 +258,17 @@ export default function PayrollManager() {
                     <p className="text-xs text-gray-500">{info.full_legal_name}</p>
                   </div>
                   <div className="flex gap-1">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       className="h-8 w-8 p-0"
                       onClick={() => openEdit(info)}
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       className="h-8 w-8 p-0 text-red-500 hover:text-red-600"
                       onClick={() => handleDelete(info.id)}
                     >
@@ -138,7 +282,7 @@ export default function PayrollManager() {
                     <span className="text-gray-500">Driver's License:</span>
                     <span className="font-mono">{info.drivers_license_number || "N/A"}</span>
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-gray-500">SSN:</span>
                     <div className="flex items-center gap-2">
@@ -202,20 +346,20 @@ export default function PayrollManager() {
         )}
       </div>
 
-      {/* Gusto Import Section */}
-      {sensitiveInfo.length > 0 && (
+      {/* Gusto Import readiness (shown only when connected and barbers have info) */}
+      {isGustoConnected && sensitiveInfo.length > 0 && (
         <div className="mt-6 border-t pt-4">
           <div className="flex items-center justify-between mb-3">
             <div>
               <h3 className="text-sm font-semibold">Gusto Import</h3>
-              <p className="text-xs text-gray-500">Barbers ready to be imported into Gusto once linked</p>
+              <p className="text-xs text-gray-500">Barbers ready to be imported into Gusto</p>
             </div>
             <Button
               size="sm"
               disabled
               className="h-8 text-xs bg-[#F5A623] hover:bg-[#e09620] text-white gap-1 opacity-60 cursor-not-allowed"
             >
-              <Upload className="w-3 h-3" /> Connect Gusto
+              <Upload className="w-3 h-3" /> Import Barbers
             </Button>
           </div>
 
@@ -246,7 +390,6 @@ export default function PayrollManager() {
               );
             })}
           </div>
-          <p className="text-[10px] text-gray-400 mt-2 text-center">Connect Gusto to automatically import barber payroll profiles</p>
         </div>
       )}
 
@@ -256,34 +399,34 @@ export default function PayrollManager() {
           <DialogHeader>
             <DialogTitle>Edit Banking Information</DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4 py-2">
             <div>
               <Label className="text-xs text-gray-500">Bank Name</Label>
-              <Input 
-                value={form.bank_name} 
+              <Input
+                value={form.bank_name}
                 onChange={e => setForm(prev => ({ ...prev, bank_name: e.target.value }))}
-                placeholder="Chase Bank" 
+                placeholder="Chase Bank"
               />
             </div>
-            
+
             <div>
               <Label className="text-xs text-gray-500">Routing Number</Label>
-              <Input 
-                value={form.routing_number} 
+              <Input
+                value={form.routing_number}
                 onChange={e => setForm(prev => ({ ...prev, routing_number: e.target.value }))}
                 placeholder="123456789"
                 maxLength={9}
               />
             </div>
-            
+
             <div>
               <Label className="text-xs text-gray-500">Account Number</Label>
-              <Input 
+              <Input
                 type="password"
-                value={form.account_number} 
+                value={form.account_number}
                 onChange={e => setForm(prev => ({ ...prev, account_number: e.target.value }))}
-                placeholder="Account number" 
+                placeholder="Account number"
               />
             </div>
           </div>
