@@ -215,7 +215,6 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
           appearance: { theme: 'night' },
           loader: 'never',
           paymentMethodTypes: ['card'],
-          wallets: { applePay: 'never', googlePay: 'never' },
         }}
       >
         <CheckoutContent
@@ -271,7 +270,7 @@ function CheckoutContent({
   // Keep Elements amount in sync with the checkout total (Stripe ignores options prop after mount)
   useEffect(() => {
     if (!elements) return;
-    elements.update({ amount: Math.max(50, Math.round(Math.max(0, total) * 100)) }).catch(() => {});
+    if (elements) elements.update({ amount: Math.max(50, Math.round(Math.max(0, total) * 100)) }).catch(() => {});
   }, [total, elements]);
   const { shopId, stripeAccountId, stripeTerminalLocationId } = useShop();
   const [clientSearch, setClientSearch] = useState(booking?.client_name || "");
