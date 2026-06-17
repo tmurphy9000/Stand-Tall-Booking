@@ -126,7 +126,10 @@ export default function Layout({ children, currentPageName }) {
           </div>
 
           {/* Settings and Notification Bell at Bottom */}
-          <div className={cn("border-t border-white/10 flex-shrink-0", sidebarCollapsed && "opacity-0")}>
+          <div className={cn("border-t border-white/10 flex-shrink-0 pb-[env(safe-area-inset-bottom,0px)]", sidebarCollapsed && "opacity-0")}>
+            {user && (
+              <NotificationBell userEmail={user.email} userType="staff" navStyle />
+            )}
             {currentBarber?.permission_level === "service_provider" ? (
               <button
                 onClick={() => toast.error("Access Denied", {
@@ -156,11 +159,6 @@ export default function Layout({ children, currentPageName }) {
               </Link>
             )}
 
-            {user && (
-              <div className="py-2 border-t border-white/10 flex justify-center">
-                <NotificationBell userEmail={user.email} userType="staff" />
-              </div>
-            )}
           </div>
         </nav>
       )}

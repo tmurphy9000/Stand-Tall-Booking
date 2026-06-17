@@ -6,7 +6,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Bell, Check } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
-export default function NotificationBell({ userEmail, userType = "staff" }) {
+export default function NotificationBell({ userEmail, userType = "staff", navStyle = false }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
 
@@ -44,14 +44,28 @@ export default function NotificationBell({ userEmail, userType = "staff" }) {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-5 h-5" />
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-              {unreadCount > 9 ? "9+" : unreadCount}
+        {navStyle ? (
+          <button className="flex flex-col items-center gap-1 py-2 px-2 transition-all w-full text-[#FAFAF8]/60 hover:text-[#FAFAF8]/90 hover:bg-white/10 rounded-lg">
+            <span className="relative">
+              <Bell className="w-5 h-5" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center">
+                  {unreadCount > 9 ? "9+" : unreadCount}
+                </span>
+              )}
             </span>
-          )}
-        </Button>
+            <span className="text-[9px] font-medium text-center leading-tight">Alerts</span>
+          </button>
+        ) : (
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </Button>
+        )}
       </PopoverTrigger>
       <PopoverContent className="w-80 p-0" align="end">
         <div className="p-3 border-b flex items-center justify-between">
