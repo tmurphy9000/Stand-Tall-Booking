@@ -9,13 +9,30 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
 
-  const fetchBarber = async (email) => {
-    const { data } = await supabase
+  const fetchBarber = async (userId, email) => {
+    console.log('[AuthContext] fetchBarber — user_id:', userId, '| email:', email);
+
+    // Primary: match by auth UID (consistent with RLS policies)
+    const { data: byId, error: idError } = await supabase
+      .from('barbers')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+    console.log('[AuthContext] lookup by user_id:', byId, '| error:', idError);
+
+    if (byId) {
+      setCurrentBarber(byId);
+      return;
+    }
+
+    // Fallback: match by email (for barber rows without user_id populated)
+    const { data: byEmail, error: emailError } = await supabase
       .from('barbers')
       .select('*')
       .eq('email', email)
       .maybeSingle();
-    setCurrentBarber(data ?? null);
+    console.log('[AuthContext] lookup by email:', byEmail, '| error:', emailError);
+    setCurrentBarber(byEmail ?? null);
   };
 
   useEffect(() => {
@@ -23,7 +40,7 @@ export const AuthProvider = ({ children }) => {
       if (session?.user) {
         setUser(session.user);
         setIsAuthenticated(true);
-        fetchBarber(session.user.email);
+        fetchBarber(session.user.id, session.user.email);
       } else {
         setIsLoadingAuth(false);
       }
@@ -33,7 +50,7 @@ export const AuthProvider = ({ children }) => {
       if (session?.user) {
         setUser(session.user);
         setIsAuthenticated(true);
-        fetchBarber(session.user.email).then(() => setIsLoadingAuth(false));
+        fetchBarber(session.user.id, session.user.email).then(() => setIsLoadingAuth(false));
       } else {
         setUser(null);
         setCurrentBarber(null);
