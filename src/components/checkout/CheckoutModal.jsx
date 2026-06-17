@@ -686,7 +686,7 @@ function CheckoutContent({
                 <PaymentElement
                   onChange={() => setCardError(null)}
                   options={{
-                    layout: 'compact',
+                    layout: 'tabs',
                     wallets: { applePay: 'never', googlePay: 'never' },
                   }}
                 />
