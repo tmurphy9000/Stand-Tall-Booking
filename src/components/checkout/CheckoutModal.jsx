@@ -270,7 +270,7 @@ function CheckoutContent({
   // Keep Elements amount in sync with the checkout total (Stripe ignores options prop after mount)
   useEffect(() => {
     if (!elements) return;
-    if (elements) elements.update({ amount: Math.max(50, Math.round(Math.max(0, total) * 100)) }).catch(() => {});
+    try { elements.update({ amount: Math.max(50, Math.round(Math.max(0, total) * 100)) }); } catch (_) {}
   }, [total, elements]);
   const { shopId, stripeAccountId, stripeTerminalLocationId } = useShop();
   const [clientSearch, setClientSearch] = useState(booking?.client_name || "");
