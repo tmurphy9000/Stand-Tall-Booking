@@ -43,7 +43,7 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
 
   const { data: bookings = [] } = useQuery({
     queryKey: ["bookings"],
-    queryFn: () => entities.Booking.list("-date", 100),
+    queryFn: () => entities.Booking.list("-date", 500),
     enabled: open,
   });
 
@@ -257,12 +257,17 @@ function CheckoutContent({
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [bookingPopoverOpen, setBookingPopoverOpen] = useState(false);
 
+  const bookingDate = booking?.date?.slice(0, 10);
+  console.log("[CheckoutModal] booking.date raw:", booking?.date, "→ normalized:", bookingDate, "| sample b.date raw:", bookings?.[0]?.date, "→ normalized:", bookings?.[0]?.date?.slice(0, 10));
+
+  const EXCLUDED_STATUSES = ["completed", "cancelled", "no_show", "checked_out"];
   const availableBookings = (bookings?.filter(b =>
-    b.status === "checked_in" &&
-    b.date === booking?.date &&
+    !EXCLUDED_STATUSES.includes(b.status) &&
+    b.date?.slice(0, 10) === bookingDate &&
     b.id !== booking?.id &&
     !additionalBookings.includes(b.id)
   ) || []).sort((a, b) => a.client_name.localeCompare(b.client_name));
+  console.log("[CheckoutModal] availableBookings:", availableBookings.map(b => ({ client: b.client_name, date: b.date, status: b.status })));
 
   const handleSubmit = async () => {
     if (paymentMethod === "reader") return; // Terminal handles its own flow
