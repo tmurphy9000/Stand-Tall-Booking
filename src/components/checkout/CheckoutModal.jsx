@@ -573,7 +573,7 @@ function CheckoutContent({
 
               {/* Percentage presets */}
               {[10, 15, 20, 25, 30].map(pct => {
-                const dollars = subtotal * pct / 100;
+                const dollars = Math.max(0, subtotal - discountAmount) * pct / 100;
                 const active = tipMode === "preset" && tipPct === pct;
                 return (
                   <button
