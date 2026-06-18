@@ -9,14 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Pencil, Trash2, DollarSign, Eye, EyeOff, PlayCircle, Upload, CheckCircle, AlertCircle, Link2, Link2Off, Loader2 } from "lucide-react";
+import { Pencil, Trash2, DollarSign, Eye, EyeOff, PlayCircle, Upload, CheckCircle, AlertCircle, Link2, Link2Off, Loader2, Users, Calendar } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissions } from "../permissions/usePermissions";
 import AccessDenied from "./AccessDenied";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../../utils";
 
-const GUSTO_REDIRECT_URI = `${window.location.origin}/gusto/callback`;
+const GUSTO_REDIRECT_URI = window.location.origin;
 
 function buildGustoAuthUrl(clientId, state) {
   const params = new URLSearchParams({
@@ -65,6 +65,19 @@ export default function PayrollManager() {
       return data;
     },
     enabled: hasFullAccess && !!shopId,
+  });
+
+  const isGustoConnected = !!gustoConnection;
+
+  const { data: payrollRuns = [], isLoading: payrollRunsLoading } = useQuery({
+    queryKey: ["gustoPayrollRuns", shopId],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("gusto-payroll-runs");
+      if (error) throw error;
+      return data.payrolls ?? [];
+    },
+    enabled: isGustoConnected && hasFullAccess,
+    retry: false,
   });
 
   // Handle redirect back from Gusto with ?gusto=connected
@@ -161,8 +174,6 @@ export default function PayrollManager() {
   if (!hasFullAccess) {
     return <AccessDenied />;
   }
-
-  const isGustoConnected = !!gustoConnection;
 
   return (
     <div className="space-y-4">
@@ -336,7 +347,7 @@ export default function PayrollManager() {
           );
         })}
 
-        {sensitiveInfo.length === 0 && (
+        {sensitiveInfo.length === 0 && !isGustoConnected && (
           <Card>
             <CardContent className="p-8 text-center">
               <DollarSign className="w-8 h-8 mx-auto text-gray-300 mb-2" />
@@ -347,50 +358,94 @@ export default function PayrollManager() {
         )}
       </div>
 
-      {/* Gusto Import readiness (shown only when connected and barbers have info) */}
-      {isGustoConnected && sensitiveInfo.length > 0 && (
-        <div className="mt-6 border-t pt-4">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <h3 className="text-sm font-semibold">Gusto Import</h3>
-              <p className="text-xs text-gray-500">Barbers ready to be imported into Gusto</p>
+      {/* ── Gusto-connected sections ─────────────────────────────────── */}
+      {isGustoConnected && (
+        <div className="space-y-6 mt-2">
+
+          {/* 1. Barber Sync Status */}
+          <div className="border-t pt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Users className="w-4 h-4 text-gray-400" />
+              <h3 className="text-sm font-semibold">Barber Sync Status</h3>
             </div>
-            <Button
-              size="sm"
-              disabled
-              className="h-8 text-xs bg-[#F5A623] hover:bg-[#e09620] text-white gap-1 opacity-60 cursor-not-allowed"
-            >
-              <Upload className="w-3 h-3" /> Import Barbers
-            </Button>
+            <div className="space-y-2">
+              {barbers.filter(b => b.is_active !== false).map(barber => (
+                <div
+                  key={barber.id}
+                  className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 border border-gray-100"
+                >
+                  <p className="text-xs font-medium">{barber.name}</p>
+                  {/* Placeholder — real sync check will be wired up later */}
+                  <span className="text-[10px] font-medium bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                    Not yet synced
+                  </span>
+                </div>
+              ))}
+              {barbers.filter(b => b.is_active !== false).length === 0 && (
+                <p className="text-xs text-gray-400 text-center py-3">No active barbers found.</p>
+              )}
+            </div>
           </div>
 
-          <div className="space-y-2">
-            {sensitiveInfo.map(info => {
-              const barber = barbers.find(b => b.id === info.barber_id || b.email === info.barber_id);
-              const isComplete = info.full_legal_name && info.ssn && info.bank_name && info.account_number && info.routing_number;
-              return (
-                <div key={info.id} className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
-                  <div className="flex items-center gap-2">
-                    {isComplete ? (
-                      <CheckCircle className="w-4 h-4 text-green-500 shrink-0" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 text-yellow-500 shrink-0" />
-                    )}
-                    <div>
-                      <p className="text-xs font-medium">{info.full_legal_name || barber?.name || "Unknown"}</p>
-                      <p className="text-[10px] text-gray-400">{isComplete ? "Ready to import" : "Missing payroll details"}</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 text-[10px]">
-                    {info.bank_name && <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Bank ✓</span>}
-                    {info.ssn && <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded">SSN ✓</span>}
-                    {!info.bank_name && <span className="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">No Bank</span>}
-                    {!info.ssn && <span className="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">No SSN</span>}
-                  </div>
-                </div>
-              );
-            })}
+          {/* 2. Recent Payroll Runs */}
+          <div className="border-t pt-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Calendar className="w-4 h-4 text-gray-400" />
+              <h3 className="text-sm font-semibold">Recent Payroll Runs</h3>
+            </div>
+            {payrollRunsLoading ? (
+              <div className="flex items-center gap-2 text-xs text-gray-400 py-3">
+                <Loader2 className="w-3 h-3 animate-spin" /> Loading payroll runs…
+              </div>
+            ) : payrollRuns.length === 0 ? (
+              <div className="text-center py-6 rounded-lg bg-gray-50 border border-gray-100">
+                <DollarSign className="w-6 h-6 mx-auto text-gray-300 mb-1.5" />
+                <p className="text-xs text-gray-500">No payroll runs yet — click <span className="font-medium">Run Payroll</span> to get started.</p>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-gray-100 overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                      <th className="text-left px-3 py-2 font-medium text-gray-500">Pay Period</th>
+                      <th className="text-left px-3 py-2 font-medium text-gray-500">Status</th>
+                      <th className="text-right px-3 py-2 font-medium text-gray-500">Net Pay</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {payrollRuns.slice(0, 10).map((run, i) => {
+                      const start = run.pay_period?.start_date ?? run.start_date;
+                      const end = run.pay_period?.end_date ?? run.end_date;
+                      const netPay = run.totals?.net_pay;
+                      const processed = run.processed;
+                      return (
+                        <tr key={run.payroll_uuid ?? i} className="border-b border-gray-50 last:border-0">
+                          <td className="px-3 py-2 text-gray-700">
+                            {start && end
+                              ? `${new Date(start + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${new Date(end + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
+                              : "—"}
+                          </td>
+                          <td className="px-3 py-2">
+                            {processed ? (
+                              <span className="bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">Processed</span>
+                            ) : (
+                              <span className="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full font-medium">Pending</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-right font-medium text-gray-700">
+                            {netPay != null
+                              ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(netPay))
+                              : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
+
         </div>
       )}
 
