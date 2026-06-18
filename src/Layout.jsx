@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
-import { Calendar, Package, BarChart3, Banknote, Settings, DollarSign, ChevronLeft, ChevronRight, Users, Lock, Monitor, Smartphone, LogOut } from "lucide-react";
+import { Calendar, Package, BarChart3, Settings, DollarSign, ChevronLeft, ChevronRight, Users, Lock, Monitor, Smartphone, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NotificationBell from "./components/notifications/NotificationBell";
 import { Button } from "@/components/ui/button";
@@ -19,8 +19,7 @@ const tabs = [
   { name: "Inventory", icon: Package, page: "Inventory" },
   { name: "Personal Report", icon: BarChart3, page: "Reports" },
   { name: "Shop Reporting", icon: BarChart3, page: "AdminReporting", requiresFullAccess: true },
-  { name: "Payroll", icon: DollarSign, page: "Payroll", requiresFullAccess: true },
-  { name: "Cash", icon: Banknote, page: "CashTracker" },
+  { name: "Transactions", icon: DollarSign, page: "Transactions", requiresFullAccess: true },
 ];
 
 const settingsTab = { name: "Settings", icon: Settings, page: "Settings" };

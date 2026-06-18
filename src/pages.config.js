@@ -55,6 +55,7 @@ import CashTracker from './pages/CashTracker';
 import ClientList from './pages/ClientList';
 import Inventory from './pages/Inventory';
 import Payroll from './pages/Payroll';
+import Transactions from './pages/Transactions';
 import QuickCheckout from './pages/QuickCheckout';
 import Reports from './pages/Reports';
 import RunPayroll from './pages/RunPayroll';
@@ -72,6 +73,7 @@ export const PAGES = {
     "ClientList": ClientList,
     "Inventory": Inventory,
     "Payroll": Payroll,
+    "Transactions": Transactions,
     "QuickCheckout": QuickCheckout,
     "Reports": Reports,
     "RunPayroll": RunPayroll,
