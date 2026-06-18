@@ -40,6 +40,7 @@ export default function PayrollManager() {
   const [showAccount, setShowAccount] = useState({});
   const [connectingGusto, setConnectingGusto] = useState(false);
   const [disconnectingGusto, setDisconnectingGusto] = useState(false);
+  const [selectedPayrollUuid, setSelectedPayrollUuid] = useState(null);
 
   const { data: barbers = [] } = useQuery({
     queryKey: ["barbers"],
@@ -77,6 +78,19 @@ export default function PayrollManager() {
       return data.payrolls ?? [];
     },
     enabled: isGustoConnected && hasFullAccess,
+    retry: false,
+  });
+
+  const { data: payrollDetail, isLoading: payrollDetailLoading, error: payrollDetailError } = useQuery({
+    queryKey: ["gustoPayrollDetail", selectedPayrollUuid],
+    queryFn: async () => {
+      const { data, error } = await supabase.functions.invoke("gusto-payroll-detail", {
+        body: { payroll_uuid: selectedPayrollUuid },
+      });
+      if (error) throw error;
+      return data.payroll;
+    },
+    enabled: !!selectedPayrollUuid,
     retry: false,
   });
 
@@ -419,7 +433,11 @@ export default function PayrollManager() {
                       const netPay = run.totals?.net_pay;
                       const processed = run.processed;
                       return (
-                        <tr key={run.payroll_uuid ?? i} className="border-b border-gray-50 last:border-0">
+                        <tr
+                          key={run.payroll_uuid ?? i}
+                          className="border-b border-gray-50 last:border-0 cursor-pointer hover:bg-amber-50/60 transition-colors"
+                          onClick={() => run.payroll_uuid && setSelectedPayrollUuid(run.payroll_uuid)}
+                        >
                           <td className="px-3 py-2 text-gray-700">
                             {start && end
                               ? `${new Date(start + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${new Date(end + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
@@ -448,6 +466,135 @@ export default function PayrollManager() {
 
         </div>
       )}
+
+      {/* Payroll run detail dialog */}
+      <Dialog open={!!selectedPayrollUuid} onOpenChange={(open) => !open && setSelectedPayrollUuid(null)}>
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="text-base">
+              {payrollDetail
+                ? (() => {
+                    const s = payrollDetail.pay_period?.start_date;
+                    const e = payrollDetail.pay_period?.end_date;
+                    if (!s || !e) return "Payroll Run";
+                    return `${new Date(s + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${new Date(e + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
+                  })()
+                : "Payroll Run"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="overflow-y-auto flex-1 space-y-5 pr-1">
+            {payrollDetailLoading ? (
+              <div className="flex items-center justify-center gap-2 py-10 text-sm text-gray-400">
+                <Loader2 className="w-4 h-4 animate-spin" /> Loading details…
+              </div>
+            ) : payrollDetailError ? (
+              <div className="flex items-center gap-2 py-8 text-sm text-red-500">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                Failed to load payroll details. Please try again.
+              </div>
+            ) : payrollDetail ? (() => {
+              const fmt = (val) =>
+                val != null
+                  ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(val))
+                  : "—";
+              const fmtDate = (d) =>
+                d ? new Date(d + "T00:00:00").toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" }) : "—";
+
+              return (
+                <>
+                  {/* Meta row: pay date + status */}
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-gray-500">
+                      Pay date: <span className="text-gray-800 font-medium">{fmtDate(payrollDetail.check_date)}</span>
+                    </span>
+                    {payrollDetail.processed ? (
+                      <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Processed</span>
+                    ) : (
+                      <span className="bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-medium">Pending</span>
+                    )}
+                  </div>
+
+                  {/* Totals */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-lg bg-gray-50 border border-gray-100 px-4 py-3">
+                      <p className="text-[10px] text-gray-400 mb-0.5">Gross Pay</p>
+                      <p className="text-sm font-semibold text-gray-800">{fmt(payrollDetail.totals?.gross_pay)}</p>
+                    </div>
+                    <div className="rounded-lg bg-gray-50 border border-gray-100 px-4 py-3">
+                      <p className="text-[10px] text-gray-400 mb-0.5">Net Pay</p>
+                      <p className="text-sm font-semibold text-gray-800">{fmt(payrollDetail.totals?.net_pay)}</p>
+                    </div>
+                  </div>
+
+                  {/* Employee breakdown */}
+                  {payrollDetail.employee_compensations?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-600 mb-2">Employee Breakdown</p>
+                      <div className="rounded-lg border border-gray-100 overflow-hidden">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-gray-50 border-b border-gray-100">
+                              <th className="text-left px-3 py-2 font-medium text-gray-500">Name</th>
+                              <th className="text-right px-3 py-2 font-medium text-gray-500">Gross</th>
+                              <th className="text-right px-3 py-2 font-medium text-gray-500">Net</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {payrollDetail.employee_compensations.map((emp) => (
+                              <tr key={emp.employee_uuid} className="border-b border-gray-50 last:border-0">
+                                <td className="px-3 py-2 font-medium text-gray-700">{emp.employee_name}</td>
+                                <td className="px-3 py-2 text-right text-gray-600">{fmt(emp.gross_pay)}</td>
+                                <td className="px-3 py-2 text-right text-gray-700 font-medium">{fmt(emp.net_pay)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Contractor payments (if any) */}
+                  {payrollDetail.contractor_payments?.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-gray-600 mb-2">Contractor Payments</p>
+                      <div className="rounded-lg border border-gray-100 overflow-hidden">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="bg-gray-50 border-b border-gray-100">
+                              <th className="text-left px-3 py-2 font-medium text-gray-500">Name</th>
+                              <th className="text-right px-3 py-2 font-medium text-gray-500">Wage</th>
+                              {payrollDetail.contractor_payments.some(c => c.hours) && (
+                                <th className="text-right px-3 py-2 font-medium text-gray-500">Hours</th>
+                              )}
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {payrollDetail.contractor_payments.map((cp) => (
+                              <tr key={cp.contractor_uuid} className="border-b border-gray-50 last:border-0">
+                                <td className="px-3 py-2 font-medium text-gray-700">{cp.contractor_name}</td>
+                                <td className="px-3 py-2 text-right text-gray-700 font-medium">{fmt(cp.wage)}</td>
+                                {payrollDetail.contractor_payments.some(c => c.hours) && (
+                                  <td className="px-3 py-2 text-right text-gray-600">{cp.hours ?? "—"}</td>
+                                )}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {payrollDetail.employee_compensations?.length === 0 &&
+                    payrollDetail.contractor_payments?.length === 0 && (
+                    <p className="text-xs text-gray-400 text-center py-4">No employee breakdown available for this run.</p>
+                  )}
+                </>
+              );
+            })() : null}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit banking info dialog */}
       <Dialog open={showForm} onOpenChange={setShowForm}>
