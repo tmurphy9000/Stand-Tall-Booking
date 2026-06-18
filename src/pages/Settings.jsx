@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff, Tag, Monitor, Cpu, CreditCard, Bell, BookOpen, Lock, Wallet } from "lucide-react";
+import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff, Tag, Monitor, Cpu, CreditCard, Bell, BookOpen, Lock, Wallet, Tablet } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { cn } from "@/lib/utils";
@@ -29,6 +29,7 @@ import SubscriptionManager from "../components/settings/SubscriptionManager";
 import PaymentsSettings from "../components/settings/PaymentsSettings";
 import ClientNotificationsSettings from "../components/settings/ClientNotificationsSettings";
 import BookingPageSettings from "../components/settings/BookingPageSettings";
+import KioskSettings from "../components/settings/KioskSettings";
 import { usePermissions } from "../components/permissions/usePermissions";
 import { usePlanGate } from "@/hooks/usePlanGate";
 import PlanGateModal from "@/components/PlanGateModal";
@@ -127,6 +128,7 @@ export default function SettingsPage() {
     { value: "hardware", label: "Hardware", icon: Cpu },
     { value: "client_notifications", label: "Notifications", icon: Bell },
     { value: "booking_page", label: "Booking Page", icon: BookOpen },
+    ...(hasFullAccess ? [{ value: "kiosk", label: "Kiosk", icon: Tablet }] : []),
     ...(hasFullAccess ? [
       { value: "payroll", label: "Payroll", icon: DollarSign },
     ] : []),
@@ -284,6 +286,7 @@ export default function SettingsPage() {
         {activeTab === "hardware" && <HardwareSettings />}
         {activeTab === "client_notifications" && <ClientNotificationsSettings />}
         {activeTab === "booking_page" && <BookingPageSettings />}
+        {hasFullAccess && activeTab === "kiosk" && <KioskSettings />}
         {hasFullAccess && activeTab === "calloff" && <CallOffManager />}
         {hasFullAccess && activeTab === "payroll" && <PayrollManager />}
 

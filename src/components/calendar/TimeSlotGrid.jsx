@@ -179,7 +179,13 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
       </div>
       <p className="text-[9px] truncate opacity-75">{booking.service_name}</p>
       <p className="text-[9px] opacity-60">{booking.start_time} - {booking.end_time}</p>
-      
+      {booking.status === "checked_in" && (
+        <div className="flex items-center gap-0.5 mt-0.5">
+          <div className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
+          <span className="text-[8px] font-bold text-green-700 uppercase tracking-wide">Arrived</span>
+        </div>
+      )}
+
       {/* Bottom resize handle */}
       {showHandles && (
         <div

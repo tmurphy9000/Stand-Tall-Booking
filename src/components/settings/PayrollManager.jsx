@@ -265,6 +265,18 @@ export default function PayrollManager() {
                 </Button>
               </div>
               <p className="text-[10px] text-gray-400 leading-relaxed border-t border-amber-100 pt-2">
+                Don't have a Gusto account yet?{" "}
+                <a
+                  href="https://gusto.com/i/tanner4388589a"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-gray-600"
+                >
+                  Sign up here
+                </a>
+                .
+              </p>
+              <p className="text-[10px] text-gray-400 leading-relaxed">
                 Payroll processing is powered by Gusto. Plans start at $40/month + $6 per person, billed directly by Gusto. Stand Tall Booking never marks up or adds fees on top of third-party integrations.
               </p>
             </div>
