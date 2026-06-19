@@ -13,7 +13,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
-  Loader2, Calendar, ChevronDown, ChevronUp, Lock,
+  Loader2, Calendar, Lock,
   Wallet, CreditCard, Banknote, RotateCcw, Plus, Minus,
   History, Download, Printer,
 } from "lucide-react";
@@ -158,7 +158,6 @@ export default function TransactionsPage() {
   const { hasFullAccess } = usePermissions();
   const [startDate, setStartDate] = useState(todayStr());
   const [endDate, setEndDate] = useState(todayStr());
-  const [expandedBarber, setExpandedBarber] = useState(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [pastReportsOpen, setPastReportsOpen] = useState(false);
   const [gateResult, setGateResult] = useState(null);
@@ -198,11 +197,6 @@ export default function TransactionsPage() {
     },
   });
 
-  const barberMap = useMemo(
-    () => Object.fromEntries(barbers.map(b => [b.id, b])),
-    [barbers]
-  );
-
   const sortedBookings = useMemo(
     () =>
       [...bookings].sort((a, b) => {
@@ -212,33 +206,20 @@ export default function TransactionsPage() {
     [bookings]
   );
 
-  const commissionsMap = useMemo(() => {
-    const m = {};
-    for (const b of bookings) {
-      const barber = barberMap[b.barber_id];
-      const svcRate = barber?.service_commission_rate ?? 50;
-      const prodRate = barber?.product_commission_rate ?? 10;
-      m[b.id] =
-        (b.price ?? 0) * (svcRate / 100) +
-        (b.product_revenue ?? 0) * (prodRate / 100) +
-        (b.tip ?? 0);
-    }
-    return m;
-  }, [bookings, barberMap]);
-
-  const totals = useMemo(() => {
-    return bookings.reduce(
-      (acc, b) => ({
-        price:      acc.price      + (b.price ?? 0),
-        tax:        acc.tax        + (b.tax_amount ?? 0),
-        tip:        acc.tip        + (b.tip ?? 0),
-        discount:   acc.discount   + (b.discount_amount ?? 0),
-        total:      acc.total      + (b.final_price ?? b.price ?? 0),
-        commission: acc.commission + (commissionsMap[b.id] ?? 0),
-      }),
-      { price: 0, tax: 0, tip: 0, discount: 0, total: 0, commission: 0 }
-    );
-  }, [bookings, commissionsMap]);
+  const totals = useMemo(
+    () =>
+      bookings.reduce(
+        (acc, b) => ({
+          price:    acc.price    + (b.price ?? 0),
+          tax:      acc.tax      + (b.tax_amount ?? 0),
+          tip:      acc.tip      + (b.tip ?? 0),
+          discount: acc.discount + (b.discount_amount ?? 0),
+          total:    acc.total    + (b.final_price ?? b.price ?? 0),
+        }),
+        { price: 0, tax: 0, tip: 0, discount: 0, total: 0 }
+      ),
+    [bookings]
+  );
 
   if (!hasFullAccess) {
     return (
@@ -260,47 +241,21 @@ export default function TransactionsPage() {
     );
   }
 
-  // Cash drawer stats (all-time rolling)
   const cashOnHand = cashTransactions.reduce(
     (s, tx) => tx.type === "inflow" ? s + (tx.amount || 0) : s - (tx.amount || 0),
     0
   );
 
-  const cashBookings  = bookings.filter(b => b.payment_method === "cash" || b.payment_method === "other");
-  const cardBookings  = bookings.filter(b => b.payment_method === "card" || b.payment_method === "reader");
-  const cashRevenue   = cashBookings.reduce((s, b) => s + (b.final_price ?? b.price ?? 0), 0);
-  const cardRevenue   = cardBookings.reduce((s, b) => s + (b.final_price ?? b.price ?? 0), 0);
-  const totalRevenue  = bookings.reduce((s, b) => s + (b.final_price ?? b.price ?? 0), 0);
-
-  // Commission summary (completed only — exclude refunded from payout calc)
-  const payrollData = barbers
-    .filter(b => b.is_active !== false)
-    .map(barber => {
-      const bb = bookings.filter(b => b.barber_id === barber.id && b.status === "completed");
-      const serviceRevenue    = bb.reduce((s, b) => s + (b.price ?? 0), 0);
-      const productRevenue    = bb.reduce((s, b) => s + (b.product_revenue ?? 0), 0);
-      const tips              = bb.reduce((s, b) => s + (b.tip ?? 0), 0);
-      const serviceCommRate   = barber.service_commission_rate ?? 50;
-      const productCommRate   = barber.product_commission_rate ?? 10;
-      const serviceCommission = serviceRevenue * (serviceCommRate / 100);
-      const productCommission = productRevenue * (productCommRate / 100);
-      const totalEarnings     = serviceCommission + productCommission + tips;
-      return {
-        id: barber.id, name: barber.name,
-        serviceCommRate, productCommRate,
-        serviceRevenue, productRevenue, tips,
-        serviceCommission, productCommission, totalEarnings,
-        completedServices: bb.length, bookings: bb,
-      };
-    });
-
-  const grandTotal = payrollData.reduce((s, b) => s + b.totalEarnings, 0);
+  const cashBookings = bookings.filter(b => b.payment_method === "cash" || b.payment_method === "other");
+  const cardBookings = bookings.filter(b => b.payment_method === "card" || b.payment_method === "reader");
+  const cashRevenue  = cashBookings.reduce((s, b) => s + (b.final_price ?? b.price ?? 0), 0);
+  const cardRevenue  = cardBookings.reduce((s, b) => s + (b.final_price ?? b.price ?? 0), 0);
+  const totalRevenue = bookings.reduce((s, b) => s + (b.final_price ?? b.price ?? 0), 0);
 
   const dateLabel = startDate === endDate
     ? format(parseISO(startDate), "MMMM d, yyyy")
     : `${format(parseISO(startDate), "MMM d")} – ${format(parseISO(endDate), "MMM d, yyyy")}`;
 
-  // ── Quick date shortcuts ─────────────────────────────────────────────────
   const setToday = () => { const t = todayStr(); setStartDate(t); setEndDate(t); };
   const setThisWeek = () => {
     const now = new Date(); const day = now.getDay();
@@ -313,11 +268,10 @@ export default function TransactionsPage() {
     setEndDate(todayStr());
   };
 
-  // ── CSV export ───────────────────────────────────────────────────────────
   const exportCSV = () => {
     const headers = [
       "Transaction ID","Date","Time","Client","Service","Barber",
-      "Payment Method","Price","Tax","Tip","Discount","Total","Commission","Status",
+      "Payment Method","Price","Tax","Tip","Discount","Total","Status",
     ];
     const rows = sortedBookings.map(b => [
       txId(b),
@@ -332,7 +286,6 @@ export default function TransactionsPage() {
       (b.tip ?? 0).toFixed(2),
       (b.discount_amount ?? 0).toFixed(2),
       (b.final_price ?? b.price ?? 0).toFixed(2),
-      (commissionsMap[b.id] ?? 0).toFixed(2),
       b.status ?? "",
     ]);
     const totalsRow = [
@@ -342,7 +295,6 @@ export default function TransactionsPage() {
       totals.tip.toFixed(2),
       totals.discount.toFixed(2),
       totals.total.toFixed(2),
-      totals.commission.toFixed(2),
       "",
     ];
     const csv = [headers, ...rows, totalsRow]
@@ -357,7 +309,6 @@ export default function TransactionsPage() {
     URL.revokeObjectURL(url);
   };
 
-  // ── Print ────────────────────────────────────────────────────────────────
   const handlePrint = () => {
     const rows = sortedBookings.map(b => `
       <tr>
@@ -372,7 +323,6 @@ export default function TransactionsPage() {
         <td>${fmt(b.tip)}</td>
         <td>${fmt(b.discount_amount)}</td>
         <td><strong>${fmt(b.final_price ?? b.price)}</strong></td>
-        <td>${fmt(commissionsMap[b.id])}</td>
         <td>${b.status ?? ""}</td>
       </tr>`).join("");
 
@@ -402,7 +352,7 @@ export default function TransactionsPage() {
       <tr>
         <th>ID</th><th>Date / Time</th><th>Client</th><th>Service</th><th>Barber</th>
         <th>Method</th><th>Price</th><th>Tax</th><th>Tip</th><th>Discount</th>
-        <th>Total</th><th>Commission</th><th>Status</th>
+        <th>Total</th><th>Status</th>
       </tr>
     </thead>
     <tbody>${rows}</tbody>
@@ -414,7 +364,6 @@ export default function TransactionsPage() {
         <td>${fmt(totals.tip)}</td>
         <td>${fmt(totals.discount)}</td>
         <td>${fmt(totals.total)}</td>
-        <td>${fmt(totals.commission)}</td>
         <td></td>
       </tr>
     </tfoot>
@@ -431,18 +380,16 @@ export default function TransactionsPage() {
   return (
     <div className="p-6 max-w-7xl mx-auto">
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <h1 className="text-2xl font-bold text-[#0A0A0A]">Transactions</h1>
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Quick selectors */}
           {[["Today", setToday], ["This Week", setThisWeek], ["This Month", setThisMonth]].map(([label, fn]) => (
             <Button key={label} variant="outline" size="sm" onClick={fn}
               className="text-xs border-[#8B9A7E] text-[#8B9A7E] hover:bg-[#8B9A7E]/10 h-8">
               {label}
             </Button>
           ))}
-          {/* Date pickers */}
           <div className="flex items-center gap-1.5">
             <Calendar className="w-4 h-4 text-[#8B9A7E]" />
             <div>
@@ -454,21 +401,18 @@ export default function TransactionsPage() {
               <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-8 w-36 text-xs" />
             </div>
           </div>
-          {/* Export / Print */}
           <Button variant="outline" size="sm" onClick={exportCSV}
             className="h-8 text-xs border-[#8B9A7E] text-[#8B9A7E] hover:bg-[#8B9A7E]/10 gap-1.5">
-            <Download className="w-3.5 h-3.5" />
-            Export
+            <Download className="w-3.5 h-3.5" />Export
           </Button>
           <Button variant="outline" size="sm" onClick={handlePrint}
             className="h-8 text-xs border-[#8B9A7E] text-[#8B9A7E] hover:bg-[#8B9A7E]/10 gap-1.5">
-            <Printer className="w-3.5 h-3.5" />
-            Print
+            <Printer className="w-3.5 h-3.5" />Print
           </Button>
         </div>
       </div>
 
-      {/* ── Summary tiles ──────────────────────────────────────────────── */}
+      {/* Summary tiles */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <div className="bg-[#0A0A0A] rounded-xl p-4 text-white">
           <div className="flex items-center gap-2 mb-1">
@@ -501,7 +445,7 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {/* ── Cash drawer + utility actions ──────────────────────────────── */}
+      {/* Cash drawer + utility actions */}
       <div className="flex gap-2 mb-6 flex-wrap">
         <Button onClick={() => setShowCashIn(true)} variant="outline" size="sm"
           className="h-8 text-xs border-green-200 text-green-700 hover:bg-green-50">
@@ -534,8 +478,8 @@ export default function TransactionsPage() {
         </Button>
       </div>
 
-      {/* ── Transaction table ───────────────────────────────────────────── */}
-      <Card className="mb-6">
+      {/* Transaction table */}
+      <Card>
         <CardHeader className="pb-2 pt-4 px-4">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             Transactions
@@ -550,7 +494,7 @@ export default function TransactionsPage() {
             <p className="text-center text-gray-400 text-sm py-10">No transactions in this period.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-xs min-w-[900px]">
+              <table className="w-full text-xs min-w-[820px]">
                 <thead>
                   <tr className="border-b border-gray-100 text-[9px] text-gray-400 uppercase tracking-wider bg-gray-50/60">
                     <th className="text-left px-3 py-2 font-semibold">ID</th>
@@ -564,7 +508,6 @@ export default function TransactionsPage() {
                     <th className="text-right px-3 py-2 font-semibold">Tip</th>
                     <th className="text-right px-3 py-2 font-semibold">Discount</th>
                     <th className="text-right px-3 py-2 font-semibold text-[#0A0A0A]">Total</th>
-                    <th className="text-right px-3 py-2 font-semibold text-[#8B9A7E] hidden md:table-cell">Commission</th>
                     <th className="text-left px-3 py-2 font-semibold">Status</th>
                     {hasFullAccess && <th className="px-3 py-2" />}
                   </tr>
@@ -589,13 +532,12 @@ export default function TransactionsPage() {
                         {(b.tip ?? 0) > 0 ? fmt(b.tip) : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-3 py-2.5 text-right text-red-500">
-                        {(b.discount_amount ?? 0) > 0 ? <span>-{fmt(b.discount_amount)}</span> : <span className="text-gray-300">—</span>}
+                        {(b.discount_amount ?? 0) > 0
+                          ? <span>-{fmt(b.discount_amount)}</span>
+                          : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-3 py-2.5 text-right font-semibold">
                         {fmt(b.final_price ?? b.price)}
-                      </td>
-                      <td className="px-3 py-2.5 text-right text-[#8B9A7E] hidden md:table-cell">
-                        {fmt(commissionsMap[b.id])}
                       </td>
                       <td className="px-3 py-2.5"><StatusBadge status={b.status} /></td>
                       {hasFullAccess && (
@@ -612,10 +554,9 @@ export default function TransactionsPage() {
                     </tr>
                   ))}
                 </tbody>
-                {/* Totals row */}
                 <tfoot>
                   <tr className="border-t-2 border-[#8B9A7E]/30 bg-[#8B9A7E]/5 font-semibold text-[11px]">
-                    <td className="px-3 py-2.5 text-gray-600" colSpan={hasFullAccess ? 6 : 6}>
+                    <td className="px-3 py-2.5 text-gray-600" colSpan={6}>
                       Total — {sortedBookings.length} transaction{sortedBookings.length !== 1 ? "s" : ""}
                     </td>
                     <td className="px-3 py-2.5 text-right hidden md:table-cell">{fmt(totals.price)}</td>
@@ -623,7 +564,6 @@ export default function TransactionsPage() {
                     <td className="px-3 py-2.5 text-right text-blue-700">{totals.tip > 0 ? fmt(totals.tip) : "—"}</td>
                     <td className="px-3 py-2.5 text-right text-red-600">{totals.discount > 0 ? <span>-{fmt(totals.discount)}</span> : "—"}</td>
                     <td className="px-3 py-2.5 text-right text-[#0A0A0A]">{fmt(totals.total)}</td>
-                    <td className="px-3 py-2.5 text-right text-[#8B9A7E] hidden md:table-cell">{fmt(totals.commission)}</td>
                     <td className="px-3 py-2.5" />
                     {hasFullAccess && <td />}
                   </tr>
@@ -634,139 +574,7 @@ export default function TransactionsPage() {
         </CardContent>
       </Card>
 
-      {/* ── Commission summary ──────────────────────────────────────────── */}
-      <Card className="mb-6 bg-gradient-to-br from-[#8B9A7E]/10 to-[#B0BFA4]/10 border-[#8B9A7E]/20">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium text-gray-600">
-            Commission Summary — Total Earnings Due
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-3xl font-bold text-[#0A0A0A]">{fmt(grandTotal)}</div>
-          <p className="text-xs text-gray-500 mt-1">{dateLabel}</p>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-3">
-        {payrollData.map(barber => {
-          const isExpanded = expandedBarber === barber.id;
-          return (
-            <Card key={barber.id} className="border-gray-200 hover:shadow-md transition-shadow">
-              <CardContent className="p-0">
-                <button type="button" className="w-full text-left p-5"
-                  onClick={() => setExpandedBarber(isExpanded ? null : barber.id)}>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-[#0A0A0A]">{barber.name}</h3>
-                        <span className="text-[10px] px-2 py-0.5 bg-[#8B9A7E]/10 text-[#8B9A7E] rounded-full font-medium">
-                          {barber.serviceCommRate}% svc
-                        </span>
-                        <span className="text-[10px] px-2 py-0.5 bg-purple-50 text-purple-600 rounded-full font-medium">
-                          {barber.productCommRate}% prod
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500 mt-0.5">
-                        {barber.completedServices} service{barber.completedServices !== 1 ? "s" : ""}
-                        {barber.serviceRevenue > 0 && ` · ${fmt(barber.serviceRevenue)} svc`}
-                        {barber.productRevenue > 0 && ` · ${fmt(barber.productRevenue)} prod`}
-                        {barber.tips > 0 && ` · ${fmt(barber.tips)} tips`}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-[#8B9A7E]">{fmt(barber.totalEarnings)}</div>
-                        <div className="text-[10px] text-gray-400 mt-0.5">total earnings</div>
-                      </div>
-                      {isExpanded ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
-                    </div>
-                  </div>
-                </button>
-
-                {isExpanded && (
-                  <div className="border-t border-gray-100 px-5 pb-5 pt-3 space-y-3">
-                    <div className="grid grid-cols-3 gap-3 text-xs">
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-gray-500">Service Revenue</p>
-                        <p className="text-lg font-bold mt-1">{fmt(barber.serviceRevenue)}</p>
-                        <p className="text-[10px] text-gray-400">{barber.completedServices} booking{barber.completedServices !== 1 ? "s" : ""}</p>
-                      </div>
-                      <div className="bg-[#8B9A7E]/10 rounded-lg p-3">
-                        <p className="text-gray-500">Service Commission</p>
-                        <p className="text-lg font-bold text-[#8B9A7E] mt-1">{fmt(barber.serviceCommission)}</p>
-                        <p className="text-[10px] text-gray-400">{barber.serviceCommRate}% of service rev</p>
-                      </div>
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-gray-500">Shop Keeps (Svc)</p>
-                        <p className="text-lg font-bold mt-1">{fmt(barber.serviceRevenue - barber.serviceCommission)}</p>
-                        <p className="text-[10px] text-gray-400">{100 - barber.serviceCommRate}% of service rev</p>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-3 text-xs">
-                      <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-gray-500">Product Revenue</p>
-                        <p className="text-lg font-bold mt-1">{fmt(barber.productRevenue)}</p>
-                        <p className="text-[10px] text-gray-400">products sold</p>
-                      </div>
-                      <div className="bg-purple-50 rounded-lg p-3">
-                        <p className="text-gray-500">Product Commission</p>
-                        <p className="text-lg font-bold text-purple-600 mt-1">{fmt(barber.productCommission)}</p>
-                        <p className="text-[10px] text-gray-400">{barber.productCommRate}% of product rev</p>
-                      </div>
-                      <div className="bg-blue-50 rounded-lg p-3">
-                        <p className="text-gray-500">Tips</p>
-                        <p className="text-lg font-bold text-blue-600 mt-1">{fmt(barber.tips)}</p>
-                        <p className="text-[10px] text-gray-400">100% to barber</p>
-                      </div>
-                    </div>
-                    <div className="bg-[#0A0A0A] rounded-lg p-3 flex items-center justify-between text-xs">
-                      <p className="text-gray-400">Total = service commission + product commission + tips</p>
-                      <p className="text-lg font-bold text-[#8B9A7E]">{fmt(barber.totalEarnings)}</p>
-                    </div>
-                    {barber.bookings.length > 0 ? (
-                      <div>
-                        <p className="text-xs font-medium text-gray-500 mb-2 uppercase tracking-wider">Completed Services</p>
-                        <div className="space-y-1 max-h-48 overflow-y-auto">
-                          {barber.bookings.slice().sort((a, b) => a.date.localeCompare(b.date)).map(b => {
-                            const svcComm = (b.price ?? 0) * barber.serviceCommRate / 100;
-                            const prodComm = (b.product_revenue ?? 0) * barber.productCommRate / 100;
-                            return (
-                              <div key={b.id} className="flex items-center justify-between bg-white border border-gray-100 rounded px-3 py-2 text-xs">
-                                <div>
-                                  <span className="font-medium">{b.client_name || "Walk-in"}</span>
-                                  <span className="text-gray-400 ml-2">{b.service_name}</span>
-                                </div>
-                                <div className="flex items-center gap-2 text-right flex-wrap justify-end">
-                                  <span className="text-gray-400">{b.date}</span>
-                                  <span className="font-semibold text-green-700">{fmt(b.price)}</span>
-                                  <span className="text-[#8B9A7E]">→ {fmt(svcComm)}</span>
-                                  {(b.product_revenue ?? 0) > 0 && (
-                                    <span className="text-purple-500">+{fmt(b.product_revenue)} prod → {fmt(prodComm)}</span>
-                                  )}
-                                  {(b.tip ?? 0) > 0 && <span className="text-blue-500">+{fmt(b.tip)} tip</span>}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-400 text-center py-2">No completed bookings in this period.</p>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })}
-        {payrollData.length === 0 && (
-          <Card className="border-dashed">
-            <CardContent className="p-8 text-center text-gray-500">No active barbers found.</CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* ── Dialogs ─────────────────────────────────────────────────────── */}
+      {/* Dialogs */}
       <AddBarberDialog open={dialogOpen} onOpenChange={setDialogOpen} />
       <PastPayrollReports open={pastReportsOpen} onClose={() => setPastReportsOpen(false)} />
       <PlanGateModal open={!!gateResult} onClose={() => setGateResult(null)}
