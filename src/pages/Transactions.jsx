@@ -38,6 +38,12 @@ function fmt(n) {
   return "$" + (n ?? 0).toFixed(2);
 }
 
+function productDisplay(b) {
+  if (b.product_names) return b.product_names;
+  if ((b.product_revenue ?? 0) > 0) return fmt(b.product_revenue);
+  return null;
+}
+
 function PaymentMethodBadge({ method }) {
   if (!method) return <span className="text-gray-300 text-[10px]">—</span>;
   const map = {
@@ -249,6 +255,31 @@ export default function TransactionsPage() {
     [displayBookings]
   );
 
+  const filteredCashTransactions = useMemo(
+    () =>
+      [...cashTransactions]
+        .filter(tx => tx.date >= startDate && tx.date <= endDate)
+        .sort((a, b) => {
+          if (a.date !== b.date) return a.date.localeCompare(b.date);
+          return (a.time ?? "").localeCompare(b.time ?? "");
+        }),
+    [cashTransactions, startDate, endDate]
+  );
+
+  const cashRunningBalances = useMemo(() => {
+    const sorted = [...cashTransactions].sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      return (a.time ?? "").localeCompare(b.time ?? "");
+    });
+    const map = new Map();
+    let running = 0;
+    for (const tx of sorted) {
+      running += tx.type === "inflow" ? (tx.amount || 0) : -(tx.amount || 0);
+      map.set(tx.id, running);
+    }
+    return map;
+  }, [cashTransactions]);
+
   if (!hasFullAccess) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -296,9 +327,32 @@ export default function TransactionsPage() {
     setEndDate(todayStr());
   };
 
+  const exportCashLogCSV = () => {
+    const headers = ["Date", "Time", "Employee", "Type", "Amount", "Note", "Running Balance"];
+    const rows = filteredCashTransactions.map(tx => [
+      tx.date ?? "",
+      tx.time ?? "",
+      tx.barber_name ?? "",
+      tx.type === "inflow" ? "Deposit" : "Withdrawal",
+      (tx.amount || 0).toFixed(2),
+      tx.note ?? "",
+      (cashRunningBalances.get(tx.id) ?? 0).toFixed(2),
+    ]);
+    const csv = [headers, ...rows]
+      .map(row => row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `cash-log-${startDate}-to-${endDate}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const exportCSV = () => {
     const headers = [
-      "Transaction ID","Date","Time","Client","Service","Barber",
+      "Transaction ID","Date","Time","Client","Service","Product","Barber",
       "Payment Method","Price","Tax","Tip","Discount","Total","Status",
     ];
     const rows = displayBookings.map(b => [
@@ -307,6 +361,7 @@ export default function TransactionsPage() {
       b.start_time ?? "",
       b.client_name || "Walk-in",
       b.service_name ?? "",
+      productDisplay(b) ?? "",
       b.barber_name ?? "",
       b.payment_method ?? "",
       (b.price ?? 0).toFixed(2),
@@ -317,7 +372,7 @@ export default function TransactionsPage() {
       b.status ?? "",
     ]);
     const totalsRow = [
-      `Total (${displayBookings.length})`, "", "", "", "", "", "",
+      `Total (${displayBookings.length})`, "", "", "", "", "", "", "",
       displayTotals.price.toFixed(2),
       displayTotals.tax.toFixed(2),
       displayTotals.tip.toFixed(2),
@@ -344,6 +399,7 @@ export default function TransactionsPage() {
         <td>${b.date ?? ""} ${b.start_time ?? ""}</td>
         <td>${b.client_name || "Walk-in"}</td>
         <td>${b.service_name ?? ""}</td>
+        <td>${productDisplay(b) ?? "—"}</td>
         <td>${b.barber_name ?? ""}</td>
         <td>${b.payment_method ?? "—"}</td>
         <td>${fmt(b.price)}</td>
@@ -378,7 +434,7 @@ export default function TransactionsPage() {
   <table>
     <thead>
       <tr>
-        <th>ID</th><th>Date / Time</th><th>Client</th><th>Service</th><th>Barber</th>
+        <th>ID</th><th>Date / Time</th><th>Client</th><th>Service</th><th>Product</th><th>Barber</th>
         <th>Method</th><th>Price</th><th>Tax</th><th>Tip</th><th>Discount</th>
         <th>Total</th><th>Status</th>
       </tr>
@@ -386,7 +442,7 @@ export default function TransactionsPage() {
     <tbody>${rows}</tbody>
     <tfoot>
       <tr>
-        <td colspan="6">Total (${displayBookings.length} transaction${displayBookings.length !== 1 ? "s" : ""})</td>
+        <td colspan="7">Total (${displayBookings.length} transaction${displayBookings.length !== 1 ? "s" : ""})</td>
         <td>${fmt(displayTotals.price)}</td>
         <td>${fmt(displayTotals.tax)}</td>
         <td>${fmt(displayTotals.tip)}</td>
@@ -429,7 +485,7 @@ export default function TransactionsPage() {
             }`}
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            Refunds Only
+            Refunded Transactions
           </Button>
           <Button
             variant="outline"
@@ -442,7 +498,7 @@ export default function TransactionsPage() {
             }`}
           >
             <Banknote className="w-3.5 h-3.5" />
-            Cash Only
+            Cash Transactions
           </Button>
           <div className="flex items-center gap-1.5">
             <Calendar className="w-4 h-4 text-[#8B9A7E]" />
@@ -571,13 +627,14 @@ export default function TransactionsPage() {
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-xs min-w-[820px]">
+              <table className="w-full text-xs min-w-[940px]">
                 <thead>
                   <tr className="border-b border-gray-100 text-[9px] text-gray-400 uppercase tracking-wider bg-gray-50/60">
                     <th className="text-left px-3 py-2 font-semibold">ID</th>
                     <th className="text-left px-3 py-2 font-semibold">Date / Time</th>
                     <th className="text-left px-3 py-2 font-semibold">Client</th>
                     <th className="text-left px-3 py-2 font-semibold hidden sm:table-cell">Service</th>
+                    <th className="text-left px-3 py-2 font-semibold hidden sm:table-cell">Product</th>
                     <th className="text-left px-3 py-2 font-semibold hidden md:table-cell">Barber</th>
                     <th className="text-left px-3 py-2 font-semibold">Method</th>
                     <th className="text-right px-3 py-2 font-semibold hidden md:table-cell">Price</th>
@@ -599,6 +656,9 @@ export default function TransactionsPage() {
                       </td>
                       <td className="px-3 py-2.5 font-medium">{b.client_name || "Walk-in"}</td>
                       <td className="px-3 py-2.5 text-gray-500 hidden sm:table-cell">{b.service_name}</td>
+                      <td className="px-3 py-2.5 text-gray-500 hidden sm:table-cell">
+                        {productDisplay(b) ?? <span className="text-gray-300">—</span>}
+                      </td>
                       <td className="px-3 py-2.5 text-gray-500 hidden md:table-cell">{b.barber_name}</td>
                       <td className="px-3 py-2.5"><PaymentMethodBadge method={b.payment_method} /></td>
                       <td className="px-3 py-2.5 text-right hidden md:table-cell">{fmt(b.price)}</td>
@@ -633,7 +693,7 @@ export default function TransactionsPage() {
                 </tbody>
                 <tfoot>
                   <tr className="border-t-2 border-[#8B9A7E]/30 bg-[#8B9A7E]/5 font-semibold text-[11px]">
-                    <td className="px-3 py-2.5 text-gray-600" colSpan={6}>
+                    <td className="px-3 py-2.5 text-gray-600" colSpan={7}>
                       Total — {displayBookings.length} transaction{displayBookings.length !== 1 ? "s" : ""}
                     </td>
                     <td className="px-3 py-2.5 text-right hidden md:table-cell">{fmt(displayTotals.price)}</td>
@@ -645,6 +705,72 @@ export default function TransactionsPage() {
                     {hasFullAccess && <td />}
                   </tr>
                 </tfoot>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Cash Drawer Log */}
+      <Card className="mt-6">
+        <CardHeader className="pb-2 pt-4 px-4">
+          <CardTitle className="text-sm font-medium flex items-center gap-2 flex-wrap">
+            Cash Drawer Log
+            <span className="text-[11px] text-gray-400 font-normal">{dateLabel}</span>
+            <span className="ml-auto text-[11px] text-gray-400 font-normal">
+              {filteredCashTransactions.length} entr{filteredCashTransactions.length !== 1 ? "ies" : "y"}
+            </span>
+            <Button variant="outline" size="sm" onClick={exportCashLogCSV}
+              className="h-7 text-[10px] border-[#8B9A7E] text-[#8B9A7E] hover:bg-[#8B9A7E]/10 gap-1">
+              <Download className="w-3 h-3" />Export
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {filteredCashTransactions.length === 0 ? (
+            <p className="text-center text-gray-400 text-sm py-8">No cash drawer activity in this period.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs min-w-[620px]">
+                <thead>
+                  <tr className="border-b border-gray-100 text-[9px] text-gray-400 uppercase tracking-wider bg-gray-50/60">
+                    <th className="text-left px-3 py-2 font-semibold">Date / Time</th>
+                    <th className="text-left px-3 py-2 font-semibold">Employee</th>
+                    <th className="text-left px-3 py-2 font-semibold">Type</th>
+                    <th className="text-right px-3 py-2 font-semibold">Amount</th>
+                    <th className="text-left px-3 py-2 font-semibold">Note</th>
+                    <th className="text-right px-3 py-2 font-semibold">Running Balance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredCashTransactions.map(tx => {
+                    const isInflow = tx.type === "inflow";
+                    const balance = cashRunningBalances.get(tx.id) ?? 0;
+                    return (
+                      <tr key={tx.id} className="border-b border-gray-50 hover:bg-[#8B9A7E]/5 transition-colors">
+                        <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap">
+                          <div className="text-[10px]">{tx.date}</div>
+                          <div className="text-[9px] text-gray-400">{tx.time ?? "—"}</div>
+                        </td>
+                        <td className="px-3 py-2.5 font-medium">{tx.barber_name || "—"}</td>
+                        <td className="px-3 py-2.5">
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                            isInflow ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"
+                          }`}>
+                            {isInflow ? "Deposit" : "Withdrawal"}
+                          </span>
+                        </td>
+                        <td className={`px-3 py-2.5 text-right font-semibold ${isInflow ? "text-green-700" : "text-amber-700"}`}>
+                          {isInflow ? "+" : "−"}{fmt(tx.amount)}
+                        </td>
+                        <td className="px-3 py-2.5 text-gray-400 text-[10px] max-w-[200px] truncate">
+                          {tx.note || <span className="text-gray-300">—</span>}
+                        </td>
+                        <td className="px-3 py-2.5 text-right font-mono text-[10px] text-gray-600">{fmt(balance)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
               </table>
             </div>
           )}
