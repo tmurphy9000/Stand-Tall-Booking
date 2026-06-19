@@ -8,6 +8,7 @@ import { entities } from "@/api/entities";
 import { functions } from "@/api/functions";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { useShop } from "@/lib/shopContext";
@@ -33,6 +34,7 @@ function QuickCheckoutContent() {
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [processing, setProcessing] = useState(false);
 
+  const navigate = useNavigate();
   const stripe = useStripe();
   const elements = useElements();
   const queryClient = useQueryClient();
@@ -152,7 +154,7 @@ function QuickCheckoutContent() {
           shopId,
         });
 
-        const { error } = await stripe.confirmCardPayment(clientSecret, {
+        const { error, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
           payment_method: {
             card: elements.getElement(CardElement),
           },
@@ -164,7 +166,13 @@ function QuickCheckoutContent() {
           return;
         }
 
-        await completeCheckout();
+        if (paymentIntent?.status !== "succeeded") {
+          toast.error("Payment was not completed. Please try again.");
+          setProcessing(false);
+          return;
+        }
+
+        await completeCheckout(paymentIntent.id);
       } catch (error) {
         toast.error("Payment failed: " + error.message);
         setProcessing(false);
@@ -174,9 +182,10 @@ function QuickCheckoutContent() {
     }
   };
 
-  const completeCheckout = async () => {
+  const completeCheckout = async (paymentIntentId = null) => {
     try {
-      // Record cash transactions for each barber
+      // Record cash drawer inflow per barber. Isolated so a failure here does not
+      // prevent the booking record from being created.
       if (paymentMethod === "cash") {
         const barberTotals = items.reduce((acc, item) => {
           if (!acc[item.barberId]) {
@@ -188,15 +197,19 @@ function QuickCheckoutContent() {
         }, {});
 
         for (const [barberId, data] of Object.entries(barberTotals)) {
-          await createCashTransactionMutation.mutateAsync({
-            type: "inflow",
-            amount: data.amount,
-            barber_id: barberId,
-            barber_name: data.name,
-            note: `Quick Checkout: ${clientName} - ${data.items.join(", ")}`,
-            date: new Date().toISOString().split('T')[0],
-            time: new Date().toTimeString().slice(0, 5),
-          });
+          try {
+            await createCashTransactionMutation.mutateAsync({
+              type: "inflow",
+              amount: data.amount,
+              barber_id: barberId,
+              barber_name: data.name,
+              note: `Quick Checkout: ${clientName} - ${data.items.join(", ")}`,
+              date: new Date().toISOString().split('T')[0],
+              time: new Date().toTimeString().slice(0, 5),
+            });
+          } catch (cashErr) {
+            console.error("[QuickCheckout] cash transaction failed:", cashErr);
+          }
         }
       }
 
@@ -215,16 +228,55 @@ function QuickCheckoutContent() {
         }
       }
 
+      // Create a booking record so this transaction appears on the Transactions page.
+      // Quick Checkout has no pre-existing booking to update, so we insert one.
+      const serviceItems = items.filter(i => i.type === "service");
+      const productItems = items.filter(i => i.type === "product");
+      const primaryItem = serviceItems[0] ?? items[0];
+      const serviceRevenue = serviceItems.reduce((s, i) => s + (i.price || 0), 0);
+      const productRevenue = productItems.reduce((s, i) => s + (i.price || 0), 0);
+      const now = new Date();
+
+      await entities.Booking.create({
+        status: "completed",
+        completed_at: now.toISOString(),
+        date: now.toISOString().split("T")[0],
+        start_time: now.toTimeString().slice(0, 5),
+        client_name: clientName || "Walk-in",
+        barber_id: primaryItem?.barberId || null,
+        barber_name: primaryItem?.barberName || null,
+        service_name: items.map(i => i.name).join(", "),
+        service_id: primaryItem?.serviceId || null,
+        price: serviceRevenue,
+        product_revenue: productRevenue,
+        final_price: total,
+        tip: tip || 0,
+        tax_amount: taxAmount,
+        discount_amount: discountAmount,
+        payment_method: paymentMethod,
+        ...(paymentIntentId ? { stripe_payment_intent_id: paymentIntentId } : {}),
+      });
+
+      // Invalidate both the generic "bookings" cache and the Transactions page cache
+      // so navigating to either page shows fresh data immediately.
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["transactions-bookings"] });
+
       toast.success("Checkout completed successfully");
-      
-      // Reset form
-      setClientName("");
-      setItems([]);
-      setDiscount({ type: "none", value: 0 });
-      setTip(0);
-      setPaymentMethod("cash");
-      setProcessing(false);
+
+      // Reset form and navigate back to Calendar after a brief delay
+      // so the user can read the success toast before the page changes.
+      setTimeout(() => {
+        setClientName("");
+        setItems([]);
+        setDiscount({ type: "none", value: 0 });
+        setTip(0);
+        setPaymentMethod("cash");
+        setProcessing(false);
+        navigate("/Calendar");
+      }, 1200);
     } catch (error) {
+      console.error("[QuickCheckout] completeCheckout failed:", error);
       toast.error("Checkout failed: " + error.message);
       setProcessing(false);
     }

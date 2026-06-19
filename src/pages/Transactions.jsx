@@ -165,6 +165,7 @@ export default function TransactionsPage() {
   const [showCashIn, setShowCashIn] = useState(false);
   const [showWithdrawal, setShowWithdrawal] = useState(false);
   const [refundsOnly, setRefundsOnly] = useState(false);
+  const [cashOnly, setCashOnly] = useState(false);
   const { checkBarberLimit } = usePlanGate();
   const queryClient = useQueryClient();
 
@@ -226,12 +227,12 @@ export default function TransactionsPage() {
     [bookings]
   );
 
-  const displayBookings = useMemo(
-    () => refundsOnly
-      ? sortedBookings.filter(b => b.status === "refunded" || b.status === "partially_refunded")
-      : sortedBookings,
-    [sortedBookings, refundsOnly]
-  );
+  const displayBookings = useMemo(() => {
+    let result = sortedBookings;
+    if (refundsOnly) result = result.filter(b => b.status === "refunded" || b.status === "partially_refunded");
+    if (cashOnly)    result = result.filter(b => b.payment_method === "cash");
+    return result;
+  }, [sortedBookings, refundsOnly, cashOnly]);
 
   const displayTotals = useMemo(
     () =>
@@ -430,6 +431,19 @@ export default function TransactionsPage() {
             <RotateCcw className="w-3.5 h-3.5" />
             Refunds Only
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCashOnly(v => !v)}
+            className={`text-xs h-8 gap-1.5 transition-colors ${
+              cashOnly
+                ? "bg-green-700 border-green-700 text-white hover:bg-green-800 hover:border-green-800"
+                : "border-green-300 text-green-700 hover:bg-green-50"
+            }`}
+          >
+            <Banknote className="w-3.5 h-3.5" />
+            Cash Only
+          </Button>
           <div className="flex items-center gap-1.5">
             <Calendar className="w-4 h-4 text-[#8B9A7E]" />
             <div>
@@ -529,6 +543,16 @@ export default function TransactionsPage() {
                 {displayBookings.length} refund{displayBookings.length !== 1 ? "s" : ""} totaling -{fmt(displayTotals.total)}
               </span>
             )}
+            {cashOnly && !refundsOnly && (
+              <span className="text-[11px] font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+                {displayBookings.length} cash payment{displayBookings.length !== 1 ? "s" : ""} totaling {fmt(displayTotals.total)}
+              </span>
+            )}
+            {cashOnly && refundsOnly && (
+              <span className="text-[11px] font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                {displayBookings.length} cash refund{displayBookings.length !== 1 ? "s" : ""} totaling -{fmt(displayTotals.total)}
+              </span>
+            )}
             <span className="ml-auto text-[11px] text-gray-400 font-normal">
               {displayBookings.length} result{displayBookings.length !== 1 ? "s" : ""}
             </span>
@@ -537,7 +561,13 @@ export default function TransactionsPage() {
         <CardContent className="p-0">
           {displayBookings.length === 0 ? (
             <p className="text-center text-gray-400 text-sm py-10">
-              {refundsOnly ? "No refunds in this period." : "No transactions in this period."}
+              {refundsOnly && cashOnly
+                ? "No cash refunds in this period."
+                : refundsOnly
+                  ? "No refunds in this period."
+                  : cashOnly
+                    ? "No cash transactions in this period."
+                    : "No transactions in this period."}
             </p>
           ) : (
             <div className="overflow-x-auto">
