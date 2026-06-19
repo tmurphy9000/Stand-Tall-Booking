@@ -164,6 +164,7 @@ export default function TransactionsPage() {
   const [refundBooking, setRefundBooking] = useState(null);
   const [showCashIn, setShowCashIn] = useState(false);
   const [showWithdrawal, setShowWithdrawal] = useState(false);
+  const [refundsOnly, setRefundsOnly] = useState(false);
   const { checkBarberLimit } = usePlanGate();
   const queryClient = useQueryClient();
 
@@ -225,6 +226,28 @@ export default function TransactionsPage() {
     [bookings]
   );
 
+  const displayBookings = useMemo(
+    () => refundsOnly
+      ? sortedBookings.filter(b => b.status === "refunded" || b.status === "partially_refunded")
+      : sortedBookings,
+    [sortedBookings, refundsOnly]
+  );
+
+  const displayTotals = useMemo(
+    () =>
+      displayBookings.reduce(
+        (acc, b) => ({
+          price:    acc.price    + (b.price ?? 0),
+          tax:      acc.tax      + (b.tax_amount ?? 0),
+          tip:      acc.tip      + (b.tip ?? 0),
+          discount: acc.discount + (b.discount_amount ?? 0),
+          total:    acc.total    + (b.final_price ?? b.price ?? 0),
+        }),
+        { price: 0, tax: 0, tip: 0, discount: 0, total: 0 }
+      ),
+    [displayBookings]
+  );
+
   if (!hasFullAccess) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -277,7 +300,7 @@ export default function TransactionsPage() {
       "Transaction ID","Date","Time","Client","Service","Barber",
       "Payment Method","Price","Tax","Tip","Discount","Total","Status",
     ];
-    const rows = sortedBookings.map(b => [
+    const rows = displayBookings.map(b => [
       txId(b),
       b.date ?? "",
       b.start_time ?? "",
@@ -293,12 +316,12 @@ export default function TransactionsPage() {
       b.status ?? "",
     ]);
     const totalsRow = [
-      `Total (${sortedBookings.length})`, "", "", "", "", "", "",
-      totals.price.toFixed(2),
-      totals.tax.toFixed(2),
-      totals.tip.toFixed(2),
-      totals.discount.toFixed(2),
-      totals.total.toFixed(2),
+      `Total (${displayBookings.length})`, "", "", "", "", "", "",
+      displayTotals.price.toFixed(2),
+      displayTotals.tax.toFixed(2),
+      displayTotals.tip.toFixed(2),
+      displayTotals.discount.toFixed(2),
+      displayTotals.total.toFixed(2),
       "",
     ];
     const csv = [headers, ...rows, totalsRow]
@@ -314,7 +337,7 @@ export default function TransactionsPage() {
   };
 
   const handlePrint = () => {
-    const rows = sortedBookings.map(b => `
+    const rows = displayBookings.map(b => `
       <tr>
         <td>${txId(b)}</td>
         <td>${b.date ?? ""} ${b.start_time ?? ""}</td>
@@ -362,12 +385,12 @@ export default function TransactionsPage() {
     <tbody>${rows}</tbody>
     <tfoot>
       <tr>
-        <td colspan="6">Total (${sortedBookings.length} transaction${sortedBookings.length !== 1 ? "s" : ""})</td>
-        <td>${fmt(totals.price)}</td>
-        <td>${fmt(totals.tax)}</td>
-        <td>${fmt(totals.tip)}</td>
-        <td>${fmt(totals.discount)}</td>
-        <td>${fmt(totals.total)}</td>
+        <td colspan="6">Total (${displayBookings.length} transaction${displayBookings.length !== 1 ? "s" : ""})</td>
+        <td>${fmt(displayTotals.price)}</td>
+        <td>${fmt(displayTotals.tax)}</td>
+        <td>${fmt(displayTotals.tip)}</td>
+        <td>${fmt(displayTotals.discount)}</td>
+        <td>${fmt(displayTotals.total)}</td>
         <td></td>
       </tr>
     </tfoot>
@@ -394,6 +417,19 @@ export default function TransactionsPage() {
               {label}
             </Button>
           ))}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setRefundsOnly(v => !v)}
+            className={`text-xs h-8 gap-1.5 transition-colors ${
+              refundsOnly
+                ? "bg-red-600 border-red-600 text-white hover:bg-red-700 hover:border-red-700"
+                : "border-red-300 text-red-500 hover:bg-red-50"
+            }`}
+          >
+            <RotateCcw className="w-3.5 h-3.5" />
+            Refunds Only
+          </Button>
           <div className="flex items-center gap-1.5">
             <Calendar className="w-4 h-4 text-[#8B9A7E]" />
             <div>
@@ -485,17 +521,24 @@ export default function TransactionsPage() {
       {/* Transaction table */}
       <Card>
         <CardHeader className="pb-2 pt-4 px-4">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2 flex-wrap">
             Transactions
             <span className="text-[11px] text-gray-400 font-normal">{dateLabel}</span>
+            {refundsOnly && (
+              <span className="text-[11px] font-medium text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
+                {displayBookings.length} refund{displayBookings.length !== 1 ? "s" : ""} totaling -{fmt(displayTotals.total)}
+              </span>
+            )}
             <span className="ml-auto text-[11px] text-gray-400 font-normal">
-              {sortedBookings.length} result{sortedBookings.length !== 1 ? "s" : ""}
+              {displayBookings.length} result{displayBookings.length !== 1 ? "s" : ""}
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          {sortedBookings.length === 0 ? (
-            <p className="text-center text-gray-400 text-sm py-10">No transactions in this period.</p>
+          {displayBookings.length === 0 ? (
+            <p className="text-center text-gray-400 text-sm py-10">
+              {refundsOnly ? "No refunds in this period." : "No transactions in this period."}
+            </p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs min-w-[820px]">
@@ -517,7 +560,7 @@ export default function TransactionsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {sortedBookings.map(b => (
+                  {displayBookings.map(b => (
                     <tr key={b.id} className="border-b border-gray-50 hover:bg-[#8B9A7E]/5 transition-colors">
                       <td className="px-3 py-2.5 font-mono text-[10px] text-gray-400">{txId(b)}</td>
                       <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap">
@@ -561,13 +604,13 @@ export default function TransactionsPage() {
                 <tfoot>
                   <tr className="border-t-2 border-[#8B9A7E]/30 bg-[#8B9A7E]/5 font-semibold text-[11px]">
                     <td className="px-3 py-2.5 text-gray-600" colSpan={6}>
-                      Total — {sortedBookings.length} transaction{sortedBookings.length !== 1 ? "s" : ""}
+                      Total — {displayBookings.length} transaction{displayBookings.length !== 1 ? "s" : ""}
                     </td>
-                    <td className="px-3 py-2.5 text-right hidden md:table-cell">{fmt(totals.price)}</td>
-                    <td className="px-3 py-2.5 text-right text-gray-600">{totals.tax > 0 ? fmt(totals.tax) : "—"}</td>
-                    <td className="px-3 py-2.5 text-right text-blue-700">{totals.tip > 0 ? fmt(totals.tip) : "—"}</td>
-                    <td className="px-3 py-2.5 text-right text-red-600">{totals.discount > 0 ? <span>-{fmt(totals.discount)}</span> : "—"}</td>
-                    <td className="px-3 py-2.5 text-right text-[#0A0A0A]">{fmt(totals.total)}</td>
+                    <td className="px-3 py-2.5 text-right hidden md:table-cell">{fmt(displayTotals.price)}</td>
+                    <td className="px-3 py-2.5 text-right text-gray-600">{displayTotals.tax > 0 ? fmt(displayTotals.tax) : "—"}</td>
+                    <td className="px-3 py-2.5 text-right text-blue-700">{displayTotals.tip > 0 ? fmt(displayTotals.tip) : "—"}</td>
+                    <td className="px-3 py-2.5 text-right text-red-600">{displayTotals.discount > 0 ? <span>-{fmt(displayTotals.discount)}</span> : "—"}</td>
+                    <td className="px-3 py-2.5 text-right text-[#0A0A0A]">{fmt(displayTotals.total)}</td>
                     <td className="px-3 py-2.5" />
                     {hasFullAccess && <td />}
                   </tr>
