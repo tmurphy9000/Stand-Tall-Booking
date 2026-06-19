@@ -150,6 +150,7 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
 
       await entities.Booking.update(booking.id, {
         status: "completed",
+        completed_at: new Date().toISOString(),
         final_price: total,
         tip: parseFloat(tip) || 0,
         product_revenue: productRevenue,

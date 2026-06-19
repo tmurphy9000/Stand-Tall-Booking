@@ -175,11 +175,15 @@ export default function TransactionsPage() {
   const { data: bookings = [], isLoading: bookingsLoading } = useQuery({
     queryKey: ["transactions-bookings", startDate, endDate],
     queryFn: async () => {
-      const [completed, refunded] = await Promise.all([
-        entities.Booking.filter({ status: "completed" }),
-        entities.Booking.filter({ status: "refunded" }),
-      ]);
-      return [...completed, ...refunded].filter(b => b.date >= startDate && b.date <= endDate);
+      const all = await entities.Booking.filter({ status: { $in: ["completed", "refunded"] } });
+      return all.filter(b => {
+        // Use the local calendar date of when the checkout actually happened.
+        // Fall back to the appointment date for bookings predating this field.
+        const checkDate = b.completed_at
+          ? format(new Date(b.completed_at), "yyyy-MM-dd")
+          : b.date;
+        return checkDate >= startDate && checkDate <= endDate;
+      });
     },
   });
 
