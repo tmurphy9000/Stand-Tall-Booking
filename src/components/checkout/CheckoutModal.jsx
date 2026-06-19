@@ -340,25 +340,30 @@ function CheckoutContent({
 
         // Step 3: create the PaymentIntent on the server
         const chargeAmount = Math.max(50, Math.round(Math.max(0, total) * 100));
+        console.log("[Checkout] Step 3 — invoking createStripePayment, amount (cents):", chargeAmount, "shopId:", shopId);
         const { data, error: fnError } = await functions.invoke("createStripePayment", {
           amount: chargeAmount,
           description: `Checkout: ${booking.client_name}`,
           metadata: { booking_id: booking.id },
           shopId,
         });
+        console.log("[Checkout] Step 3 response — full data:", JSON.stringify(data), "fnError:", fnError);
 
         if (fnError || !data?.clientSecret) {
+          console.error("[Checkout] Step 3 failed — no clientSecret. data:", data, "fnError:", fnError);
           setCardError(data?.error || "Could not create payment. Please try again.");
           setProcessing(false);
           return;
         }
 
         // Step 4: confirm the payment
+        console.log("[Checkout] Step 4 — calling stripe.confirmPayment, clientSecret prefix:", data.clientSecret?.slice(0, 30), "pm.id:", pm.id);
         const { error: confirmError, paymentIntent } = await stripe.confirmPayment({
           clientSecret: data.clientSecret,
           confirmParams: { payment_method: pm.id },
           redirect: 'if_required',
         });
+        console.log("[Checkout] Step 4 response — full paymentIntent:", JSON.stringify(paymentIntent), "confirmError:", confirmError);
 
         if (confirmError) {
           setCardError(friendlyCardError(confirmError));
@@ -367,11 +372,13 @@ function CheckoutContent({
         }
 
         if (paymentIntent?.status !== "succeeded") {
+          console.error("[Checkout] Step 4 status not succeeded — status:", paymentIntent?.status, "id:", paymentIntent?.id);
           setCardError("Payment was not completed. Please try again.");
           setProcessing(false);
           return;
         }
 
+        console.log("[Checkout] Payment succeeded — paymentIntent.id:", paymentIntent.id, "saving to booking:", booking.id);
         await handleCheckout(paymentIntent.id);
       } catch (err) {
         setCardError("Payment failed. Please try again or use a different method.");

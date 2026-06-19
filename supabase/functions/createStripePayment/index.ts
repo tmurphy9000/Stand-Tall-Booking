@@ -27,6 +27,7 @@ Deno.serve(async (req) => {
     console.error("[createStripePayment] missing STRIPE_SECRET_KEY");
     return json({ error: "Server configuration error: missing STRIPE_SECRET_KEY" }, 500);
   }
+  console.log("[createStripePayment] STRIPE_SECRET_KEY present, prefix:", secretKey.slice(0, 12));
 
   let body: {
     amount: number;
@@ -76,11 +77,12 @@ Deno.serve(async (req) => {
         description: description ?? "Stand Tall Barbershop",
         metadata: metadata ?? {},
       };
+      console.log("[createStripePayment] Terminal path — params:", JSON.stringify(piParams), "stripeAccount:", stripeAccountId);
       const paymentIntent = await stripe.paymentIntents.create(piParams, {
         stripeAccount: stripeAccountId,
       });
-      console.log("[createStripePayment] Terminal PI:", paymentIntent.id);
-      return json({ clientSecret: paymentIntent.client_secret });
+      console.log("[createStripePayment] Terminal PI — id:", paymentIntent.id, "status:", paymentIntent.status, "livemode:", paymentIntent.livemode);
+      return json({ clientSecret: paymentIntent.client_secret, paymentIntentId: paymentIntent.id });
     }
 
     // Online / manual card — destination charge so funds flow to connected account
@@ -96,9 +98,10 @@ Deno.serve(async (req) => {
       piParams.transfer_data = { destination: stripeAccountId };
     }
 
+    console.log("[createStripePayment] calling stripe.paymentIntents.create with params:", JSON.stringify(piParams));
     const paymentIntent = await stripe.paymentIntents.create(piParams);
-    console.log("[createStripePayment] created PaymentIntent:", paymentIntent.id);
-    return json({ clientSecret: paymentIntent.client_secret });
+    console.log("[createStripePayment] Stripe raw response — id:", paymentIntent.id, "status:", paymentIntent.status, "client_secret prefix:", paymentIntent.client_secret?.slice(0, 30), "livemode:", paymentIntent.livemode, "amount:", paymentIntent.amount, "currency:", paymentIntent.currency);
+    return json({ clientSecret: paymentIntent.client_secret, paymentIntentId: paymentIntent.id });
   } catch (e) {
     console.error("[createStripePayment] Stripe error:", e);
     const message = e instanceof Error ? e.message : String(e);
