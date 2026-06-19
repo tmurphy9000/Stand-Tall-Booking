@@ -244,13 +244,14 @@ export default function TransactionsPage() {
     () =>
       displayBookings.reduce(
         (acc, b) => ({
-          price:    acc.price    + (b.price ?? 0),
-          tax:      acc.tax      + (b.tax_amount ?? 0),
-          tip:      acc.tip      + (b.tip ?? 0),
-          discount: acc.discount + (b.discount_amount ?? 0),
-          total:    acc.total    + (b.final_price ?? b.price ?? 0),
+          price:          acc.price          + (b.price ?? 0),
+          productRevenue: acc.productRevenue + (b.product_revenue ?? 0),
+          tax:            acc.tax            + (b.tax_amount ?? 0),
+          tip:            acc.tip            + (b.tip ?? 0),
+          discount:       acc.discount       + (b.discount_amount ?? 0),
+          total:          acc.total          + (b.final_price ?? b.price ?? 0),
         }),
-        { price: 0, tax: 0, tip: 0, discount: 0, total: 0 }
+        { price: 0, productRevenue: 0, tax: 0, tip: 0, discount: 0, total: 0 }
       ),
     [displayBookings]
   );
@@ -353,7 +354,7 @@ export default function TransactionsPage() {
   const exportCSV = () => {
     const headers = [
       "Transaction ID","Date","Time","Client","Service","Product","Barber",
-      "Payment Method","Price","Tax","Tip","Discount","Total","Status",
+      "Payment Method","Service Price","Product Price","Tax","Tip","Discount","Total","Status",
     ];
     const rows = displayBookings.map(b => [
       txId(b),
@@ -365,6 +366,7 @@ export default function TransactionsPage() {
       b.barber_name ?? "",
       b.payment_method ?? "",
       (b.price ?? 0).toFixed(2),
+      (b.product_revenue ?? 0).toFixed(2),
       (b.tax_amount ?? 0).toFixed(2),
       (b.tip ?? 0).toFixed(2),
       (b.discount_amount ?? 0).toFixed(2),
@@ -374,6 +376,7 @@ export default function TransactionsPage() {
     const totalsRow = [
       `Total (${displayBookings.length})`, "", "", "", "", "", "", "",
       displayTotals.price.toFixed(2),
+      displayTotals.productRevenue.toFixed(2),
       displayTotals.tax.toFixed(2),
       displayTotals.tip.toFixed(2),
       displayTotals.discount.toFixed(2),
@@ -403,6 +406,7 @@ export default function TransactionsPage() {
         <td>${b.barber_name ?? ""}</td>
         <td>${b.payment_method ?? "—"}</td>
         <td>${fmt(b.price)}</td>
+        <td>${(b.product_revenue ?? 0) > 0 ? fmt(b.product_revenue) : "—"}</td>
         <td>${fmt(b.tax_amount)}</td>
         <td>${fmt(b.tip)}</td>
         <td>${fmt(b.discount_amount)}</td>
@@ -435,7 +439,7 @@ export default function TransactionsPage() {
     <thead>
       <tr>
         <th>ID</th><th>Date / Time</th><th>Client</th><th>Service</th><th>Product</th><th>Barber</th>
-        <th>Method</th><th>Price</th><th>Tax</th><th>Tip</th><th>Discount</th>
+        <th>Method</th><th>Svc Price</th><th>Pdt Price</th><th>Tax</th><th>Tip</th><th>Discount</th>
         <th>Total</th><th>Status</th>
       </tr>
     </thead>
@@ -444,6 +448,7 @@ export default function TransactionsPage() {
       <tr>
         <td colspan="7">Total (${displayBookings.length} transaction${displayBookings.length !== 1 ? "s" : ""})</td>
         <td>${fmt(displayTotals.price)}</td>
+        <td>${displayTotals.productRevenue > 0 ? fmt(displayTotals.productRevenue) : "—"}</td>
         <td>${fmt(displayTotals.tax)}</td>
         <td>${fmt(displayTotals.tip)}</td>
         <td>${fmt(displayTotals.discount)}</td>
@@ -627,7 +632,7 @@ export default function TransactionsPage() {
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-xs min-w-[940px]">
+              <table className="w-full text-xs min-w-[1040px]">
                 <thead>
                   <tr className="border-b border-gray-100 text-[9px] text-gray-400 uppercase tracking-wider bg-gray-50/60">
                     <th className="text-left px-3 py-2 font-semibold">ID</th>
@@ -637,7 +642,8 @@ export default function TransactionsPage() {
                     <th className="text-left px-3 py-2 font-semibold hidden sm:table-cell">Product</th>
                     <th className="text-left px-3 py-2 font-semibold hidden md:table-cell">Barber</th>
                     <th className="text-left px-3 py-2 font-semibold">Method</th>
-                    <th className="text-right px-3 py-2 font-semibold hidden md:table-cell">Price</th>
+                    <th className="text-right px-3 py-2 font-semibold hidden md:table-cell">Svc Price</th>
+                    <th className="text-right px-3 py-2 font-semibold hidden md:table-cell">Pdt Price</th>
                     <th className="text-right px-3 py-2 font-semibold">Tax</th>
                     <th className="text-right px-3 py-2 font-semibold">Tip</th>
                     <th className="text-right px-3 py-2 font-semibold">Discount</th>
@@ -661,7 +667,12 @@ export default function TransactionsPage() {
                       </td>
                       <td className="px-3 py-2.5 text-gray-500 hidden md:table-cell">{b.barber_name}</td>
                       <td className="px-3 py-2.5"><PaymentMethodBadge method={b.payment_method} /></td>
-                      <td className="px-3 py-2.5 text-right hidden md:table-cell">{fmt(b.price)}</td>
+                      <td className="px-3 py-2.5 text-right hidden md:table-cell">
+                        {(b.price ?? 0) > 0 ? fmt(b.price) : <span className="text-gray-300">—</span>}
+                      </td>
+                      <td className="px-3 py-2.5 text-right hidden md:table-cell text-gray-500">
+                        {(b.product_revenue ?? 0) > 0 ? fmt(b.product_revenue) : <span className="text-gray-300">—</span>}
+                      </td>
                       <td className="px-3 py-2.5 text-right text-gray-500">
                         {(b.tax_amount ?? 0) > 0 ? fmt(b.tax_amount) : <span className="text-gray-300">—</span>}
                       </td>
@@ -696,7 +707,8 @@ export default function TransactionsPage() {
                     <td className="px-3 py-2.5 text-gray-600" colSpan={7}>
                       Total — {displayBookings.length} transaction{displayBookings.length !== 1 ? "s" : ""}
                     </td>
-                    <td className="px-3 py-2.5 text-right hidden md:table-cell">{fmt(displayTotals.price)}</td>
+                    <td className="px-3 py-2.5 text-right hidden md:table-cell">{displayTotals.price > 0 ? fmt(displayTotals.price) : "—"}</td>
+                    <td className="px-3 py-2.5 text-right hidden md:table-cell text-gray-500">{displayTotals.productRevenue > 0 ? fmt(displayTotals.productRevenue) : "—"}</td>
                     <td className="px-3 py-2.5 text-right text-gray-600">{displayTotals.tax > 0 ? fmt(displayTotals.tax) : "—"}</td>
                     <td className="px-3 py-2.5 text-right text-blue-700">{displayTotals.tip > 0 ? fmt(displayTotals.tip) : "—"}</td>
                     <td className="px-3 py-2.5 text-right text-red-600">{displayTotals.discount > 0 ? <span>-{fmt(displayTotals.discount)}</span> : "—"}</td>
@@ -731,7 +743,15 @@ export default function TransactionsPage() {
             <p className="text-center text-gray-400 text-sm py-8">No cash drawer activity in this period.</p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-xs min-w-[620px]">
+              <table className="w-full text-xs table-fixed">
+                <colgroup>
+                  <col className="w-24" />
+                  <col className="w-32" />
+                  <col className="w-24" />
+                  <col className="w-24" />
+                  <col />
+                  <col className="w-32" />
+                </colgroup>
                 <thead>
                   <tr className="border-b border-gray-100 text-[9px] text-gray-400 uppercase tracking-wider bg-gray-50/60">
                     <th className="text-left px-3 py-2 font-semibold">Date / Time</th>
@@ -748,11 +768,11 @@ export default function TransactionsPage() {
                     const balance = cashRunningBalances.get(tx.id) ?? 0;
                     return (
                       <tr key={tx.id} className="border-b border-gray-50 hover:bg-[#8B9A7E]/5 transition-colors">
-                        <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap">
+                        <td className="px-3 py-2.5 text-gray-500">
                           <div className="text-[10px]">{tx.date}</div>
                           <div className="text-[9px] text-gray-400">{tx.time ?? "—"}</div>
                         </td>
-                        <td className="px-3 py-2.5 font-medium">{tx.barber_name || "—"}</td>
+                        <td className="px-3 py-2.5 font-medium truncate">{tx.barber_name || "—"}</td>
                         <td className="px-3 py-2.5">
                           <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
                             isInflow ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"
@@ -763,8 +783,8 @@ export default function TransactionsPage() {
                         <td className={`px-3 py-2.5 text-right font-semibold ${isInflow ? "text-green-700" : "text-amber-700"}`}>
                           {isInflow ? "+" : "−"}{fmt(tx.amount)}
                         </td>
-                        <td className="px-3 py-2.5 text-gray-400 text-[10px] max-w-[200px] truncate">
-                          {tx.note || <span className="text-gray-300">—</span>}
+                        <td className="px-3 py-2.5 text-gray-400 text-[10px]">
+                          <div className="truncate">{tx.note || <span className="text-gray-300">—</span>}</div>
                         </td>
                         <td className="px-3 py-2.5 text-right font-mono text-[10px] text-gray-600">{fmt(balance)}</td>
                       </tr>
