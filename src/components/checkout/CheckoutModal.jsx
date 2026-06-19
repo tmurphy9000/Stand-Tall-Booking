@@ -153,6 +153,8 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
         final_price: total,
         tip: parseFloat(tip) || 0,
         product_revenue: productRevenue,
+        tax_amount: taxAmount,
+        discount_amount: discountAmount,
         payment_method: paymentMethod,
         ...(paymentIntentId ? { stripe_payment_intent_id: paymentIntentId } : {}),
       });
