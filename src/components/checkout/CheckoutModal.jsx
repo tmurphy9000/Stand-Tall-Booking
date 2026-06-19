@@ -366,6 +366,12 @@ function CheckoutContent({
           return;
         }
 
+        if (paymentIntent?.status !== "succeeded") {
+          setCardError("Payment was not completed. Please try again.");
+          setProcessing(false);
+          return;
+        }
+
         await handleCheckout(paymentIntent.id);
       } catch (err) {
         setCardError("Payment failed. Please try again or use a different method.");
