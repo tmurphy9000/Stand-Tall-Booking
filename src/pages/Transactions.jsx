@@ -632,69 +632,75 @@ export default function TransactionsPage() {
             </p>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-xs min-w-[1040px]">
+              <table className="w-full text-xs min-w-[860px]">
                 <thead>
                   <tr className="border-b border-gray-100 text-[9px] text-gray-400 uppercase tracking-wider bg-gray-50/60">
-                    <th className="text-left px-3 py-2 font-semibold">ID</th>
-                    <th className="text-left px-3 py-2 font-semibold">Date / Time</th>
-                    <th className="text-left px-3 py-2 font-semibold">Client</th>
-                    <th className="text-left px-3 py-2 font-semibold hidden sm:table-cell">Service</th>
-                    <th className="text-left px-3 py-2 font-semibold hidden sm:table-cell">Product</th>
-                    <th className="text-left px-3 py-2 font-semibold hidden md:table-cell">Barber</th>
-                    <th className="text-left px-3 py-2 font-semibold">Method</th>
-                    <th className="text-right px-3 py-2 font-semibold hidden md:table-cell">Svc Price</th>
-                    <th className="text-right px-3 py-2 font-semibold hidden md:table-cell">Pdt Price</th>
-                    <th className="text-right px-3 py-2 font-semibold">Tax</th>
-                    <th className="text-right px-3 py-2 font-semibold">Tip</th>
-                    <th className="text-right px-3 py-2 font-semibold">Discount</th>
-                    <th className="text-right px-3 py-2 font-semibold text-[#0A0A0A]">Total</th>
-                    <th className="text-left px-3 py-2 font-semibold">Status</th>
-                    {hasFullAccess && <th className="px-3 py-2" />}
+                    <th className="text-left px-2 py-1.5 font-semibold whitespace-nowrap">ID</th>
+                    <th className="text-left px-2 py-1.5 font-semibold whitespace-nowrap">Date / Time</th>
+                    <th className="text-left px-2 py-1.5 font-semibold">Client</th>
+                    <th className="text-left px-2 py-1.5 font-semibold hidden sm:table-cell">Service</th>
+                    <th className="text-left px-2 py-1.5 font-semibold hidden sm:table-cell">Product</th>
+                    <th className="text-left px-2 py-1.5 font-semibold hidden md:table-cell">Barber</th>
+                    <th className="text-left px-2 py-1.5 font-semibold whitespace-nowrap">Method</th>
+                    <th className="text-right px-1.5 py-1.5 font-semibold whitespace-nowrap hidden md:table-cell">Svc $</th>
+                    <th className="text-right px-1.5 py-1.5 font-semibold whitespace-nowrap hidden md:table-cell">Pdt $</th>
+                    <th className="text-right px-1.5 py-1.5 font-semibold whitespace-nowrap">Tax</th>
+                    <th className="text-right px-1.5 py-1.5 font-semibold whitespace-nowrap">Tip</th>
+                    <th className="text-right px-1.5 py-1.5 font-semibold whitespace-nowrap">Disc</th>
+                    <th className="text-right px-1.5 py-1.5 font-semibold whitespace-nowrap text-[#0A0A0A]">Total</th>
+                    <th className="text-left px-2 py-1.5 font-semibold whitespace-nowrap">Status</th>
+                    {hasFullAccess && <th className="px-1.5 py-1.5" />}
                   </tr>
                 </thead>
                 <tbody>
                   {displayBookings.map(b => (
                     <tr key={b.id} className="border-b border-gray-50 hover:bg-[#8B9A7E]/5 transition-colors">
-                      <td className="px-3 py-2.5 font-mono text-[10px] text-gray-400">{txId(b)}</td>
-                      <td className="px-3 py-2.5 text-gray-500 whitespace-nowrap">
+                      <td className="px-2 py-1.5 font-mono text-[9px] text-gray-400 whitespace-nowrap">{txId(b)}</td>
+                      <td className="px-2 py-1.5 text-gray-500 whitespace-nowrap">
                         <div className="text-[10px]">{b.date}</div>
                         <div className="text-[9px] text-gray-400">{b.start_time ?? "—"}</div>
                       </td>
-                      <td className="px-3 py-2.5 font-medium">{b.client_name || "Walk-in"}</td>
-                      <td className="px-3 py-2.5 text-gray-500 hidden sm:table-cell">{b.service_name}</td>
-                      <td className="px-3 py-2.5 text-gray-500 hidden sm:table-cell">
-                        {productDisplay(b) ?? <span className="text-gray-300">—</span>}
+                      <td className="px-2 py-1.5 font-medium max-w-[90px]">
+                        <div className="truncate">{b.client_name || "Walk-in"}</div>
                       </td>
-                      <td className="px-3 py-2.5 text-gray-500 hidden md:table-cell">{b.barber_name}</td>
-                      <td className="px-3 py-2.5"><PaymentMethodBadge method={b.payment_method} /></td>
-                      <td className="px-3 py-2.5 text-right hidden md:table-cell">
+                      <td className="px-2 py-1.5 text-gray-500 hidden sm:table-cell max-w-[110px]">
+                        <div className="truncate">{b.service_name ?? "—"}</div>
+                      </td>
+                      <td className="px-2 py-1.5 text-gray-500 hidden sm:table-cell max-w-[90px]">
+                        <div className="truncate">{productDisplay(b) ?? <span className="text-gray-300">—</span>}</div>
+                      </td>
+                      <td className="px-2 py-1.5 text-gray-500 hidden md:table-cell max-w-[80px]">
+                        <div className="truncate">{b.barber_name ?? "—"}</div>
+                      </td>
+                      <td className="px-2 py-1.5 whitespace-nowrap"><PaymentMethodBadge method={b.payment_method} /></td>
+                      <td className="px-1.5 py-1.5 text-right whitespace-nowrap hidden md:table-cell">
                         {(b.price ?? 0) > 0 ? fmt(b.price) : <span className="text-gray-300">—</span>}
                       </td>
-                      <td className="px-3 py-2.5 text-right hidden md:table-cell text-gray-500">
+                      <td className="px-1.5 py-1.5 text-right whitespace-nowrap hidden md:table-cell text-gray-500">
                         {(b.product_revenue ?? 0) > 0 ? fmt(b.product_revenue) : <span className="text-gray-300">—</span>}
                       </td>
-                      <td className="px-3 py-2.5 text-right text-gray-500">
+                      <td className="px-1.5 py-1.5 text-right whitespace-nowrap text-gray-500">
                         {(b.tax_amount ?? 0) > 0 ? fmt(b.tax_amount) : <span className="text-gray-300">—</span>}
                       </td>
-                      <td className="px-3 py-2.5 text-right text-blue-600">
+                      <td className="px-1.5 py-1.5 text-right whitespace-nowrap text-blue-600">
                         {(b.tip ?? 0) > 0 ? fmt(b.tip) : <span className="text-gray-300">—</span>}
                       </td>
-                      <td className="px-3 py-2.5 text-right text-red-500">
+                      <td className="px-1.5 py-1.5 text-right whitespace-nowrap text-red-500">
                         {(b.discount_amount ?? 0) > 0
                           ? <span>-{fmt(b.discount_amount)}</span>
                           : <span className="text-gray-300">—</span>}
                       </td>
-                      <td className="px-3 py-2.5 text-right font-semibold">
+                      <td className="px-1.5 py-1.5 text-right whitespace-nowrap font-semibold">
                         {fmt(b.final_price ?? b.price)}
                       </td>
-                      <td className="px-3 py-2.5"><StatusBadge status={b.status} /></td>
+                      <td className="px-2 py-1.5 whitespace-nowrap"><StatusBadge status={b.status} /></td>
                       {hasFullAccess && (
-                        <td className="px-3 py-2.5 text-right">
+                        <td className="px-1.5 py-1.5 text-right">
                           {b.stripe_payment_intent_id && b.status !== "refunded" && (
                             <Button variant="ghost" size="sm"
-                              className="h-7 text-[10px] text-red-500 hover:text-red-600 hover:bg-red-50 px-2"
+                              className="h-6 text-[9px] text-red-500 hover:text-red-600 hover:bg-red-50 px-1.5"
                               onClick={() => setRefundBooking(b)}>
-                              <RotateCcw className="w-3 h-3 mr-1" />Refund
+                              <RotateCcw className="w-2.5 h-2.5 mr-1" />Refund
                             </Button>
                           )}
                         </td>
@@ -703,17 +709,17 @@ export default function TransactionsPage() {
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr className="border-t-2 border-[#8B9A7E]/30 bg-[#8B9A7E]/5 font-semibold text-[11px]">
-                    <td className="px-3 py-2.5 text-gray-600" colSpan={7}>
+                  <tr className="border-t-2 border-[#8B9A7E]/30 bg-[#8B9A7E]/5 font-semibold text-[10px]">
+                    <td className="px-2 py-1.5 text-gray-600" colSpan={7}>
                       Total — {displayBookings.length} transaction{displayBookings.length !== 1 ? "s" : ""}
                     </td>
-                    <td className="px-3 py-2.5 text-right hidden md:table-cell">{displayTotals.price > 0 ? fmt(displayTotals.price) : "—"}</td>
-                    <td className="px-3 py-2.5 text-right hidden md:table-cell text-gray-500">{displayTotals.productRevenue > 0 ? fmt(displayTotals.productRevenue) : "—"}</td>
-                    <td className="px-3 py-2.5 text-right text-gray-600">{displayTotals.tax > 0 ? fmt(displayTotals.tax) : "—"}</td>
-                    <td className="px-3 py-2.5 text-right text-blue-700">{displayTotals.tip > 0 ? fmt(displayTotals.tip) : "—"}</td>
-                    <td className="px-3 py-2.5 text-right text-red-600">{displayTotals.discount > 0 ? <span>-{fmt(displayTotals.discount)}</span> : "—"}</td>
-                    <td className="px-3 py-2.5 text-right text-[#0A0A0A]">{fmt(displayTotals.total)}</td>
-                    <td className="px-3 py-2.5" />
+                    <td className="px-1.5 py-1.5 text-right whitespace-nowrap hidden md:table-cell">{displayTotals.price > 0 ? fmt(displayTotals.price) : "—"}</td>
+                    <td className="px-1.5 py-1.5 text-right whitespace-nowrap hidden md:table-cell text-gray-500">{displayTotals.productRevenue > 0 ? fmt(displayTotals.productRevenue) : "—"}</td>
+                    <td className="px-1.5 py-1.5 text-right whitespace-nowrap text-gray-600">{displayTotals.tax > 0 ? fmt(displayTotals.tax) : "—"}</td>
+                    <td className="px-1.5 py-1.5 text-right whitespace-nowrap text-blue-700">{displayTotals.tip > 0 ? fmt(displayTotals.tip) : "—"}</td>
+                    <td className="px-1.5 py-1.5 text-right whitespace-nowrap text-red-600">{displayTotals.discount > 0 ? <span>-{fmt(displayTotals.discount)}</span> : "—"}</td>
+                    <td className="px-1.5 py-1.5 text-right whitespace-nowrap text-[#0A0A0A]">{fmt(displayTotals.total)}</td>
+                    <td className="px-1.5 py-1.5" />
                     {hasFullAccess && <td />}
                   </tr>
                 </tfoot>
