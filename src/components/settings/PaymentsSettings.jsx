@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { useShop } from "@/lib/shopContext";
@@ -8,6 +8,17 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { CheckCircle, AlertCircle, ExternalLink, Loader2, MapPin, Tablet, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+
+const TERMINAL_BEHAVIOR_KEY = "stripe_terminal_behavior";
+
+function loadTerminalBehavior() {
+  try {
+    const s = localStorage.getItem(TERMINAL_BEHAVIOR_KEY);
+    return s ? JSON.parse(s) : { collect_tip_on_terminal: true, auto_print_receipt: false };
+  } catch {
+    return { collect_tip_on_terminal: true, auto_print_receipt: false };
+  }
+}
 
 export default function PaymentsSettings() {
   const { shopId, isLoading: shopLoading } = useShop();
@@ -31,6 +42,22 @@ export default function PaymentsSettings() {
   const [regCode, setRegCode] = useState('');
   const [regLabel, setRegLabel] = useState('');
   const [registerSaving, setRegisterSaving] = useState(false);
+
+  // Terminal SDK state
+  const terminalRef = useRef(null);
+  const [connectedReader, setConnectedReader] = useState(null);
+  const [connectingReaderId, setConnectingReaderId] = useState(null);
+
+  // Terminal behavior settings (persisted to localStorage)
+  const [terminalBehavior, setTerminalBehavior] = useState(loadTerminalBehavior);
+
+  const updateTerminalBehavior = (key, value) => {
+    setTerminalBehavior(prev => {
+      const next = { ...prev, [key]: value };
+      localStorage.setItem(TERMINAL_BEHAVIOR_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
 
   const loadShopData = async () => {
     if (!shopId) return;
@@ -191,6 +218,9 @@ export default function PaymentsSettings() {
 
   const deleteReader = async (readerId) => {
     if (!window.confirm("Remove this reader?")) return;
+    if (connectedReader?.id === readerId) {
+      await handleDisconnectReader();
+    }
     const { data, error } = await supabase.functions.invoke('stripe-delete-reader', {
       body: { shopId, readerId },
     });
@@ -202,6 +232,67 @@ export default function PaymentsSettings() {
     setReaders((prev) => prev.filter((r) => r.id !== readerId));
   };
 
+  // Lazily initialize the Stripe Terminal JS SDK on first use.
+  // The connection token edge function is called automatically whenever the SDK needs one.
+  const getTerminal = useCallback(async () => {
+    if (terminalRef.current) return terminalRef.current;
+    const { loadStripeTerminal } = await import('@stripe/terminal-js');
+    const StripeTerminal = await loadStripeTerminal();
+    terminalRef.current = StripeTerminal.create({
+      onFetchConnectionToken: async () => {
+        const { data, error } = await supabase.functions.invoke('stripe-terminal-connection-token', {
+          body: { shopId },
+        });
+        if (error || !data?.secret) throw new Error(error?.message || 'Connection token fetch failed');
+        return data.secret;
+      },
+      onUnexpectedReaderDisconnect: () => {
+        setConnectedReader(null);
+        toast.error('Card reader disconnected unexpectedly');
+      },
+    });
+    return terminalRef.current;
+  }, [shopId]);
+
+  const handleConnectReader = async (reader) => {
+    setConnectingReaderId(reader.id);
+    try {
+      const terminal = await getTerminal();
+      // Disconnect from any currently active reader first
+      if (connectedReader) {
+        await terminal.disconnectReader().catch(() => {});
+      }
+      // discoverReaders gives us the live SDK reader objects needed by connectReader
+      const { discoveredReaders, error: discoverError } = await terminal.discoverReaders({
+        simulated: false,
+        location: shop.stripe_terminal_location_id,
+      });
+      if (discoverError) throw new Error(discoverError.message);
+      const target = (discoveredReaders || []).find(r => r.id === reader.id);
+      if (!target) throw new Error('Reader not found or unavailable — check that it is online and at this location');
+      const { reader: connected, error: connectError } = await terminal.connectReader(target);
+      if (connectError) throw new Error(connectError.message);
+      setConnectedReader(connected);
+      toast.success(`Connected to ${connected.label || connected.id}`);
+    } catch (err) {
+      toast.error('Failed to connect: ' + (err.message || 'Unknown error'));
+    } finally {
+      setConnectingReaderId(null);
+    }
+  };
+
+  const handleDisconnectReader = async () => {
+    try {
+      if (terminalRef.current) {
+        await terminalRef.current.disconnectReader();
+      }
+      setConnectedReader(null);
+      toast.success('Reader disconnected');
+    } catch (err) {
+      toast.error('Failed to disconnect: ' + (err.message || 'Unknown error'));
+    }
+  };
+
   if (shopLoading || loadingShop) {
     return (
       <div className="flex items-center justify-center h-32">
@@ -210,11 +301,13 @@ export default function PaymentsSettings() {
     );
   }
 
-  const isConnected = !!shop?.stripe_account_id;
+  const isStripeConnected = !!shop?.stripe_account_id;
+  const hasTerminalLocation = !!shop?.stripe_terminal_location_id;
 
   return (
     <div className="space-y-8 max-w-lg">
-      {/* Stripe Connect section */}
+
+      {/* ── Stripe Connect ── */}
       <section className="space-y-3">
         <div>
           <h2 className="text-sm font-semibold">Stripe Connect</h2>
@@ -223,37 +316,29 @@ export default function PaymentsSettings() {
           </p>
         </div>
 
-        <div
-          className={`flex items-start gap-3 p-4 rounded-xl border ${
-            isConnected ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
-          }`}
-        >
-          {isConnected ? (
-            <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-          ) : (
-            <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
-          )}
+        <div className={`flex items-start gap-3 p-4 rounded-xl border ${
+          isStripeConnected ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
+        }`}>
+          {isStripeConnected
+            ? <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+            : <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium">
-              {isConnected ? "Stripe account connected" : "No Stripe account connected"}
+              {isStripeConnected ? "Stripe account connected" : "No Stripe account connected"}
             </p>
-            {isConnected ? (
-              <p className="text-xs text-gray-500 font-mono mt-0.5 truncate">
-                {shop.stripe_account_id}
-              </p>
+            {isStripeConnected ? (
+              <p className="text-xs text-gray-500 font-mono mt-0.5 truncate">{shop.stripe_account_id}</p>
             ) : (
               <p className="text-xs text-gray-500 mt-0.5">
                 Connect to enable card payments at checkout and online deposits.
               </p>
             )}
           </div>
-          {isConnected ? (
+          {isStripeConnected ? (
             <Button
-              variant="outline"
-              size="sm"
+              variant="outline" size="sm"
               className="text-xs h-8 text-red-600 border-red-200 hover:bg-red-50 flex-shrink-0"
-              onClick={disconnectStripe}
-              disabled={saving}
+              onClick={disconnectStripe} disabled={saving}
             >
               Disconnect
             </Button>
@@ -261,8 +346,7 @@ export default function PaymentsSettings() {
             <Button
               size="sm"
               className="text-xs h-8 bg-[#635BFF] hover:bg-[#4B44D8] text-white flex-shrink-0"
-              onClick={connectStripe}
-              disabled={connecting}
+              onClick={connectStripe} disabled={connecting}
             >
               {connecting
                 ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
@@ -272,15 +356,16 @@ export default function PaymentsSettings() {
           )}
         </div>
 
-        {!isConnected && (
+        {!isStripeConnected && (
           <p className="text-[11px] text-gray-400 leading-relaxed">
-            You'll be redirected to Stripe to authorize the connection. Your clients' card payments and online deposits will flow directly into your Stripe account.
+            You'll be redirected to Stripe to authorize the connection. Your clients' card payments and
+            online deposits will flow directly into your Stripe account.
           </p>
         )}
       </section>
 
-      {/* Deposit settings */}
-      {isConnected && (
+      {/* ── Deposits ── */}
+      {isStripeConnected && (
         <section className="space-y-3">
           <div>
             <h3 className="text-sm font-semibold">Deposits</h3>
@@ -308,17 +393,12 @@ export default function PaymentsSettings() {
                 <Label className="text-xs text-gray-500">Deposit percentage (%)</Label>
                 <div className="flex items-center gap-2">
                   <Input
-                    type="number"
-                    min="1"
-                    max="100"
-                    className="max-w-[120px]"
+                    type="number" min="1" max="100" className="max-w-[120px]"
                     value={depositConfig.deposit_percentage}
-                    onChange={(e) =>
-                      setDepositConfig((p) => ({
-                        ...p,
-                        deposit_percentage: Math.min(100, Math.max(1, parseInt(e.target.value) || 20)),
-                      }))
-                    }
+                    onChange={(e) => setDepositConfig((p) => ({
+                      ...p,
+                      deposit_percentage: Math.min(100, Math.max(1, parseInt(e.target.value) || 20)),
+                    }))}
                   />
                   <span className="text-sm text-gray-500">%</span>
                 </div>
@@ -330,16 +410,12 @@ export default function PaymentsSettings() {
               <div className="space-y-1">
                 <Label className="text-xs text-gray-500">Refund window (hours)</Label>
                 <Input
-                  type="number"
-                  min="0"
-                  className="max-w-[160px]"
+                  type="number" min="0" className="max-w-[160px]"
                   value={depositConfig.deposit_refund_hours}
-                  onChange={(e) =>
-                    setDepositConfig((p) => ({
-                      ...p,
-                      deposit_refund_hours: Math.max(0, parseInt(e.target.value) || 24),
-                    }))
-                  }
+                  onChange={(e) => setDepositConfig((p) => ({
+                    ...p,
+                    deposit_refund_hours: Math.max(0, parseInt(e.target.value) || 24),
+                  }))}
                 />
                 <p className="text-[10px] text-gray-400">
                   Refund if cancelled more than {depositConfig.deposit_refund_hours}h before appointment.
@@ -360,10 +436,8 @@ export default function PaymentsSettings() {
           )}
 
           <Button
-            size="sm"
-            className="h-8 bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white gap-1.5"
-            disabled={saving}
-            onClick={saveDepositSettings}
+            size="sm" className="h-8 bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white gap-1.5"
+            disabled={saving} onClick={saveDepositSettings}
           >
             {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             Save deposit settings
@@ -371,24 +445,27 @@ export default function PaymentsSettings() {
         </section>
       )}
 
-      {/* Card Readers */}
-      {isConnected && (
+      {/* ── Card Readers ── */}
+      {isStripeConnected && (
         <section className="space-y-3">
           <div>
             <h3 className="text-sm font-semibold">Card Readers</h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              Manage Stripe Terminal readers for in-person card payments.
+              Manage Stripe Terminal readers for in-person card payments. Connect a reader to take payments
+              from the checkout screen.
             </p>
           </div>
 
-          {/* Terminal location setup required */}
-          {!shop?.stripe_terminal_location_id ? (
+          {!hasTerminalLocation ? (
             <div className="flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <div>
                 <p className="text-sm font-medium text-amber-900">Terminal location required</p>
                 <p className="text-xs text-amber-700 mt-0.5">Set up a location before registering readers.</p>
               </div>
-              <Button size="sm" className="h-8 text-xs flex-shrink-0 gap-1.5" onClick={setupTerminalLocation} disabled={saving}>
+              <Button
+                size="sm" className="h-8 text-xs flex-shrink-0 gap-1.5"
+                onClick={setupTerminalLocation} disabled={saving}
+              >
                 {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                 Set up location
               </Button>
@@ -411,33 +488,62 @@ export default function PaymentsSettings() {
                 <p className="text-sm text-gray-400 py-1">No readers registered yet.</p>
               ) : (
                 <div className="space-y-2">
-                  {readers.map((reader) => (
-                    <div
-                      key={reader.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
-                    >
-                      <div className="flex items-center gap-3 min-w-0">
-                        <Tablet className="w-4 h-4 text-gray-500 flex-shrink-0" />
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{reader.label || reader.id}</p>
-                          <p className="text-xs text-gray-500 capitalize">
-                            {reader.device_type?.replace(/_/g, ' ')} ·{' '}
-                            <span className={reader.status === 'online' ? 'text-green-600' : 'text-gray-400'}>
-                              {reader.status}
-                            </span>
-                          </p>
+                  {readers.map((reader) => {
+                    const isReaderConnected = connectedReader?.id === reader.id;
+                    const isConnectingThis = connectingReaderId === reader.id;
+                    return (
+                      <div
+                        key={reader.id}
+                        className={`flex items-center justify-between p-3 rounded-lg border ${
+                          isReaderConnected ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Tablet className={`w-4 h-4 flex-shrink-0 ${isReaderConnected ? 'text-green-600' : 'text-gray-500'}`} />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{reader.label || reader.id}</p>
+                            <p className="text-xs capitalize">
+                              <span className="text-gray-500">{reader.device_type?.replace(/_/g, ' ')}</span>
+                              {' · '}
+                              <span className={reader.status === 'online' ? 'text-green-600' : 'text-gray-400'}>
+                                {reader.status}
+                              </span>
+                              {isReaderConnected && (
+                                <span className="text-green-600 font-medium"> · active</span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {isReaderConnected ? (
+                            <Button
+                              variant="outline" size="sm"
+                              className="h-7 text-xs text-red-600 border-red-200 hover:bg-red-50"
+                              onClick={handleDisconnectReader}
+                            >
+                              Disconnect
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline" size="sm" className="h-7 text-xs"
+                              onClick={() => handleConnectReader(reader)}
+                              disabled={isConnectingThis || !!connectingReaderId || reader.status !== 'online'}
+                            >
+                              {isConnectingThis && <Loader2 className="w-3 h-3 mr-1 animate-spin" />}
+                              Connect
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost" size="icon"
+                            className="h-7 w-7 text-gray-400 hover:text-red-600 hover:bg-red-50"
+                            onClick={() => deleteReader(reader.id)}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-gray-400 hover:text-red-600 hover:bg-red-50 flex-shrink-0"
-                        onClick={() => deleteReader(reader.id)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
@@ -478,9 +584,7 @@ export default function PaymentsSettings() {
                       Register
                     </Button>
                     <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-8"
+                      size="sm" variant="ghost" className="h-8"
                       onClick={() => { setShowRegisterForm(false); setRegCode(''); setRegLabel(''); }}
                     >
                       Cancel
@@ -489,9 +593,7 @@ export default function PaymentsSettings() {
                 </div>
               ) : (
                 <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-xs gap-1.5"
+                  size="sm" variant="outline" className="h-8 text-xs gap-1.5"
                   onClick={() => setShowRegisterForm(true)}
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -502,6 +604,45 @@ export default function PaymentsSettings() {
           )}
         </section>
       )}
+
+      {/* ── Terminal Behavior (merged from Hardware settings) ── */}
+      {isStripeConnected && hasTerminalLocation && (
+        <section className="space-y-3">
+          <div>
+            <h3 className="text-sm font-semibold">Terminal Behavior</h3>
+            <p className="text-xs text-gray-500 mt-0.5">
+              Configure how card readers behave during checkout.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+              <div>
+                <Label className="text-sm font-medium">Collect tip on terminal</Label>
+                <p className="text-xs text-gray-500">
+                  Show tip selection on the customer-facing reader screen.
+                </p>
+              </div>
+              <Switch
+                checked={terminalBehavior.collect_tip_on_terminal}
+                onCheckedChange={(v) => updateTerminalBehavior('collect_tip_on_terminal', v)}
+              />
+            </div>
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+              <div>
+                <Label className="text-sm font-medium">Auto-print receipt</Label>
+                <p className="text-xs text-gray-500">
+                  Automatically print a receipt after each completed payment.
+                </p>
+              </div>
+              <Switch
+                checked={terminalBehavior.auto_print_receipt}
+                onCheckedChange={(v) => updateTerminalBehavior('auto_print_receipt', v)}
+              />
+            </div>
+          </div>
+        </section>
+      )}
+
     </div>
   );
 }

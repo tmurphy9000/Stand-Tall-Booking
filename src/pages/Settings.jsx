@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff, Tag, Monitor, Cpu, CreditCard, Bell, BookOpen, Lock, Wallet, Tablet, ChevronRight } from "lucide-react";
+import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff, Tag, Monitor, CreditCard, Bell, BookOpen, Lock, Wallet, Tablet, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { cn } from "@/lib/utils";
@@ -24,7 +24,6 @@ import PayrollManager from "../components/settings/PayrollManager";
 import CallOffManager from "../components/settings/CallOffManager";
 import DiscountManager from "../components/settings/DiscountManager";
 import DisplaySettings from "../components/settings/DisplaySettings";
-import HardwareSettings from "../components/settings/HardwareSettings";
 import SubscriptionManager from "../components/settings/SubscriptionManager";
 import PaymentsSettings from "../components/settings/PaymentsSettings";
 import ClientNotificationsSettings from "../components/settings/ClientNotificationsSettings";
@@ -127,7 +126,6 @@ export default function SettingsPage() {
     { value: "shop", label: "Tax Rates", icon: Store },
     { value: "discounts", label: "Discounts", icon: Tag },
     { value: "display", label: "Display", icon: Monitor },
-    { value: "hardware", label: "Hardware", icon: Cpu },
     { value: "client_notifications", label: "Notifications", icon: Bell },
     { value: "booking_page", label: "Booking Page", icon: BookOpen },
     ...(hasFullAccess ? [{ value: "kiosk", label: "Kiosk", icon: Tablet }] : []),
@@ -358,7 +356,6 @@ export default function SettingsPage() {
         {activeTab === "discounts" && <DiscountManager />}
 
         {activeTab === "display" && <DisplaySettings />}
-        {activeTab === "hardware" && <HardwareSettings />}
         {activeTab === "client_notifications" && <ClientNotificationsSettings />}
         {activeTab === "booking_page" && <BookingPageSettings />}
         {hasFullAccess && activeTab === "kiosk" && <KioskSettings />}
