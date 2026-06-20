@@ -77,8 +77,7 @@ export default function SubscriptionManager() {
       {/* Core Features Table */}
       <div>
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Included in Your Plan</p>
-        <div className="border border-gray-200 rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="overflow-x-auto border border-gray-200 rounded-xl">
           <table className="w-full text-sm min-w-[400px]">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
@@ -101,15 +100,13 @@ export default function SubscriptionManager() {
               ))}
             </tbody>
           </table>
-          </div>
         </div>
       </div>
 
       {/* Add-On Features Table */}
       <div>
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Add-On Features</p>
-        <div className="border border-gray-200 rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="overflow-x-auto border border-gray-200 rounded-xl">
           <table className="w-full text-sm min-w-[480px]">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
@@ -136,7 +133,6 @@ export default function SubscriptionManager() {
               ))}
             </tbody>
           </table>
-          </div>
         </div>
         <p className="text-xs text-gray-400 mt-2">* Add-on pricing to be announced. Currently included at no extra charge.</p>
       </div>

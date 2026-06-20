@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff, Tag, Monitor, Cpu, CreditCard, Bell, BookOpen, Lock, Wallet, Tablet } from "lucide-react";
+import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff, Tag, Monitor, Cpu, CreditCard, Bell, BookOpen, Lock, Wallet, Tablet, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { cn } from "@/lib/utils";
@@ -40,6 +40,7 @@ export default function SettingsPage() {
   const [searchParams] = useSearchParams();
   const [showInviteForm, setShowInviteForm] = useState(false);
   const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "barbers");
+  const [mobileExpanded, setMobileExpanded] = useState(false);
   const [gateResult, setGateResult] = useState(null);
   const { checkBarberLimit } = usePlanGate();
   const [draftHours, setDraftHours] = useState(null);
@@ -154,40 +155,70 @@ export default function SettingsPage() {
 
   return (
     <div className="flex h-screen">
-      {/* Mobile: icon-only vertical sidebar */}
-      <div className="flex md:hidden w-14 flex-shrink-0 bg-[#0A0A0A] flex-col py-3 gap-0.5 px-1.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      {/* Mobile: collapsible sidebar — icon-only when collapsed, icon+label when expanded */}
+      <div className={cn(
+        "flex md:hidden flex-shrink-0 bg-[#0A0A0A] flex-col py-3 gap-0.5 overflow-y-auto overflow-x-hidden",
+        "[&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]",
+        "transition-[width] duration-200 ease-in-out",
+        mobileExpanded ? "w-36 px-2" : "w-14 px-1.5"
+      )}>
+        {/* Expand/collapse toggle */}
+        <button
+          onClick={() => setMobileExpanded(v => !v)}
+          className={cn(
+            "flex items-center rounded-xl mb-1 text-white/40 hover:text-white/60 hover:bg-white/10 transition-colors flex-shrink-0",
+            mobileExpanded ? "gap-2 px-2 py-2 w-full" : "h-9 w-11 mx-auto justify-center"
+          )}
+        >
+          <ChevronRight className={cn("w-4 h-4 flex-shrink-0 transition-transform duration-200", mobileExpanded && "rotate-180")} />
+          {mobileExpanded && <span className="text-[10px] font-semibold uppercase tracking-wider text-white/40 whitespace-nowrap">Settings</span>}
+        </button>
+
         {navItems.map(({ value, label, icon: Icon }) => (
           <button
             key={value}
             onClick={() => setActiveTab(value)}
-            title={label}
+            title={mobileExpanded ? undefined : label}
             className={cn(
-              "flex items-center justify-center h-11 w-11 mx-auto rounded-xl transition-all",
+              "flex items-center rounded-xl transition-colors flex-shrink-0",
+              mobileExpanded ? "gap-2.5 px-2 py-2.5 w-full" : "h-11 w-11 mx-auto justify-center",
               activeTab === value
                 ? "bg-[#8B9A7E] text-white"
                 : "text-white/50 hover:text-white hover:bg-white/10"
             )}
           >
-            <Icon className="w-5 h-5" />
+            <Icon className="w-[18px] h-[18px] flex-shrink-0" />
+            {mobileExpanded && <span className="text-xs font-medium whitespace-nowrap">{label}</span>}
           </button>
         ))}
+
         <div className="mt-1 pt-1 border-t border-white/10">
           {hasFullAccess && (
             <button
               onClick={inviteBarberClick}
-              title="Invite Barber"
-              className="flex items-center justify-center h-11 w-11 mx-auto rounded-xl transition-all text-white/50 hover:text-white hover:bg-white/10"
+              title={mobileExpanded ? undefined : "Invite Barber"}
+              className={cn(
+                "flex items-center rounded-xl transition-colors flex-shrink-0",
+                mobileExpanded ? "gap-2.5 px-2 py-2.5 w-full" : "h-11 w-11 mx-auto justify-center",
+                "text-white/50 hover:text-white hover:bg-white/10"
+              )}
             >
-              <Mail className="w-5 h-5" />
+              <Mail className="w-[18px] h-[18px] flex-shrink-0" />
+              {mobileExpanded && <span className="text-xs font-medium whitespace-nowrap">Invite Barber</span>}
             </button>
           )}
           {isSuperAdmin && (
             <Link
               to={createPageUrl("AdminDashboard")}
-              title="Admin"
-              className="flex items-center justify-center h-11 w-11 mx-auto rounded-xl transition-all text-white/30 hover:text-white/60 hover:bg-white/10"
+              title={mobileExpanded ? undefined : "Admin"}
+              className={cn(
+                "flex items-center rounded-xl transition-colors",
+                mobileExpanded ? "gap-2.5 px-2 py-2.5 w-full" : "h-11 w-11 mx-auto justify-center",
+                "text-white/30 hover:text-white/60 hover:bg-white/10"
+              )}
             >
-              <Lock className="w-5 h-5" />
+              <Lock className="w-[18px] h-[18px] flex-shrink-0" />
+              {mobileExpanded && <span className="text-xs font-medium whitespace-nowrap">Admin</span>}
             </Link>
           )}
         </div>
