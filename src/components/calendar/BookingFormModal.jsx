@@ -15,7 +15,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
     client_name: "",
     client_phone: "",
     client_email: "",
-    client_id: "",
+    client_id: null,
     barber_id: "",
     service_id: "",
     date: format(new Date(), "yyyy-MM-dd"),
@@ -130,7 +130,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
   const buildAndSave = async (finalClientId) => {
     const baseBooking = {
       ...form,
-      client_id: finalClientId,
+      client_id: finalClientId || null,
       barber_name: selectedBarber?.name || "",
       service_name: selectedService?.name || form.service_name || "Blocked",
       duration: serviceDuration,

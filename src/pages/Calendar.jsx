@@ -17,6 +17,7 @@ import { useViewMode } from "../lib/ViewModeContext";
 import { useAuth } from "../lib/AuthContext";
 import { usePermissions } from "../components/permissions/usePermissions";
 import { runGapMinimization } from "../lib/scheduleOptimizer";
+import { toast } from "sonner";
 
 const BARBERS_PER_GROUP = 5;
 
@@ -103,23 +104,32 @@ export default function CalendarPage() {
   };
 
   const handleCreateBookings = async (bookingsData) => {
+    console.log("[handleCreateBookings] called with:", bookingsData);
     // bookingsData may be one or many — always treat as array
     const items = Array.isArray(bookingsData) ? bookingsData : [bookingsData];
-    for (const item of items) {
-      await entities.Booking.create(item);
-    }
-    if (shopSettings.schedule_optimizer_enabled !== false) {
-      const seen = new Set();
+    try {
       for (const item of items) {
-        const key = `${item.barber_id}|${item.date}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-        await runGapMinimization(item.barber_id, item.date).catch(console.error);
+        console.log("[handleCreateBookings] inserting booking:", item);
+        await entities.Booking.create(item);
+        console.log("[handleCreateBookings] insert succeeded for:", item.client_name, item.service_name);
       }
+      if (shopSettings.schedule_optimizer_enabled !== false) {
+        const seen = new Set();
+        for (const item of items) {
+          const key = `${item.barber_id}|${item.date}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          await runGapMinimization(item.barber_id, item.date).catch(console.error);
+        }
+      }
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
+      setShowBookingForm(false);
+      setShowQuickBooking(false);
+      console.log("[handleCreateBookings] done, calendar refreshed");
+    } catch (err) {
+      console.error("[handleCreateBookings] failed:", err);
+      toast.error("Failed to create booking: " + (err.message || "Unknown error"));
     }
-    queryClient.invalidateQueries({ queryKey: ["bookings"] });
-    setShowBookingForm(false);
-    setShowQuickBooking(false);
   };
 
   const updateBooking = useMutation({

@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { UserX, Phone } from "lucide-react";
 import { format, addMinutes, parse } from "date-fns";
+import { toast } from "sonner";
 
 export default function QuickBookingModal({ open, onClose, onSave, barbers, services, prefill, bookings = [] }) {
   const [step, setStep] = useState("type"); // "type" or "service"
@@ -25,7 +26,8 @@ export default function QuickBookingModal({ open, onClose, onSave, barbers, serv
     return startTime < start || startTime >= end;
   };
 
-  const handleServiceSelect = (service) => {
+  const handleServiceSelect = async (service) => {
+    console.log("[QuickBookingModal] handleServiceSelect start", { service, bookingType, prefill });
     const selectedBarber = barbers.find(b => b.id === prefill.barber_id);
     const serviceDuration = selectedBarber?.service_durations?.[service.id] || service.duration || 30;
     const servicePrice = selectedBarber?.service_prices?.[service.id] ?? service.price;
@@ -35,7 +37,7 @@ export default function QuickBookingModal({ open, onClose, onSave, barbers, serv
       client_name: bookingType === "walk-in" ? "Walk-in" : "Call-in",
       client_phone: "",
       client_email: "",
-      client_id: "",
+      client_id: null, // null, not "" — empty string is rejected by the UUID column
       barber_id: prefill.barber_id,
       barber_name: selectedBarber?.name || "",
       service_id: service.id,
@@ -51,14 +53,23 @@ export default function QuickBookingModal({ open, onClose, onSave, barbers, serv
       visit_type: "NNR",
     };
 
+    console.log("[QuickBookingModal] booking object to save:", booking);
+
     if (isOutsideBookableHours(selectedBarber, prefill.start_time, prefill.date)) {
       setPendingBooking(booking);
       setShowOutsideHoursWarning(true);
       return;
     }
 
-    onSave(booking);
-    handleClose();
+    try {
+      console.log("[QuickBookingModal] calling onSave...");
+      await onSave(booking);
+      console.log("[QuickBookingModal] onSave succeeded");
+      handleClose();
+    } catch (err) {
+      console.error("[QuickBookingModal] booking creation failed:", err);
+      toast.error("Failed to create booking: " + (err.message || "Unknown error"));
+    }
   };
 
   const handleClose = () => {
@@ -83,7 +94,16 @@ export default function QuickBookingModal({ open, onClose, onSave, barbers, serv
           <Button variant="outline" onClick={() => { setShowOutsideHoursWarning(false); setPendingBooking(null); }}>
             No, Cancel
           </Button>
-          <Button className="bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white" onClick={() => { onSave(pendingBooking); handleClose(); }}>
+          <Button className="bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white" onClick={async () => {
+            try {
+              console.log("[QuickBookingModal] outside-hours Continue: saving", pendingBooking);
+              await onSave(pendingBooking);
+              handleClose();
+            } catch (err) {
+              console.error("[QuickBookingModal] outside-hours booking failed:", err);
+              toast.error("Failed to create booking: " + (err.message || "Unknown error"));
+            }
+          }}>
             Continue
           </Button>
         </DialogFooter>
