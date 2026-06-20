@@ -456,7 +456,7 @@ function JoinTab() {
     const { error } = await supabase.auth.signUp({
       email: accountEmail,
       password: accountPassword,
-      options: { data: { ...answers, plan: PLAN_KEYS[answers.plan] }, emailRedirectTo: "https://www.standtallbooking.com" },
+      options: { data: { ...answers, plan: PLAN_KEYS[answers.plan] }, emailRedirectTo: "https://www.standtallbooking.com/?new=1" },
     });
     setSubmitting(false);
     if (error) { setAccountError(error.message); return; }
@@ -830,6 +830,7 @@ function LoginTab({ setTab }) {
 // ─── ROOT ─────────────────────────────────────────────────────
 export default function HomePage() {
   const checkoutStatus = new URLSearchParams(window.location.search).get("checkout");
+  const isNewSignup = new URLSearchParams(window.location.search).get("new") === "1";
 
   // Detect Gusto OAuth callback: ?code= (or ?error=) + ?state= with saved CSRF state
   const _gustoSp = new URLSearchParams(window.location.search);
@@ -904,49 +905,46 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (isGustoCallback) return;
-    let started = false;
+    if (isGustoCallback || !isNewSignup) return;
 
-    async function startCheckout(session) {
-      if (started) return;
+    // Only reached when emailRedirectTo sends the user back with ?new=1 after
+    // email verification. By this point Supabase has already established the
+    // session from the URL hash, so getSession() returns it synchronously.
+    let started = false;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (started || !session?.user?.user_metadata?.plan) return;
       started = true;
       setRedirectingToCheckout(true);
-      try {
-        const { data: existingSub } = await supabase
-          .from("subscriptions")
-          .select("status")
-          .eq("user_id", session.user.id)
-          .single();
-
-        if (existingSub?.status === "active") {
-          window.location.href = "/Calendar";
-          return;
-        }
-
-        const { data, error } = await supabase.functions.invoke("stripe-subscription", {
-          body: { plan: session.user.user_metadata.plan, customerEmail: session.user.email },
+      supabase
+        .from("subscriptions")
+        .select("status")
+        .eq("user_id", session.user.id)
+        .single()
+        .then(({ data: existingSub }) => {
+          if (existingSub?.status === "active") {
+            window.location.href = "/Calendar";
+            return;
+          }
+          return supabase.functions.invoke("stripe-subscription", {
+            body: { plan: session.user.user_metadata.plan, customerEmail: session.user.email },
+          });
+        })
+        .then((result) => {
+          if (!result) return;
+          const { data, error } = result;
+          if (!error && data?.url) {
+            window.location.href = data.url;
+          } else {
+            console.error("[stripe-subscription] error:", error);
+            setCheckoutError("We couldn't start checkout. Please try again or contact support.");
+          }
+        })
+        .catch((err) => {
+          console.error("[stripe-subscription] threw:", err);
+          setCheckoutError("We couldn't start checkout. Please try again or contact support.");
         });
-        console.log("[stripe-subscription] response data:", data, "error:", error);
-        if (!error && data?.url) {
-          window.location.href = data.url;
-          return;
-        }
-        console.error("[stripe-subscription] checkout error:", error);
-        setCheckoutError("We couldn't start checkout. Please try again or contact support.");
-      } catch (err) {
-        console.error("[stripe-subscription] threw exception:", err);
-        setCheckoutError("We couldn't start checkout. Please try again or contact support.");
-      }
-    }
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("[auth] onAuthStateChange event:", event, "session:", session);
-      if (event === "SIGNED_IN" && session?.user?.user_metadata?.plan) {
-        startCheckout(session);
-      }
     });
-    return () => subscription.unsubscribe();
-  }, [checkoutStatus]);
+  }, []);
 
   if (isGustoCallback) {
     return (
