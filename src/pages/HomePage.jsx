@@ -18,22 +18,76 @@ const BORDER = "#1C1C1C";
 
 // ─── NAV ─────────────────────────────────────────────────────
 function Nav({ tab, setTab }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 700);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 700);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const navLinks = ["Home", "Pricing", "Terms", "Join Today", "Login"];
+
+  function handleNav(t) {
+    if (t === "Terms") { window.location.href = "/terms"; return; }
+    setTab(t);
+    setMenuOpen(false);
+  }
+
+  const btnBase = {
+    background: "transparent", border: "none", cursor: "pointer",
+    fontSize: "12px", fontWeight: 500, letterSpacing: "0.06em",
+    padding: "7px 16px", borderRadius: "2px", transition: "all 0.15s",
+  };
+
   return (
-    <nav style={{position:"sticky", top:0, zIndex:50, background:BG, borderBottom:`1px solid ${BORDER}`, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 2.5rem", height:"60px"}}>
+    <nav style={{position:"sticky", top:0, zIndex:50, background:BG, borderBottom:`1px solid ${BORDER}`}}>
       <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
-      <span style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"20px", letterSpacing:"0.08em", color:G}}>STAND TALL BOOKING</span>
-      <div style={{display:"flex", gap:"4px"}}>
-        {["Home","Pricing","Terms","Join Today","Login"].map(t => (
-          <button key={t} onClick={() => t === "Terms" ? window.location.href = '/terms' : setTab(t)} style={{
-            background: tab === t ? G : "transparent",
-            color: tab === t ? BG : MID,
-            border: "none", cursor:"pointer",
-            fontSize:"12px", fontWeight:500, letterSpacing:"0.06em",
-            padding:"7px 16px", borderRadius:"2px",
-            transition:"all 0.15s",
-          }}>{t.toUpperCase()}</button>
-        ))}
+      {/* Top bar */}
+      <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 1.5rem", height:"56px"}}>
+        <span style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"20px", letterSpacing:"0.08em", color:G}}>STAND TALL BOOKING</span>
+
+        {/* Desktop links */}
+        {!isMobile && (
+          <div style={{display:"flex", gap:"4px"}}>
+            {navLinks.map(t => (
+              <button key={t} onClick={() => handleNav(t)}
+                style={{...btnBase, background: tab === t ? G : "transparent", color: tab === t ? BG : MID}}>
+                {t.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Mobile hamburger */}
+        {isMobile && (
+          <button onClick={() => setMenuOpen(v => !v)}
+            style={{background:"transparent", border:"none", cursor:"pointer", padding:"8px", display:"flex", flexDirection:"column", gap:"5px"}}>
+            <span style={{display:"block", width:"22px", height:"2px", background: menuOpen ? G : MID, transition:"background 0.15s"}} />
+            <span style={{display:"block", width:"22px", height:"2px", background: menuOpen ? G : MID, transition:"background 0.15s"}} />
+            <span style={{display:"block", width:"22px", height:"2px", background: menuOpen ? G : MID, transition:"background 0.15s"}} />
+          </button>
+        )}
       </div>
+
+      {/* Mobile dropdown */}
+      {isMobile && menuOpen && (
+        <div style={{borderTop:`1px solid ${BORDER}`, background:BG, padding:"8px 0 12px"}}>
+          {navLinks.map(t => (
+            <button key={t} onClick={() => handleNav(t)} style={{
+              display:"block", width:"100%", textAlign:"left",
+              background: tab === t ? `${G}18` : "transparent",
+              color: tab === t ? G : MID,
+              border:"none", cursor:"pointer",
+              fontSize:"13px", fontWeight:500, letterSpacing:"0.06em",
+              padding:"12px 1.5rem",
+            }}>
+              {t.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      )}
     </nav>
   );
 }
@@ -776,11 +830,81 @@ function LoginTab({ setTab }) {
 // ─── ROOT ─────────────────────────────────────────────────────
 export default function HomePage() {
   const checkoutStatus = new URLSearchParams(window.location.search).get("checkout");
+
+  // Detect Gusto OAuth callback: ?code= (or ?error=) + ?state= with saved CSRF state
+  const _gustoSp = new URLSearchParams(window.location.search);
+  const _gustoCode = _gustoSp.get("code");
+  const _gustoState = _gustoSp.get("state");
+  const _gustoError = _gustoSp.get("error");
+  const _gustoErrorDesc = _gustoSp.get("error_description");
+  const isGustoCallback = !!(_gustoCode || _gustoError) && !!_gustoState && !!sessionStorage.getItem("gusto_oauth_state");
+
   const [tab, setTab] = useState(checkoutStatus ? "Join Today" : "Home");
   const [redirectingToCheckout, setRedirectingToCheckout] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
+  const [gustoStatus, setGustoStatus] = useState(isGustoCallback ? "loading" : null);
+  const [gustoCallbackError, setGustoCallbackError] = useState("");
 
   useEffect(() => {
+    if (!isGustoCallback) return;
+
+    if (_gustoError) {
+      sessionStorage.removeItem("gusto_oauth_state");
+      setGustoCallbackError(_gustoErrorDesc || "Gusto authorization was denied.");
+      setGustoStatus("error");
+      return;
+    }
+
+    const savedState = sessionStorage.getItem("gusto_oauth_state");
+    if (!savedState || savedState !== _gustoState) {
+      setGustoCallbackError("Invalid state parameter. Please try connecting again.");
+      setGustoStatus("error");
+      return;
+    }
+    sessionStorage.removeItem("gusto_oauth_state");
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session?.user) {
+        setGustoCallbackError("You must be logged in to connect a Gusto account.");
+        setGustoStatus("error");
+        return;
+      }
+
+      let shopId = session.user.user_metadata?.shop_id ?? null;
+      if (!shopId) {
+        const { data: barberRows } = await supabase
+          .from("barbers")
+          .select("shop_id")
+          .eq("user_id", session.user.id)
+          .limit(1);
+        shopId = barberRows?.[0]?.shop_id ?? null;
+      }
+
+      if (!shopId) {
+        setGustoCallbackError("No shop found for your account. Contact support.");
+        setGustoStatus("error");
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("gusto-oauth-callback", {
+        body: { code: _gustoCode, shopId },
+      });
+
+      if (error || data?.error) {
+        setGustoCallbackError(data?.error || error?.message || "Failed to connect Gusto account.");
+        setGustoStatus("error");
+        return;
+      }
+
+      setGustoStatus("success");
+      setTimeout(() => {
+        window.location.href = "/Settings?tab=payroll&gusto=connected";
+      }, 1500);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (isGustoCallback) return;
     let started = false;
 
     async function startCheckout(session) {
@@ -832,6 +956,47 @@ export default function HomePage() {
     });
     return () => subscription.unsubscribe();
   }, [checkoutStatus]);
+
+  if (isGustoCallback) {
+    return (
+      <div style={{ minHeight: "100vh", background: BG, color: FG, fontFamily: "'Inter', system-ui, sans-serif", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ textAlign: "center", maxWidth: "360px", padding: "2rem" }}>
+          {gustoStatus === "loading" && (
+            <>
+              <div style={{ width: "40px", height: "40px", border: `3px solid ${G}`, borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 1.5rem" }} />
+              <p style={{ fontSize: "16px", fontWeight: 600, color: FG }}>Connecting your Gusto account…</p>
+              <p style={{ fontSize: "13px", color: MID, marginTop: "0.5rem" }}>This usually takes a few seconds.</p>
+            </>
+          )}
+          {gustoStatus === "success" && (
+            <>
+              <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem" }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M5 13L9 17L19 7" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </div>
+              <p style={{ fontSize: "18px", fontWeight: 700, color: FG }}>Gusto connected!</p>
+              <p style={{ fontSize: "13px", color: MID, marginTop: "0.5rem" }}>Redirecting you back to settings…</p>
+            </>
+          )}
+          {gustoStatus === "error" && (
+            <>
+              <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "rgba(239,68,68,0.15)", border: "1px solid rgba(239,68,68,0.3)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem" }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" /></svg>
+              </div>
+              <p style={{ fontSize: "18px", fontWeight: 700, color: FG }}>Connection failed</p>
+              <p style={{ fontSize: "13px", color: "#ef4444", marginTop: "0.5rem" }}>{gustoCallbackError}</p>
+              <button
+                onClick={() => { window.location.href = "/Settings?tab=payroll"; }}
+                style={{ marginTop: "1.5rem", background: "transparent", border: `1px solid ${BORDER}`, color: FG, padding: "10px 24px", fontSize: "13px", borderRadius: "2px", cursor: "pointer", fontFamily: "inherit" }}
+              >
+                Back to Settings
+              </button>
+            </>
+          )}
+        </div>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   if (redirectingToCheckout) {
     return (
