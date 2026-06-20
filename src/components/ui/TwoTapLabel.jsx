@@ -21,6 +21,8 @@ function broadcast(activeId) {
  *   label           — the text to show in the tooltip
  *   disabled        — skip two-tap behavior entirely (e.g. when label is already visible)
  *   tooltipPosition — 'above' (default) or 'right' (for left-edge sidebars)
+ *   maxWidth        — viewport width (px) below which two-tap is active; above it fires immediately
+ *                     (use for buttons that show text labels at wider breakpoints, e.g. maxWidth={640})
  *   wrapperClassName — extra classes on the wrapper div
  */
 export default function TwoTapLabel({
@@ -28,6 +30,7 @@ export default function TwoTapLabel({
   children,
   disabled = false,
   tooltipPosition = 'above',
+  maxWidth,
   wrapperClassName,
 }) {
   const [visible, setVisible] = useState(false);
@@ -83,8 +86,9 @@ export default function TwoTapLabel({
       child.props.onPointerDown?.(e);
     },
     onClick: (e) => {
-      if (!isTouchRef.current) {
-        // Mouse / desktop: fire action immediately
+      const isIconOnly = !maxWidth || window.innerWidth < maxWidth;
+      if (!isTouchRef.current || !isIconOnly) {
+        // Mouse/desktop OR touch on wide viewport where label is visible: fire immediately
         child.props.onClick?.(e);
         return;
       }

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { entities } from "@/api/entities";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,47 @@ import { formatDistanceToNow } from "date-fns";
 export default function NotificationBell({ userEmail, userType = "staff", navStyle = false }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+
+  // Two-tap label state for icon-only (non-navStyle) bell on touch devices
+  const [tapLabel, setTapLabel] = useState(false);
+  const [tapLabelStyle, setTapLabelStyle] = useState(null);
+  const triggerRef = useRef(null);
+  const isTouchRef = useRef(false);
+
+  useEffect(() => {
+    if (!tapLabel) return;
+    const dismiss = (e) => {
+      if (triggerRef.current && !triggerRef.current.contains(e.target)) setTapLabel(false);
+    };
+    document.addEventListener('pointerdown', dismiss);
+    return () => document.removeEventListener('pointerdown', dismiss);
+  }, [tapLabel]);
+
+  const handleBellPointerDown = useCallback((e) => {
+    if (e.pointerType === 'touch') isTouchRef.current = true;
+  }, []);
+
+  const handleBellClick = useCallback((e) => {
+    if (!isTouchRef.current) return; // desktop: Radix opens popover normally
+    if (!tapLabel) {
+      // First touch tap: show label, block popover from opening
+      e.preventDefault();
+      if (triggerRef.current) {
+        const rect = triggerRef.current.getBoundingClientRect();
+        setTapLabelStyle({
+          position: 'fixed',
+          top: rect.top,
+          left: rect.left + rect.width / 2,
+          transform: 'translate(-50%, calc(-100% - 8px))',
+          zIndex: 300,
+        });
+      }
+      setTapLabel(true);
+    } else {
+      // Second touch tap: dismiss label, let Radix open popover
+      setTapLabel(false);
+    }
+  }, [tapLabel]);
 
   const { data: notifications = [] } = useQuery({
     queryKey: ["notifications", userEmail],
@@ -57,7 +98,24 @@ export default function NotificationBell({ userEmail, userType = "staff", navSty
             <span className="text-[9px] font-medium text-center leading-tight">Alerts</span>
           </button>
         ) : (
-          <Button variant="ghost" size="icon" className="relative">
+          <Button
+            ref={triggerRef}
+            variant="ghost"
+            size="icon"
+            className="relative"
+            onPointerDown={handleBellPointerDown}
+            onClick={handleBellClick}
+          >
+            {tapLabel && tapLabelStyle && (
+              <div
+                role="tooltip"
+                style={tapLabelStyle}
+                className="px-2.5 py-1 bg-gray-900 text-white text-xs font-medium rounded-md whitespace-nowrap shadow-lg pointer-events-none select-none"
+              >
+                Notifications
+                <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-[5px] border-transparent border-t-gray-900" />
+              </div>
+            )}
             <Bell className="w-5 h-5" />
             {unreadCount > 0 && (
               <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">

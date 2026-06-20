@@ -13,6 +13,7 @@ import ServiceManager from "./ServiceManager";
 import { toast } from "sonner";
 import { usePlanGate } from "@/hooks/usePlanGate";
 import PlanGateModal from "@/components/PlanGateModal";
+import TwoTapLabel from "@/components/ui/TwoTapLabel";
 
 const ALL_DAYS = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
 const DEFAULT_DAY = { start: "09:00", end: "18:00", off: false };
@@ -134,28 +135,36 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
               </div>
               <p className="text-[10px] text-gray-400 mb-2">Services: {b.service_commission_rate || 50}% • Products: {b.product_commission_rate || 10}%</p>
               <div className="flex items-center gap-1.5">
-                <Button aria-label="Hours" variant="outline" size="sm" className="h-9 w-8 sm:w-auto px-0 sm:px-3 sm:gap-1.5 text-xs" onClick={() => { setShowHours(b); setDraftHours(initHours(b.hours)); setDraftBlocked(b.bookings_blocked || false); }}>
-                  <Clock className="w-4 h-4" /><span className="hidden sm:inline ml-1">Hours</span>
-                </Button>
-                <Button aria-label="Services" variant="outline" size="sm" className="h-9 w-8 sm:w-auto px-0 sm:px-3 sm:gap-1.5 text-xs text-[#8B9A7E] border-[#8B9A7E]/30 hover:bg-[#8B9A7E]/10" onClick={() => setShowDurations(b)}>
-                  <Scissors className="w-4 h-4" /><span className="hidden sm:inline ml-1">Services</span>
-                </Button>
-                <Button aria-label="Edit" variant="outline" size="sm" className="h-9 w-8 sm:w-auto px-0 sm:px-3 sm:gap-1.5 text-xs" onClick={() => openEdit(b)}>
-                  <Pencil className="w-4 h-4" /><span className="hidden sm:inline ml-1">Edit</span>
-                </Button>
-                <Button
-                  aria-label="Delete"
-                  variant="outline"
-                  size="sm"
-                  className="h-9 w-8 sm:w-auto px-0 sm:px-3 sm:gap-1.5 text-xs text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
-                  onClick={() => {
-                    if (window.confirm(`Delete ${b.name}? This cannot be undone.`)) {
-                      onDelete(b.id);
-                    }
-                  }}
-                >
-                  <Trash2 className="w-4 h-4" /><span className="hidden sm:inline ml-1">Delete</span>
-                </Button>
+                <TwoTapLabel label="Hours" tooltipPosition="above" maxWidth={640}>
+                  <Button aria-label="Hours" variant="outline" size="sm" className="h-9 w-8 sm:w-auto px-0 sm:px-3 sm:gap-1.5 text-xs" onClick={() => { setShowHours(b); setDraftHours(initHours(b.hours)); setDraftBlocked(b.bookings_blocked || false); }}>
+                    <Clock className="w-4 h-4" /><span className="hidden sm:inline ml-1">Hours</span>
+                  </Button>
+                </TwoTapLabel>
+                <TwoTapLabel label="Services" tooltipPosition="above" maxWidth={640}>
+                  <Button aria-label="Services" variant="outline" size="sm" className="h-9 w-8 sm:w-auto px-0 sm:px-3 sm:gap-1.5 text-xs text-[#8B9A7E] border-[#8B9A7E]/30 hover:bg-[#8B9A7E]/10" onClick={() => setShowDurations(b)}>
+                    <Scissors className="w-4 h-4" /><span className="hidden sm:inline ml-1">Services</span>
+                  </Button>
+                </TwoTapLabel>
+                <TwoTapLabel label="Edit" tooltipPosition="above" maxWidth={640}>
+                  <Button aria-label="Edit" variant="outline" size="sm" className="h-9 w-8 sm:w-auto px-0 sm:px-3 sm:gap-1.5 text-xs" onClick={() => openEdit(b)}>
+                    <Pencil className="w-4 h-4" /><span className="hidden sm:inline ml-1">Edit</span>
+                  </Button>
+                </TwoTapLabel>
+                <TwoTapLabel label="Delete" tooltipPosition="above" maxWidth={640}>
+                  <Button
+                    aria-label="Delete"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 w-8 sm:w-auto px-0 sm:px-3 sm:gap-1.5 text-xs text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
+                    onClick={() => {
+                      if (window.confirm(`Delete ${b.name}? This cannot be undone.`)) {
+                        onDelete(b.id);
+                      }
+                    }}
+                  >
+                    <Trash2 className="w-4 h-4" /><span className="hidden sm:inline ml-1">Delete</span>
+                  </Button>
+                </TwoTapLabel>
               </div>
             </div>
             <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
