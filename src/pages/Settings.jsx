@@ -153,36 +153,47 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen">
-      {/* Mobile: horizontal scrollable tab bar */}
-      <div className="md:hidden bg-[#0A0A0A] flex-shrink-0 flex overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] py-2 px-2 gap-1">
+    <div className="flex h-screen">
+      {/* Mobile: icon-only vertical sidebar */}
+      <div className="flex md:hidden w-14 flex-shrink-0 bg-[#0A0A0A] flex-col py-3 gap-0.5 px-1.5 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {navItems.map(({ value, label, icon: Icon }) => (
           <button
             key={value}
             onClick={() => setActiveTab(value)}
+            title={label}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0",
+              "flex items-center justify-center h-11 w-11 mx-auto rounded-xl transition-all",
               activeTab === value
                 ? "bg-[#8B9A7E] text-white"
-                : "text-white/60 hover:text-white hover:bg-white/10"
+                : "text-white/50 hover:text-white hover:bg-white/10"
             )}
           >
-            <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-            {label}
+            <Icon className="w-5 h-5" />
           </button>
         ))}
-        {hasFullAccess && (
-          <button
-            onClick={inviteBarberClick}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 text-white/60 hover:text-white hover:bg-white/10"
-          >
-            <Mail className="w-3.5 h-3.5 flex-shrink-0" />
-            Invite
-          </button>
-        )}
+        <div className="mt-1 pt-1 border-t border-white/10">
+          {hasFullAccess && (
+            <button
+              onClick={inviteBarberClick}
+              title="Invite Barber"
+              className="flex items-center justify-center h-11 w-11 mx-auto rounded-xl transition-all text-white/50 hover:text-white hover:bg-white/10"
+            >
+              <Mail className="w-5 h-5" />
+            </button>
+          )}
+          {isSuperAdmin && (
+            <Link
+              to={createPageUrl("AdminDashboard")}
+              title="Admin"
+              className="flex items-center justify-center h-11 w-11 mx-auto rounded-xl transition-all text-white/30 hover:text-white/60 hover:bg-white/10"
+            >
+              <Lock className="w-5 h-5" />
+            </Link>
+          )}
+        </div>
       </div>
 
-      {/* Desktop: vertical sidebar */}
+      {/* Desktop: full text sidebar */}
       <div className="hidden md:flex w-36 flex-shrink-0 bg-[#0A0A0A] flex-col py-4 gap-1 px-2">
         <p className="text-[10px] text-white/40 uppercase font-semibold px-2 mb-2 tracking-wider">Settings</p>
         {navItems.map(({ value, label, icon: Icon }) => (
@@ -225,7 +236,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Content area */}
-      <div className="flex-1 overflow-auto p-4 md:p-6">
+      <div className="flex-1 overflow-auto p-3 md:p-6">
         {activeTab === "barbers" && (
           <BarberManager
             barbers={barbers}

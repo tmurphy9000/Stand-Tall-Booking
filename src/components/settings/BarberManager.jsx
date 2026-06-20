@@ -133,27 +133,28 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
                 )}
               </div>
               <p className="text-[10px] text-gray-400 mb-2">Services: {b.service_commission_rate || 50}% • Products: {b.product_commission_rate || 10}%</p>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button variant="outline" size="sm" className="h-9 px-3 gap-1.5 text-xs" onClick={() => { setShowHours(b); setDraftHours(initHours(b.hours)); setDraftBlocked(b.bookings_blocked || false); }}>
-                  <Clock className="w-4 h-4" /> Hours
+              <div className="flex items-center gap-1.5">
+                <Button aria-label="Hours" variant="outline" size="sm" className="h-9 w-8 sm:w-auto px-0 sm:px-3 sm:gap-1.5 text-xs" onClick={() => { setShowHours(b); setDraftHours(initHours(b.hours)); setDraftBlocked(b.bookings_blocked || false); }}>
+                  <Clock className="w-4 h-4" /><span className="hidden sm:inline ml-1">Hours</span>
                 </Button>
-                <Button variant="outline" size="sm" className="h-9 px-3 gap-1.5 text-xs text-[#8B9A7E] border-[#8B9A7E]/30 hover:bg-[#8B9A7E]/10" onClick={() => setShowDurations(b)}>
-                  <Scissors className="w-4 h-4" /> Services
+                <Button aria-label="Services" variant="outline" size="sm" className="h-9 w-8 sm:w-auto px-0 sm:px-3 sm:gap-1.5 text-xs text-[#8B9A7E] border-[#8B9A7E]/30 hover:bg-[#8B9A7E]/10" onClick={() => setShowDurations(b)}>
+                  <Scissors className="w-4 h-4" /><span className="hidden sm:inline ml-1">Services</span>
                 </Button>
-                <Button variant="outline" size="sm" className="h-9 px-3 gap-1.5 text-xs" onClick={() => openEdit(b)}>
-                  <Pencil className="w-4 h-4" /> Edit
+                <Button aria-label="Edit" variant="outline" size="sm" className="h-9 w-8 sm:w-auto px-0 sm:px-3 sm:gap-1.5 text-xs" onClick={() => openEdit(b)}>
+                  <Pencil className="w-4 h-4" /><span className="hidden sm:inline ml-1">Edit</span>
                 </Button>
                 <Button
+                  aria-label="Delete"
                   variant="outline"
                   size="sm"
-                  className="h-9 px-3 gap-1.5 text-xs text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
+                  className="h-9 w-8 sm:w-auto px-0 sm:px-3 sm:gap-1.5 text-xs text-red-500 border-red-200 hover:bg-red-50 hover:text-red-600"
                   onClick={() => {
                     if (window.confirm(`Delete ${b.name}? This cannot be undone.`)) {
                       onDelete(b.id);
                     }
                   }}
                 >
-                  <Trash2 className="w-4 h-4" /> Delete
+                  <Trash2 className="w-4 h-4" /><span className="hidden sm:inline ml-1">Delete</span>
                 </Button>
               </div>
             </div>
