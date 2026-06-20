@@ -939,15 +939,6 @@ export default function HomePage() {
       }
     }
 
-    // Already-authenticated users landing directly on the page (e.g. a stale tab).
-    if (!checkoutStatus) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user?.user_metadata?.plan) {
-          startCheckout(session);
-        }
-      });
-    }
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       console.log("[auth] onAuthStateChange event:", event, "session:", session);
       if (event === "SIGNED_IN" && session?.user?.user_metadata?.plan) {
