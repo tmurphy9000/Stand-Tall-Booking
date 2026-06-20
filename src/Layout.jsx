@@ -40,7 +40,7 @@ export default function Layout({ children, currentPageName }) {
           sidebarCollapsed ? "w-0 -translate-x-full" : "w-20"
         )}>
           {/* Logo */}
-          <Link to={createPageUrl("Calendar")} className={cn("flex flex-col items-center py-4 border-b border-white/10 flex-shrink-0", sidebarCollapsed && "opacity-0")}>
+          <Link to="/" className={cn("flex flex-col items-center py-4 border-b border-white/10 flex-shrink-0 opacity-100 hover:opacity-70 transition-opacity cursor-pointer", sidebarCollapsed && "opacity-0")}>
             <img
               src="https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6993eba91209ee0a1089f355/fd9cfe023_6f5fd5cc-8fc9-4041-9d87-c24e77a3bc58.png"
               alt="Stand Tall Barbershop"
