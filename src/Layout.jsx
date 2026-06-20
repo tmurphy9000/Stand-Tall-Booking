@@ -13,12 +13,12 @@ import { useAuth } from "./lib/AuthContext";
 
 const tabs = [
   { name: "Calendar", icon: Calendar, page: "Calendar" },
-  { name: "Quick Checkout", icon: DollarSign, page: "QuickCheckout" },
+  { name: "Quick Checkout", shortName: "Checkout", icon: DollarSign, page: "QuickCheckout" },
   { name: "Schedule", icon: Users, page: "StaffSchedule" },
   { name: "Clients", icon: Users, page: "ClientList" },
   { name: "Inventory", icon: Package, page: "Inventory" },
-  { name: "Personal Report", icon: BarChart3, page: "Reports" },
-  { name: "Shop Reporting", icon: BarChart3, page: "AdminReporting", requiresFullAccess: true },
+  { name: "Personal Report", shortName: "Report", icon: BarChart3, page: "Reports" },
+  { name: "Shop Reporting", shortName: "Shop", icon: BarChart3, page: "AdminReporting", requiresFullAccess: true },
   { name: "Transactions", icon: DollarSign, page: "Transactions", requiresFullAccess: true },
 ];
 
@@ -179,7 +179,7 @@ export default function Layout({ children, currentPageName }) {
       <div className={cn(
         "flex-1 flex flex-col transition-all duration-300",
         showTabs && (sidebarCollapsed ? "md:ml-0" : "md:ml-20"),
-        showTabs && "pb-16 md:pb-0"
+        showTabs && "pb-[calc(4rem+env(safe-area-inset-bottom,0px))] md:pb-0"
       )}>
         <main className="flex-1 overflow-auto">
           {children}
@@ -188,57 +188,61 @@ export default function Layout({ children, currentPageName }) {
 
       {/* Mobile Bottom Navigation */}
       {showTabs && (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0A] border-t border-white/10 md:hidden">
-          <div className="flex overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-            {tabs
-              .filter(tab => {
-                if (tab.requiresFullAccess && !hasFullAccess) return false;
-                if (tab.page === "StaffSchedule" && !currentBarber && !hasFullAccess) return false;
-                return true;
-              })
-              .map((tab) => {
-                const isActive = currentPageName === tab.page;
-                return (
-                  <Link
-                    key={tab.page}
-                    to={createPageUrl(tab.page)}
-                    className={cn(
-                      "flex flex-col items-center gap-0.5 py-2 px-3 min-w-[56px] flex-shrink-0 transition-all relative",
-                      isActive ? "text-[#8B9A7E]" : "text-[#FAFAF8]/60"
-                    )}
-                  >
-                    {isActive && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[#8B9A7E] rounded-b" />}
-                    <tab.icon className="w-5 h-5" />
-                    <span className="text-[9px] font-medium">{tab.name.split(' ')[0]}</span>
-                  </Link>
-                );
-              })}
-            {currentBarber?.permission_level === "service_provider" ? (
-              <button
-                onClick={() => toast.error("Access Denied", {
-                  description: "Contact your owner or manager.",
-                  icon: <Lock className="w-4 h-4" />
+        <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0A0A0A] border-t border-white/10 md:hidden pb-[env(safe-area-inset-bottom,0px)]">
+          <div className="relative">
+            <div className="flex overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              {tabs
+                .filter(tab => {
+                  if (tab.requiresFullAccess && !hasFullAccess) return false;
+                  if (tab.page === "StaffSchedule" && !currentBarber && !hasFullAccess) return false;
+                  return true;
+                })
+                .map((tab) => {
+                  const isActive = currentPageName === tab.page;
+                  return (
+                    <Link
+                      key={tab.page}
+                      to={createPageUrl(tab.page)}
+                      className={cn(
+                        "flex flex-col items-center gap-0.5 py-2 px-3 min-w-[56px] flex-shrink-0 transition-all relative",
+                        isActive ? "text-[#8B9A7E]" : "text-[#FAFAF8]/60"
+                      )}
+                    >
+                      {isActive && <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[#8B9A7E] rounded-b" />}
+                      <tab.icon className="w-5 h-5" />
+                      <span className="text-[9px] font-medium">{tab.shortName || tab.name}</span>
+                    </Link>
+                  );
                 })}
-                className="flex flex-col items-center gap-0.5 py-2 px-3 min-w-[56px] flex-shrink-0 text-[#FAFAF8]/60"
-              >
-                <Settings className="w-5 h-5" />
-                <span className="text-[9px] font-medium">Settings</span>
-              </button>
-            ) : (
-              <Link
-                to={createPageUrl(settingsTab.page)}
-                className={cn(
-                  "flex flex-col items-center gap-0.5 py-2 px-3 min-w-[56px] flex-shrink-0 transition-all relative",
-                  currentPageName === settingsTab.page ? "text-[#8B9A7E]" : "text-[#FAFAF8]/60"
-                )}
-              >
-                {currentPageName === settingsTab.page && (
-                  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[#8B9A7E] rounded-b" />
-                )}
-                <Settings className="w-5 h-5" />
-                <span className="text-[9px] font-medium">Settings</span>
-              </Link>
-            )}
+              {currentBarber?.permission_level === "service_provider" ? (
+                <button
+                  onClick={() => toast.error("Access Denied", {
+                    description: "Contact your owner or manager.",
+                    icon: <Lock className="w-4 h-4" />
+                  })}
+                  className="flex flex-col items-center gap-0.5 py-2 px-3 min-w-[56px] flex-shrink-0 text-[#FAFAF8]/60"
+                >
+                  <Settings className="w-5 h-5" />
+                  <span className="text-[9px] font-medium">Settings</span>
+                </button>
+              ) : (
+                <Link
+                  to={createPageUrl(settingsTab.page)}
+                  className={cn(
+                    "flex flex-col items-center gap-0.5 py-2 px-3 min-w-[56px] flex-shrink-0 transition-all relative",
+                    currentPageName === settingsTab.page ? "text-[#8B9A7E]" : "text-[#FAFAF8]/60"
+                  )}
+                >
+                  {currentPageName === settingsTab.page && (
+                    <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-[#8B9A7E] rounded-b" />
+                  )}
+                  <Settings className="w-5 h-5" />
+                  <span className="text-[9px] font-medium">Settings</span>
+                </Link>
+              )}
+            </div>
+            {/* Right-fade gradient hints that more items are reachable by scrolling */}
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0A0A0A] to-transparent pointer-events-none" aria-hidden="true" />
           </div>
         </nav>
       )}

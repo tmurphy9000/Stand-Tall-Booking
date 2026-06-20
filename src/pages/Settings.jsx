@@ -33,6 +33,7 @@ import KioskSettings from "../components/settings/KioskSettings";
 import { usePermissions } from "../components/permissions/usePermissions";
 import { usePlanGate } from "@/hooks/usePlanGate";
 import PlanGateModal from "@/components/PlanGateModal";
+import TwoTapLabel from "@/components/ui/TwoTapLabel";
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
@@ -175,51 +176,53 @@ export default function SettingsPage() {
         </button>
 
         {navItems.map(({ value, label, icon: Icon }) => (
-          <button
-            key={value}
-            onClick={() => setActiveTab(value)}
-            title={mobileExpanded ? undefined : label}
-            className={cn(
-              "flex items-center rounded-xl transition-colors flex-shrink-0",
-              mobileExpanded ? "gap-2.5 px-2 py-2.5 w-full" : "h-11 w-11 mx-auto justify-center",
-              activeTab === value
-                ? "bg-[#8B9A7E] text-white"
-                : "text-white/50 hover:text-white hover:bg-white/10"
-            )}
-          >
-            <Icon className="w-[18px] h-[18px] flex-shrink-0" />
-            {mobileExpanded && <span className="text-xs font-medium whitespace-nowrap">{label}</span>}
-          </button>
+          <TwoTapLabel key={value} label={label} disabled={mobileExpanded} tooltipPosition="right" wrapperClassName="w-full">
+            <button
+              onClick={() => setActiveTab(value)}
+              className={cn(
+                "flex items-center rounded-xl transition-colors flex-shrink-0",
+                mobileExpanded ? "gap-2.5 px-2 py-2.5 w-full" : "h-11 w-11 mx-auto justify-center",
+                activeTab === value
+                  ? "bg-[#8B9A7E] text-white"
+                  : "text-white/50 hover:text-white hover:bg-white/10"
+              )}
+            >
+              <Icon className="w-[18px] h-[18px] flex-shrink-0" />
+              {mobileExpanded && <span className="text-xs font-medium whitespace-nowrap">{label}</span>}
+            </button>
+          </TwoTapLabel>
         ))}
 
         <div className="mt-1 pt-1 border-t border-white/10">
           {hasFullAccess && (
-            <button
-              onClick={inviteBarberClick}
-              title={mobileExpanded ? undefined : "Invite Barber"}
-              className={cn(
-                "flex items-center rounded-xl transition-colors flex-shrink-0",
-                mobileExpanded ? "gap-2.5 px-2 py-2.5 w-full" : "h-11 w-11 mx-auto justify-center",
-                "text-white/50 hover:text-white hover:bg-white/10"
-              )}
-            >
-              <Mail className="w-[18px] h-[18px] flex-shrink-0" />
-              {mobileExpanded && <span className="text-xs font-medium whitespace-nowrap">Invite Barber</span>}
-            </button>
+            <TwoTapLabel label="Invite Barber" disabled={mobileExpanded} tooltipPosition="right" wrapperClassName="w-full">
+              <button
+                onClick={inviteBarberClick}
+                className={cn(
+                  "flex items-center rounded-xl transition-colors flex-shrink-0",
+                  mobileExpanded ? "gap-2.5 px-2 py-2.5 w-full" : "h-11 w-11 mx-auto justify-center",
+                  "text-white/50 hover:text-white hover:bg-white/10"
+                )}
+              >
+                <Mail className="w-[18px] h-[18px] flex-shrink-0" />
+                {mobileExpanded && <span className="text-xs font-medium whitespace-nowrap">Invite Barber</span>}
+              </button>
+            </TwoTapLabel>
           )}
           {isSuperAdmin && (
-            <Link
-              to={createPageUrl("AdminDashboard")}
-              title={mobileExpanded ? undefined : "Admin"}
-              className={cn(
-                "flex items-center rounded-xl transition-colors",
-                mobileExpanded ? "gap-2.5 px-2 py-2.5 w-full" : "h-11 w-11 mx-auto justify-center",
-                "text-white/30 hover:text-white/60 hover:bg-white/10"
-              )}
-            >
-              <Lock className="w-[18px] h-[18px] flex-shrink-0" />
-              {mobileExpanded && <span className="text-xs font-medium whitespace-nowrap">Admin</span>}
-            </Link>
+            <TwoTapLabel label="Admin" disabled={mobileExpanded} tooltipPosition="right" wrapperClassName="w-full">
+              <Link
+                to={createPageUrl("AdminDashboard")}
+                className={cn(
+                  "flex items-center rounded-xl transition-colors",
+                  mobileExpanded ? "gap-2.5 px-2 py-2.5 w-full" : "h-11 w-11 mx-auto justify-center",
+                  "text-white/30 hover:text-white/60 hover:bg-white/10"
+                )}
+              >
+                <Lock className="w-[18px] h-[18px] flex-shrink-0" />
+                {mobileExpanded && <span className="text-xs font-medium whitespace-nowrap">Admin</span>}
+              </Link>
+            </TwoTapLabel>
           )}
         </div>
       </div>
