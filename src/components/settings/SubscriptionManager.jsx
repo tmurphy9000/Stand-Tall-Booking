@@ -78,7 +78,8 @@ export default function SubscriptionManager() {
       <div>
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Included in Your Plan</p>
         <div className="border border-gray-200 rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[400px]">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Feature</th>
@@ -100,6 +101,7 @@ export default function SubscriptionManager() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       </div>
 
@@ -107,7 +109,8 @@ export default function SubscriptionManager() {
       <div>
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Add-On Features</p>
         <div className="border border-gray-200 rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[480px]">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Feature</th>
@@ -133,12 +136,13 @@ export default function SubscriptionManager() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
         <p className="text-xs text-gray-400 mt-2">* Add-on pricing to be announced. Currently included at no extra charge.</p>
       </div>
 
       {/* Cancel */}
-      <div className="border border-red-100 bg-red-50 rounded-xl p-4 flex items-center justify-between">
+      <div className="border border-red-100 bg-red-50 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-red-700">Cancel Subscription</p>
           <p className="text-xs text-red-500 mt-0.5">Your account will remain active until the end of the billing period.</p>

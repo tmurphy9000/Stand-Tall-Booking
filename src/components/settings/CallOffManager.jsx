@@ -123,10 +123,10 @@ export default function CallOffManager() {
                 <div className="flex items-center justify-between mb-2">
                   <Label className="text-xs text-gray-500">Select Appointments to Notify</Label>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="ghost" onClick={selectAll} className="h-6 text-xs">
+                    <Button size="sm" variant="ghost" onClick={selectAll} className="h-9 px-3 text-xs">
                       Select All
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={deselectAll} className="h-6 text-xs">
+                    <Button size="sm" variant="ghost" onClick={deselectAll} className="h-9 px-3 text-xs">
                       Deselect All
                     </Button>
                   </div>

@@ -133,7 +133,7 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
                 )}
               </div>
               <p className="text-[10px] text-gray-400 mb-2">Services: {b.service_commission_rate || 50}% • Products: {b.product_commission_rate || 10}%</p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Button variant="outline" size="sm" className="h-9 px-3 gap-1.5 text-xs" onClick={() => { setShowHours(b); setDraftHours(initHours(b.hours)); setDraftBlocked(b.bookings_blocked || false); }}>
                   <Clock className="w-4 h-4" /> Hours
                 </Button>
@@ -202,7 +202,7 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
               <Label className="text-xs text-gray-500">Name *</Label>
               <Input value={form.name} onChange={e => set("name", e.target.value)} />
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-gray-500">Email</Label>
                 <Input value={form.email} onChange={e => set("email", e.target.value)} />
@@ -212,7 +212,7 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
                 <Input value={form.phone} onChange={e => set("phone", e.target.value)} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label className="text-xs text-gray-500">Service Commission %</Label>
                 <Input type="number" value={form.service_commission_rate} onChange={e => set("service_commission_rate", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)} />

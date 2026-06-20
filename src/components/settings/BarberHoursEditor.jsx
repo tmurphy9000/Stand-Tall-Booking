@@ -65,25 +65,28 @@ export default function BarberHoursEditor({ hours = {}, onChange, bookingsBlocke
       {DAYS.map(day => {
         const dayHours = hours[day] || { start: "09:00", end: "18:00", off: false };
         return (
-          <div key={day} className="flex items-center gap-3 bg-gray-50 rounded-lg px-3 py-2">
-            <div className="w-20">
-              <span className="text-xs font-medium capitalize">{day.slice(0, 3)}</span>
+          <div key={day} className="bg-gray-50 rounded-lg px-3 py-2 space-y-2">
+            <div className="flex items-center gap-3">
+              <div className="w-20">
+                <span className="text-xs font-medium capitalize">{day.slice(0, 3)}</span>
+              </div>
+              <Switch
+                checked={dayHours.off !== true}
+                onCheckedChange={(isOn) => updateDay(day, "off", !isOn)}
+              />
+              {dayHours.off && <span className="text-xs text-gray-400">Off</span>}
             </div>
-            <Switch
-              checked={dayHours.off !== true}
-              onCheckedChange={(isOn) => updateDay(day, "off", !isOn)}
-            />
-            {!dayHours.off ? (
-              <>
+            {!dayHours.off && (
+              <div className="flex items-center gap-2">
                 <Select value={dayHours.start || "09:00"} onValueChange={v => updateDay(day, "start", v)}>
-                  <SelectTrigger className="w-24 h-7 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="flex-1 h-7 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {TIMES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
                 <span className="text-xs text-gray-400">to</span>
                 <Select value={dayHours.end || "18:00"} onValueChange={v => updateDay(day, "end", v)}>
-                  <SelectTrigger className="w-24 h-7 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectTrigger className="flex-1 h-7 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>
                     {TIMES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
@@ -91,9 +94,7 @@ export default function BarberHoursEditor({ hours = {}, onChange, bookingsBlocke
                 <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => copyHours(day)}>
                   <Copy className="w-3 h-3" />
                 </Button>
-              </>
-            ) : (
-              <span className="text-xs text-gray-400">Off</span>
+              </div>
             )}
           </div>
         );

@@ -22,26 +22,26 @@ function AppointmentRow({ booking, onSelect }) {
       onClick={alreadyCheckedIn ? undefined : onSelect}
       disabled={alreadyCheckedIn}
       className={cn(
-        "w-full text-left bg-white rounded-2xl border px-5 py-4 flex items-center justify-between transition-all",
+        "w-full text-left bg-white rounded-2xl border px-5 py-5 flex items-center justify-between transition-all",
         alreadyCheckedIn
           ? "border-green-200 bg-green-50 opacity-70 cursor-default"
           : "border-gray-100 hover:border-[#8B9A7E]/50 hover:shadow-sm active:scale-[0.99] cursor-pointer"
       )}
     >
       <div className="flex-1 min-w-0">
-        <p className="text-base font-semibold text-gray-900 truncate">{booking.client_name}</p>
-        <p className="text-sm text-gray-500 mt-0.5 truncate">
+        <p className="text-xl font-semibold text-gray-900 truncate">{booking.client_name}</p>
+        <p className="text-base text-gray-500 mt-1 truncate">
           {booking.start_time} · {booking.barber_name} · {booking.service_name}
         </p>
       </div>
       {alreadyCheckedIn ? (
         <div className="flex items-center gap-1.5 text-green-600 flex-shrink-0 ml-3">
           <CheckCircle className="w-5 h-5" />
-          <span className="text-xs font-medium whitespace-nowrap">Checked in</span>
+          <span className="text-sm font-medium whitespace-nowrap">Checked in</span>
         </div>
       ) : (
-        <div className="w-9 h-9 rounded-full bg-[#8B9A7E]/10 flex items-center justify-center flex-shrink-0 ml-3">
-          <ArrowRight className="w-4 h-4 text-[#8B9A7E]" />
+        <div className="w-11 h-11 rounded-full bg-[#8B9A7E]/10 flex items-center justify-center flex-shrink-0 ml-3">
+          <ArrowRight className="w-5 h-5 text-[#8B9A7E]" />
         </div>
       )}
     </button>
@@ -240,12 +240,12 @@ export default function KioskPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#FAFAF8] p-8">
         <div className="text-center max-w-sm">
-          <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-          <h1 className="text-xl font-semibold text-gray-800 mb-2">Something went wrong</h1>
-          <p className="text-gray-500 text-sm mb-6">{errorMsg}</p>
+          <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+          <h1 className="text-2xl font-semibold text-gray-800 mb-2">Something went wrong</h1>
+          <p className="text-gray-500 text-base mb-8">{errorMsg}</p>
           <button
             onClick={resetToHome}
-            className="text-sm text-[#8B9A7E] underline"
+            className="px-8 py-4 rounded-2xl border border-[#8B9A7E]/40 text-base text-[#8B9A7E] font-semibold"
           >
             Try again
           </button>
@@ -260,24 +260,24 @@ export default function KioskPage() {
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#8B9A7E] text-white p-8 text-center">
         <CheckCircle className="w-24 h-24 mb-6" strokeWidth={1.5} />
         <h1 className="text-4xl font-bold mb-2">You're checked in!</h1>
-        <p className="text-xl opacity-90 mb-1">{selectedBooking?.client_name}</p>
-        <p className="text-base opacity-75 mb-8">
+        <p className="text-2xl font-semibold opacity-90 mb-1">{selectedBooking?.client_name}</p>
+        <p className="text-lg opacity-75 mb-8">
           {barber?.name || selectedBooking?.barber_name} will be with you shortly.
         </p>
         {waitInfo && (
-          <div className="bg-white/20 rounded-2xl px-6 py-4 mb-8">
+          <div className="bg-white/20 rounded-2xl px-8 py-5 mb-8">
             {waitInfo.isNext ? (
-              <p className="text-base">You&apos;re next — please have a seat.</p>
+              <p className="text-xl">You&apos;re next — please have a seat.</p>
             ) : (
-              <p className="text-base">
+              <p className="text-xl">
                 ~{waitInfo.minutes} min estimated wait
                 {waitInfo.count > 0 && ` (${waitInfo.count} client${waitInfo.count > 1 ? "s" : ""} ahead)`}
               </p>
             )}
           </div>
         )}
-        <p className="text-sm opacity-60 mb-6">Please have a seat.</p>
-        <button onClick={resetToHome} className="text-sm opacity-60 hover:opacity-90 underline">
+        <p className="text-base opacity-60 mb-6">Please have a seat.</p>
+        <button onClick={resetToHome} className="mt-2 px-8 py-4 rounded-2xl bg-white/15 hover:bg-white/25 text-base opacity-80 hover:opacity-100 transition-all">
           Done — returning in {countdown}s
         </button>
       </div>
@@ -291,46 +291,46 @@ export default function KioskPage() {
         <div className="bg-white border-b px-6 py-4 flex items-center justify-between">
           <button
             onClick={resetToHome}
-            className="flex items-center gap-2 text-gray-500 hover:text-gray-800"
+            className="flex items-center gap-2 px-3 py-3 -ml-3 rounded-xl text-gray-500 hover:text-gray-800 transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm">Back</span>
+            <span className="text-base">Back</span>
           </button>
           <p className="text-sm font-semibold text-gray-700">{shopData?.name}</p>
           <div className="w-16" />
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center p-8">
-          <div className="w-full max-w-sm">
-            <div className="w-16 h-16 rounded-full bg-[#8B9A7E]/10 flex items-center justify-center mx-auto mb-6">
-              <User className="w-8 h-8 text-[#8B9A7E]" />
+          <div className="w-full max-w-md">
+            <div className="w-20 h-20 rounded-full bg-[#8B9A7E]/10 flex items-center justify-center mx-auto mb-6">
+              <User className="w-10 h-10 text-[#8B9A7E]" />
             </div>
 
-            <h1 className="text-2xl font-bold text-gray-900 text-center mb-1">
+            <h1 className="text-3xl font-bold text-gray-900 text-center mb-1">
               Hi, {selectedBooking.client_name?.split(" ")[0]}!
             </h1>
-            <p className="text-gray-500 text-sm text-center mb-8">Is this your appointment?</p>
+            <p className="text-gray-500 text-base text-center mb-8">Is this your appointment?</p>
 
             <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6 space-y-4">
               <div className="flex items-center gap-3">
                 <Scissors className="w-5 h-5 text-[#8B9A7E] flex-shrink-0" />
                 <div>
-                  <p className="text-xs text-gray-400">Service</p>
-                  <p className="font-medium text-gray-800">{selectedBooking.service_name}</p>
+                  <p className="text-sm text-gray-400">Service</p>
+                  <p className="text-lg font-semibold text-gray-800">{selectedBooking.service_name}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <Clock className="w-5 h-5 text-[#8B9A7E] flex-shrink-0" />
                 <div>
-                  <p className="text-xs text-gray-400">Time</p>
-                  <p className="font-medium text-gray-800">{selectedBooking.start_time}</p>
+                  <p className="text-sm text-gray-400">Time</p>
+                  <p className="text-lg font-semibold text-gray-800">{selectedBooking.start_time}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">
                 <User className="w-5 h-5 text-[#8B9A7E] flex-shrink-0" />
                 <div>
-                  <p className="text-xs text-gray-400">Barber</p>
-                  <p className="font-medium text-gray-800">
+                  <p className="text-sm text-gray-400">Barber</p>
+                  <p className="text-lg font-semibold text-gray-800">
                     {barber?.name || selectedBooking.barber_name}
                   </p>
                 </div>
@@ -339,8 +339,8 @@ export default function KioskPage() {
                 <div className="flex items-center gap-3 pt-3 border-t border-gray-50">
                   <Clock className="w-5 h-5 text-amber-500 flex-shrink-0" />
                   <div>
-                    <p className="text-xs text-gray-400">Estimated Wait</p>
-                    <p className="font-medium text-gray-800">
+                    <p className="text-sm text-gray-400">Estimated Wait</p>
+                    <p className="text-lg font-semibold text-gray-800">
                       {waitInfo.isNext ? "You're next!" : `~${waitInfo.minutes} min`}
                     </p>
                   </div>
@@ -361,7 +361,7 @@ export default function KioskPage() {
 
             <button
               onClick={resetToHome}
-              className="w-full mt-4 text-sm text-gray-400 hover:text-gray-600 py-2"
+              className="w-full mt-3 text-base text-gray-400 hover:text-gray-600 py-4 rounded-2xl border border-gray-100 hover:border-gray-200 transition-colors"
             >
               That's not me — go back
             </button>
@@ -381,8 +381,8 @@ export default function KioskPage() {
       <div className="bg-white border-b px-6 py-4">
         <div className="flex items-center justify-between max-w-2xl mx-auto">
           <div>
-            <h1 className="text-lg font-bold text-gray-900">{shopData?.name}</h1>
-            <p className="text-xs text-gray-400">{todayDisplay}</p>
+            <h1 className="text-2xl font-bold text-gray-900">{shopData?.name}</h1>
+            <p className="text-sm text-gray-400">{todayDisplay}</p>
           </div>
           <div className="bg-[#8B9A7E]/10 rounded-full p-2.5">
             <Tablet className="w-5 h-5 text-[#8B9A7E]" />
@@ -395,8 +395,8 @@ export default function KioskPage() {
 
           {/* Welcome headline */}
           <div className="text-center pt-2">
-            <h2 className="text-2xl font-bold text-gray-900">Welcome!</h2>
-            <p className="text-gray-500 text-sm mt-1">
+            <h2 className="text-3xl font-bold text-gray-900">Welcome!</h2>
+            <p className="text-gray-500 text-base mt-2">
               {isPhoneScreen
                 ? "Enter your phone number to find your appointment."
                 : "Find your name below to check in for your appointment."}
@@ -408,9 +408,9 @@ export default function KioskPage() {
             <div className="space-y-4">
               <button
                 onClick={() => { setScreen("browse"); setPhoneInput(""); setPhoneResults(null); }}
-                className="flex items-center gap-2 text-sm text-[#8B9A7E] font-medium"
+                className="flex items-center gap-2 py-3 text-base text-[#8B9A7E] font-medium"
               >
-                <ArrowLeft className="w-4 h-4" /> Back to name list
+                <ArrowLeft className="w-5 h-5" /> Back to name list
               </button>
 
               <div className="flex gap-2">
@@ -425,7 +425,7 @@ export default function KioskPage() {
                 />
                 <button
                   onClick={handlePhoneSearch}
-                  className="px-5 py-4 bg-[#8B9A7E] hover:bg-[#6B7A5E] text-white rounded-2xl text-sm font-semibold transition-colors"
+                  className="px-6 py-4 bg-[#8B9A7E] hover:bg-[#6B7A5E] text-white rounded-2xl text-base font-semibold transition-colors"
                 >
                   <Search className="w-5 h-5" />
                 </button>
@@ -434,7 +434,7 @@ export default function KioskPage() {
               {phoneResults !== null && (
                 <div className="space-y-3">
                   {phoneResults.length === 0 ? (
-                    <p className="text-sm text-gray-400 text-center py-6">
+                    <p className="text-base text-gray-400 text-center py-8">
                       No appointments found for that number.
                     </p>
                   ) : (
@@ -466,7 +466,7 @@ export default function KioskPage() {
               <div className="space-y-3">
                 {filteredBookings.length === 0 ? (
                   <div className="text-center py-12">
-                    <p className="text-gray-400 text-sm">
+                    <p className="text-gray-400 text-base">
                       {searchTerm
                         ? `No appointments found for "${searchTerm}"`
                         : "No appointments scheduled for today."}
@@ -483,13 +483,13 @@ export default function KioskPage() {
                 )}
               </div>
 
-              <div className="border-t border-gray-100 pt-5 text-center">
-                <p className="text-sm text-gray-500 mb-3">Can't find your name?</p>
+              <div className="border-t border-gray-100 pt-6 text-center">
+                <p className="text-base text-gray-500 mb-4">Can't find your name?</p>
                 <button
                   onClick={() => setScreen("phone")}
-                  className="inline-flex items-center gap-2 text-sm text-[#8B9A7E] font-semibold"
+                  className="inline-flex items-center gap-3 px-7 py-4 rounded-2xl bg-white border border-[#8B9A7E]/30 text-base text-[#8B9A7E] font-semibold hover:border-[#8B9A7E] transition-colors"
                 >
-                  <Phone className="w-4 h-4" />
+                  <Phone className="w-5 h-5" />
                   Search by phone number
                 </button>
               </div>

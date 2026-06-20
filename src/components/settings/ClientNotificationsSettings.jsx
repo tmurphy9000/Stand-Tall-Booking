@@ -93,7 +93,8 @@ export default function ClientNotificationsSettings() {
 
       {/* Channel Header */}
       <div className="border border-gray-200 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full text-sm min-w-[480px]">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
               <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/2">
@@ -167,6 +168,7 @@ export default function ClientNotificationsSettings() {
             })}
           </tbody>
         </table>
+        </div>
       </div>
 
       {/* SMS coming soon note */}

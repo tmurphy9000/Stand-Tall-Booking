@@ -72,8 +72,8 @@ function SlugEditor({ shopId, currentSlug }) {
 
   return (
     <div className="space-y-1.5">
+      <p className="text-xs text-gray-400 break-all">{BASE_URL}/book/</p>
       <div className="flex items-center gap-2">
-        <span className="text-xs text-gray-400 flex-shrink-0">{BASE_URL}/book/</span>
         <Input
           value={value}
           onChange={e => setValue(e.target.value)}

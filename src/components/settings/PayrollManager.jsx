@@ -430,7 +430,8 @@ export default function PayrollManager() {
               </div>
             ) : (
               <div className="rounded-lg border border-gray-100 overflow-hidden">
-                <table className="w-full text-xs">
+                <div className="overflow-x-auto">
+                <table className="w-full text-xs min-w-[320px]">
                   <thead>
                     <tr className="bg-gray-50 border-b border-gray-100">
                       <th className="text-left px-3 py-2 font-medium text-gray-500">Pay Period</th>
@@ -472,6 +473,7 @@ export default function PayrollManager() {
                     })}
                   </tbody>
                 </table>
+                </div>
               </div>
             )}
           </div>

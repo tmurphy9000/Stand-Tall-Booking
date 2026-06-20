@@ -612,7 +612,7 @@ function WelcomeStep({ onStart, onViewAppointments, shopName, logoUrl, shopAddre
 
       <button
         onClick={onViewAppointments}
-        className="mt-3 flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-medium text-white/50 hover:text-white transition-colors"
+        className="mt-3 flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium text-white/50 hover:text-white transition-colors"
         style={{ background: "#141414" }}
         onMouseEnter={e => (e.currentTarget.style.color = "white")}
         onMouseLeave={e => (e.currentTarget.style.color = "")}
@@ -1595,9 +1595,9 @@ function ConfirmStep({ barber, service, date, time, clientName, clientPhone, cli
       <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: "#1f2a1f" }}>
         {icon}
       </div>
-      <div>
+      <div className="min-w-0 flex-1">
         <p className="text-white/40 text-xs uppercase tracking-widest font-semibold">{label}</p>
-        <p className="text-white font-medium mt-0.5">{value}</p>
+        <p className="text-white font-medium mt-0.5 break-words">{value}</p>
       </div>
     </div>
   );
@@ -1737,9 +1737,9 @@ function SuccessStep({ barber, service, date, time, clientName, shopAddress, bus
           ["Date", dateLabel],
           ["Time", timeLabel],
         ].map(([label, value]) => (
-          <div key={label} className="flex justify-between items-center px-5 py-3 border-b border-white/5 last:border-0">
-            <span className="text-white/40 text-sm">{label}</span>
-            <span className="text-white text-sm font-medium">{value}</span>
+          <div key={label} className="flex justify-between items-start gap-4 px-5 py-3 border-b border-white/5 last:border-0">
+            <span className="text-white/40 text-sm flex-shrink-0">{label}</span>
+            <span className="text-white text-sm font-medium text-right break-words min-w-0">{value}</span>
           </div>
         ))}
       </div>
@@ -1756,9 +1756,9 @@ function SuccessStep({ barber, service, date, time, clientName, shopAddress, bus
             ["Date", dateLabel],
             ["Time", guestTimeLabel],
           ].map(([label, value]) => (
-            <div key={label} className="flex justify-between items-center px-5 py-3 border-b border-white/5 last:border-0">
-              <span className="text-white/40 text-sm">{label}</span>
-              <span className="text-white text-sm font-medium">{value}</span>
+            <div key={label} className="flex justify-between items-start gap-4 px-5 py-3 border-b border-white/5 last:border-0">
+              <span className="text-white/40 text-sm flex-shrink-0">{label}</span>
+              <span className="text-white text-sm font-medium text-right break-words min-w-0">{value}</span>
             </div>
           ))}
         </div>
@@ -1791,7 +1791,7 @@ function SuccessStep({ barber, service, date, time, clientName, shopAddress, bus
             <div className="flex justify-between items-center px-5 py-3">
               <span className="text-white/40 text-sm">Email</span>
               <div className="flex items-center">
-                <span className="text-white text-sm font-medium">{businessEmail}</span>
+                <span className="text-white text-sm font-medium truncate max-w-[180px]">{businessEmail}</span>
                 <CopyButton text={businessEmail} />
               </div>
             </div>

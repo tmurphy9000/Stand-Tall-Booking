@@ -138,10 +138,52 @@ export default function SettingsPage() {
     ...(hasFullAccess ? [{ value: "calloff", label: "Call-Off", icon: PhoneOff }] : []),
   ];
 
+  const inviteBarberClick = () => {
+    const activeCount = barbers.filter(b => b.is_active !== false).length;
+    const result = checkBarberLimit(activeCount);
+    if (!result.allowed) {
+      toast.error(`${result.planName} plan limit reached`, {
+        description: `You've reached the ${result.limit}-barber limit. Upgrade your plan to add more barbers.`,
+        action: { label: 'Upgrade', onClick: () => { window.location.href = '/Settings?tab=subscription'; } },
+      });
+      setGateResult(result);
+      return;
+    }
+    setShowInviteForm(true);
+  };
+
   return (
-    <div className="flex h-screen">
-      {/* Vertical sidebar */}
-      <div className="w-36 flex-shrink-0 bg-[#0A0A0A] flex flex-col py-4 gap-1 px-2">
+    <div className="flex flex-col md:flex-row h-screen">
+      {/* Mobile: horizontal scrollable tab bar */}
+      <div className="md:hidden bg-[#0A0A0A] flex-shrink-0 flex overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] py-2 px-2 gap-1">
+        {navItems.map(({ value, label, icon: Icon }) => (
+          <button
+            key={value}
+            onClick={() => setActiveTab(value)}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0",
+              activeTab === value
+                ? "bg-[#8B9A7E] text-white"
+                : "text-white/60 hover:text-white hover:bg-white/10"
+            )}
+          >
+            <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+            {label}
+          </button>
+        ))}
+        {hasFullAccess && (
+          <button
+            onClick={inviteBarberClick}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 text-white/60 hover:text-white hover:bg-white/10"
+          >
+            <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+            Invite
+          </button>
+        )}
+      </div>
+
+      {/* Desktop: vertical sidebar */}
+      <div className="hidden md:flex w-36 flex-shrink-0 bg-[#0A0A0A] flex-col py-4 gap-1 px-2">
         <p className="text-[10px] text-white/40 uppercase font-semibold px-2 mb-2 tracking-wider">Settings</p>
         {navItems.map(({ value, label, icon: Icon }) => (
           <button
@@ -163,19 +205,7 @@ export default function SettingsPage() {
           <TermsAndConditions />
           {hasFullAccess && (
             <button
-              onClick={() => {
-                const activeCount = barbers.filter(b => b.is_active !== false).length;
-                const result = checkBarberLimit(activeCount);
-                if (!result.allowed) {
-                  toast.error(`${result.planName} plan limit reached`, {
-                    description: `You've reached the ${result.limit}-barber limit. Upgrade your plan to add more barbers.`,
-                    action: { label: 'Upgrade', onClick: () => { window.location.href = '/Settings?tab=subscription'; } },
-                  });
-                  setGateResult(result);
-                  return;
-                }
-                setShowInviteForm(true);
-              }}
+              onClick={inviteBarberClick}
               className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left text-white/60 hover:text-white hover:bg-white/10 w-full"
             >
               <Mail className="w-4 h-4 flex-shrink-0" />
@@ -195,7 +225,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Content area */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-4 md:p-6">
         {activeTab === "barbers" && (
           <BarberManager
             barbers={barbers}
