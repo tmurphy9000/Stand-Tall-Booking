@@ -59,6 +59,9 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
     enabled: open,
   });
 
+  // Reset ALL checkout state when a new booking is opened.
+  // Without this, discount, tip, paymentMethod, and additionalBookings bleed
+  // from one checkout session into the next because the component stays mounted.
   useEffect(() => {
     if (booking) {
       setItems([{
@@ -71,6 +74,10 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
         barberName: booking.barber_name,
         bookingId: booking.id,
       }]);
+      setAdditionalBookings([]);
+      setDiscount({ type: "none", value: 0 });
+      setTip("");
+      setPaymentMethod("cash");
     }
   }, [booking]);
 
@@ -287,11 +294,15 @@ function CheckoutContent({
   console.log("[CheckoutModal] booking.date raw:", booking?.date, "→ normalized:", bookingDate, "| sample b.date raw:", bookings?.[0]?.date, "→ normalized:", bookings?.[0]?.date?.slice(0, 10));
 
   const EXCLUDED_STATUSES = ["completed", "cancelled", "no_show", "checked_out"];
+  // Walk-ins and call-ins are always individual transactions for anonymous clients.
+  // Exclude them from the "Add Appointment" picker so they can't be accidentally bundled.
+  const WALKIN_NAMES = ["Walk-in", "Call-in"];
   const availableBookings = (bookings?.filter(b =>
     !EXCLUDED_STATUSES.includes(b.status) &&
     b.date?.slice(0, 10) === bookingDate &&
     b.id !== booking?.id &&
-    !additionalBookings.includes(b.id)
+    !additionalBookings.includes(b.id) &&
+    !WALKIN_NAMES.includes(b.client_name)
   ) || []).sort((a, b) => a.client_name.localeCompare(b.client_name));
   console.log("[CheckoutModal] availableBookings:", availableBookings.map(b => ({ client: b.client_name, date: b.date, status: b.status })));
 

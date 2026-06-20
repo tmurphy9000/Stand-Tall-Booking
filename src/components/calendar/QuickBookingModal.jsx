@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import { UserX, Phone } from "lucide-react";
+import { UserX, Phone, Info } from "lucide-react";
 import { format, addMinutes, parse } from "date-fns";
 import { toast } from "sonner";
 
@@ -127,14 +128,36 @@ export default function QuickBookingModal({ open, onClose, onSave, barbers, serv
               <UserX className="w-8 h-8" />
               <span className="text-lg font-semibold">Walk-in</span>
             </Button>
-            <Button
-              onClick={() => handleTypeSelect("call-in")}
-              className="w-full h-24 bg-green-50 hover:bg-green-100 text-green-700 border-2 border-green-200 flex flex-col gap-2"
-              variant="outline"
-            >
-              <Phone className="w-8 h-8" />
-              <span className="text-lg font-semibold">Call-in</span>
-            </Button>
+            <div className="relative">
+              <Button
+                onClick={() => handleTypeSelect("call-in")}
+                className="w-full h-24 bg-green-50 hover:bg-green-100 text-green-700 border-2 border-green-200 flex flex-col gap-2"
+                variant="outline"
+              >
+                <Phone className="w-8 h-8" />
+                <span className="text-lg font-semibold">Call-in</span>
+              </Button>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label="What is a Call-in?"
+                    className="absolute top-2 right-2 z-10 text-green-400 hover:text-green-600 transition-colors rounded-full p-0.5"
+                  >
+                    <Info className="w-4 h-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent side="right" align="start" avoidCollisions className="w-72 text-sm">
+                  <p className="font-semibold text-gray-800 mb-1.5">What is a Call-in?</p>
+                  <p className="text-gray-600 leading-snug">
+                    A client called ahead to say they're on their way, but you didn't have time to collect their details. Blocks off time on the calendar without requiring a name, phone number, or other info upfront.
+                  </p>
+                  <p className="text-gray-400 text-xs mt-2 leading-snug">
+                    Different from a <span className="font-medium text-gray-500">Walk-in</span> (client is physically present) or a regular <span className="font-medium text-gray-500">Appointment</span> (full info collected upfront).
+                  </p>
+                </PopoverContent>
+              </Popover>
+            </div>
           </div>
         )}
 
