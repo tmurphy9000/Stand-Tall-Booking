@@ -91,8 +91,52 @@ export default function ClientNotificationsSettings() {
         </p>
       </div>
 
-      {/* Channel Header */}
-      <div className="overflow-x-auto border border-gray-200 rounded-xl">
+      {/* Mobile: card layout — avoids 4-column table overflow entirely */}
+      <div className="sm:hidden space-y-3">
+        {NOTIFICATION_ROWS.map((row) => {
+          const Icon = row.icon;
+          return (
+            <div key={row.key} className="border border-gray-200 rounded-xl overflow-hidden">
+              <div className="flex items-start gap-3 px-4 py-3 bg-gray-50 border-b border-gray-100">
+                <div className="w-7 h-7 rounded-lg bg-[#8B9A7E]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Icon className="w-3.5 h-3.5 text-[#6B7A5E]" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-800 text-sm">{row.label}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{row.description}</p>
+                </div>
+              </div>
+              <div className="divide-y divide-gray-100">
+                <div className="flex items-center justify-between px-4 py-3">
+                  <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                    <Mail className="w-3.5 h-3.5" /> Email
+                  </span>
+                  <Switch checked={settings[row.emailKey]} onCheckedChange={v => set(row.emailKey, v)} />
+                </div>
+                {row.extraKey && (
+                  <div className="flex items-center justify-between px-4 py-3">
+                    <span className="text-xs text-gray-500">Timing</span>
+                    <div className="flex items-center gap-1.5">
+                      <Input
+                        type="number"
+                        min={1}
+                        max={72}
+                        value={settings[row.extraKey]}
+                        onChange={e => set(row.extraKey, parseInt(e.target.value) || 1)}
+                        className="w-14 h-8 text-center text-xs"
+                      />
+                      <span className="text-xs text-gray-400 whitespace-nowrap">{row.extraLabel}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop: full 4-column table */}
+      <div className="hidden sm:block overflow-x-auto border border-gray-200 rounded-xl">
         <table className="w-full text-sm min-w-[480px]">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
