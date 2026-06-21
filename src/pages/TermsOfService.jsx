@@ -23,8 +23,8 @@ const SECTIONS = [
     body: `Certain features including Payroll and the AI Voice Agent are available as paid add-ons billed in addition to your base subscription. Payroll fees are passed through at cost. The AI Voice Agent add-on is $99.99/month per account. Add-ons may be added or removed at any time and changes take effect on the next billing cycle.`,
   },
   {
-    title: "5. SMS & Email Communications Consent",
-    body: `By providing your phone number and email address, you expressly consent to receive SMS text messages and email communications from Stand Tall Booking. These communications may include: account verification codes, booking confirmations and reminders, appointment updates and cancellations, billing notifications, product updates and announcements, and promotional offers related to Stand Tall Booking services. SMS messages are sent via shortcode or toll-free number. Message frequency varies. Message and data rates may apply depending on your carrier and plan. You may opt out of SMS communications at any time by replying STOP to any message. You may opt out of email communications by clicking the unsubscribe link in any email. Opting out of transactional messages (booking confirmations, verification codes) may affect your ability to use certain features of the service.`,
+    title: "5. SMS & Email Communications",
+    body: `Transactional emails (booking confirmations, reminders, and updates) may be sent to the email address you provide. During the booking process, you may separately opt in to receive SMS appointment reminders. Opting in to SMS is not required to book an appointment. If you choose to receive SMS reminders: messages are sent via toll-free number; message frequency varies; standard message and data rates may apply depending on your carrier and plan; and you may opt out at any time by replying STOP to any message. Authentication and verification codes are transactional and are sent regardless of SMS reminder opt-in status.`,
   },
   {
     title: "6. Data & Privacy",

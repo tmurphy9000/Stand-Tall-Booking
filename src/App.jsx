@@ -7,6 +7,7 @@ import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
+import { ThemeProvider } from '@/lib/ThemeContext';
 import BarberLogin from './pages/BarberLogin';
 import ChangePassword from './pages/ChangePassword';
 import ClientBooking from './pages/ClientBooking';
@@ -72,6 +73,7 @@ const AuthenticatedApp = () => {
 function App() {
   return (
     <AuthProvider>
+      <ThemeProvider>
       <ViewModeProvider>
         <QueryClientProvider client={queryClientInstance}>
           <Router>
@@ -81,6 +83,7 @@ function App() {
           <Toaster />
         </QueryClientProvider>
       </ViewModeProvider>
+      </ThemeProvider>
     </AuthProvider>
   );
 }

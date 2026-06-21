@@ -31,7 +31,7 @@ export default function Layout({ children, currentPageName }) {
   const { isMobile, setIsMobile } = useViewMode();
 
   return (
-    <div className="h-[100dvh] bg-[#FAFAF8] flex overflow-hidden">
+    <div className="h-[100dvh] bg-[#FAFAF8] dark:bg-background flex overflow-hidden">
       {/* Left Sidebar Navigation — desktop only */}
       {showTabs && (
         <nav className={cn(

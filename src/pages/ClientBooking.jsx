@@ -495,8 +495,8 @@ const TERMS_SECTIONS = [
     body: "Clients who do not arrive for a scheduled appointment without prior notice will be recorded as a no-show. Repeated no-shows may result in restricted online booking access or a required deposit for future appointments.",
   },
   {
-    heading: "4. SMS & Email Communications",
-    body: "By booking an appointment you consent to receive SMS text messages and emails from Stand Tall Barbershop related to your appointment, including confirmations, reminders, and updates. Standard message and data rates may apply. You may opt out at any time by replying STOP to any SMS or contacting us directly.",
+    heading: "4. SMS Communications",
+    body: "During booking, you may opt in to receive SMS appointment reminders from Stand Tall Barbershop. Opting in is entirely optional — you can book an appointment without agreeing to SMS. If you choose to receive SMS reminders, standard message and data rates may apply. You may opt out at any time by replying STOP to any message.",
   },
   {
     heading: "5. Refund Policy",
@@ -648,7 +648,7 @@ function WelcomeStep({ onStart, onViewAppointments, shopName, logoUrl, shopAddre
       )}
 
       <p className="mt-10 text-white/20 text-xs text-center max-w-xs leading-relaxed">
-        By booking an appointment you agree to receive SMS, email, and phone communications regarding your appointment.
+        By booking an appointment you agree to our Terms &amp; Conditions and cancellation policy.
       </p>
 
       <p className="mt-3 text-white/20 text-xs text-center">
@@ -1486,7 +1486,7 @@ function ClientInfoStep({ name, phone, email, onChange, onNext, onBack }) {
               onBlur={e => (e.target.style.borderColor = "#2a2a2a")}
             />
             <p className="text-xs text-white/40 mt-2">
-              By providing your phone number and email address, you agree to receive SMS and email notifications from Stand Tall Booking including booking confirmations, appointment reminders, and one-time verification codes. Message and data rates may apply. Reply STOP to unsubscribe from SMS at any time.
+              Your phone number is used to send a one-time verification code and for appointment-related contact. You may choose to receive SMS reminders on the next step.
             </p>
           </div>
 
@@ -1575,14 +1575,14 @@ function downloadIcs({ title, startStr, endStr, location, details, uid }) {
 
 function ConfirmStep({ barber, service, date, time, clientName, clientPhone, clientEmail, onConfirm, onBack, submitting, cancelPolicyEnabled, cancelPolicyText, guest = null }) {
   const [policyAgreed, setPolicyAgreed] = useState(false);
-  const [commsAgreed, setCommsAgreed] = useState(false);
+  const [smsOptIn, setSmsOptIn] = useState(false);
   const duration = barber?.service_durations?.[service?.id] ?? service?.duration ?? 30;
   const endTimeHHMM = format(addMinutes(parse(time, "HH:mm", new Date()), duration), "HH:mm");
   const endTime = format(parse(endTimeHHMM, "HH:mm", new Date()), "h:mm a");
   const startLabel = format(parse(time, "HH:mm", new Date()), "h:mm a");
   const dateLabel = format(new Date(date + "T12:00:00"), "EEEE, MMMM d, yyyy");
   const showPolicy = cancelPolicyEnabled && cancelPolicyText;
-  const confirmDisabled = submitting || !commsAgreed || (showPolicy && !policyAgreed);
+  const confirmDisabled = submitting || (showPolicy && !policyAgreed);
 
   const guestDuration = guest?.service?.duration ?? 30;
   const guestStartHHMM = guest?.timing === "same_time" ? time : endTimeHHMM;
@@ -1645,18 +1645,23 @@ function ConfirmStep({ barber, service, date, time, clientName, clientPhone, cli
           </div>
         )}
 
-        <label className="flex items-center gap-3 cursor-pointer mb-4">
+        <label className="flex items-start gap-3 cursor-pointer mb-4">
           <input
             type="checkbox"
-            checked={commsAgreed}
-            onChange={e => setCommsAgreed(e.target.checked)}
-            className="w-4 h-4 rounded accent-[#8B9A7E] flex-shrink-0"
+            checked={smsOptIn}
+            onChange={e => setSmsOptIn(e.target.checked)}
+            className="w-4 h-4 rounded accent-[#8B9A7E] flex-shrink-0 mt-0.5"
           />
-          <span className="text-white/70 text-sm">I agree to receive SMS and email communications from Stand Tall Booking.</span>
+          <span className="text-white/70 text-sm">
+            Yes, send me SMS appointment reminders{" "}
+            <span className="text-white/40">(optional)</span>
+            <br />
+            <span className="text-white/30 text-xs">Standard message &amp; data rates may apply. Reply STOP to opt out. You may book without selecting this.</span>
+          </span>
         </label>
 
         <button
-          onClick={onConfirm}
+          onClick={() => onConfirm(smsOptIn)}
           disabled={confirmDisabled}
           className="w-full py-4 rounded-xl font-semibold text-white text-base transition-all flex items-center justify-center gap-2"
           style={{
@@ -1882,6 +1887,7 @@ export default function ClientBooking() {
   const [clientPhone, setClientPhone] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const smsOptInRef = useRef(false);
 
   const [hasGuest, setHasGuest] = useState(false);
   const [guestName, setGuestName] = useState("");
@@ -1954,7 +1960,8 @@ export default function ClientBooking() {
     return allServices.filter((s) => ids.includes(s.id));
   }, [selectedBarber, allServices]);
 
-  const handlePreConfirm = async () => {
+  const handlePreConfirm = async (smsOptIn = false) => {
+    smsOptInRef.current = smsOptIn;
     const needsDeposit = async () => {
       console.log("[ClientBooking] needsDeposit check — depositConfig:", depositConfig, "| shopStripeAccountId:", shopStripeAccountId, "| depositStripePromise:", !!depositStripePromise);
       if (!shopStripeAccountId || !depositStripePromise) {
@@ -1984,11 +1991,11 @@ export default function ClientBooking() {
       setDepositAmountCents(Math.round(svcPrice * depositConfig.percentage));
       setDepositPending(true);
     } else {
-      handleConfirm();
+      handleConfirm(null, null, smsOptIn);
     }
   };
 
-  const handleConfirm = async (depositPaymentIntentId = null, depositAmountPaid = null) => {
+  const handleConfirm = async (depositPaymentIntentId = null, depositAmountPaid = null, smsOptIn = false) => {
     setSubmitting(true);
     try {
       // Find or create client
@@ -2002,7 +2009,7 @@ export default function ClientBooking() {
         if (existing) {
           clientId = existing.id;
         } else {
-          const created = await entities.Client.create({ name: clientName, phone: clientPhone, email: clientEmail });
+          const created = await entities.Client.create({ name: clientName, phone: clientPhone, email: clientEmail, sms_opt_in: smsOptIn });
           clientId = created.id;
         }
       }
@@ -2322,7 +2329,7 @@ export default function ClientBooking() {
             onBack={() => setDepositPending(false)}
             onSuccess={(paymentIntentId, totalCents) => {
               setDepositPending(false);
-              handleConfirm(paymentIntentId, totalCents);
+              handleConfirm(paymentIntentId, totalCents, smsOptInRef.current);
             }}
           />
         )}

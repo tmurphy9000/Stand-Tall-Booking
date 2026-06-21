@@ -22,7 +22,7 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
 
   return (
-    <div className="sticky top-0 z-30 bg-[#FAFAF8] border-b border-gray-100">
+    <div className="sticky top-0 z-30 bg-[#FAFAF8] dark:bg-background border-b border-gray-100 dark:border-border">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={goPrev} className="h-8 w-8 p-0">

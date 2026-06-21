@@ -5,7 +5,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, User, Phone, Mail, Loader2, ShieldAlert } from "lucide-react";
+import { ArrowLeft, User, Phone, Mail, Loader2, ShieldAlert, MessageSquare } from "lucide-react";
 import { createPageUrl, formatPhoneNumber } from "../utils";
 import { usePermissions } from "../components/permissions/usePermissions";
 import { CopyButton } from "@/components/ui/copy-button";
@@ -13,11 +13,20 @@ import { CopyButton } from "@/components/ui/copy-button";
 export default function ClientDetails() {
   const [searchParams] = useSearchParams();
   const clientId = searchParams.get("id");
-  const { hasFullAccess } = usePermissions();
+  const { hasFullAccess, user: staffUser } = usePermissions();
   const queryClient = useQueryClient();
 
   const toggleDepositRequired = useMutation({
     mutationFn: (required) => entities.Client.update(clientId, { deposit_required: required }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["client", clientId] }),
+  });
+
+  const toggleSmsOptIn = useMutation({
+    mutationFn: (optIn) => entities.Client.update(clientId, {
+      sms_opt_in: optIn,
+      sms_opt_in_updated_by: staffUser?.full_name || staffUser?.email || "staff",
+      sms_opt_in_updated_at: new Date().toISOString(),
+    }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["client", clientId] }),
   });
 
@@ -144,6 +153,39 @@ export default function ClientDetails() {
             </CardContent>
           </Card>
         )}
+
+        {/* SMS Reminders opt-in */}
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start gap-3 min-w-0">
+                <MessageSquare className="w-4 h-4 text-[#8B9A7E] mt-0.5 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium">SMS Reminders</p>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {client.sms_opt_in
+                      ? "Client has opted in to SMS appointment reminders"
+                      : "Client has not opted in to SMS appointment reminders"}
+                  </p>
+                  {client.sms_opt_in_updated_by && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Last updated by <span className="font-medium">{client.sms_opt_in_updated_by}</span>
+                      {client.sms_opt_in_updated_at && (
+                        <> on {new Date(client.sms_opt_in_updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} at {new Date(client.sms_opt_in_updated_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</>
+                      )}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <Switch
+                checked={!!client.sms_opt_in}
+                onCheckedChange={(val) => toggleSmsOptIn.mutate(val)}
+                disabled={toggleSmsOptIn.isPending}
+                className="flex-shrink-0 data-[state=checked]:bg-[#8B9A7E]"
+              />
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Staff Notes */}
         {client.staff_notes && (

@@ -4,6 +4,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { Moon, Sun } from "lucide-react";
+import { useTheme } from "@/lib/ThemeContext";
 
 const STORAGE_KEY = "calendar_show_working_only";
 const TIP_PREFS_KEY = "tip_display_preferences";
@@ -30,6 +32,8 @@ function loadTipPrefs() {
 }
 
 export default function DisplaySettings() {
+  const { theme, setTheme } = useTheme();
+
   const [showWorkingOnly, setShowWorkingOnly] = useState(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored === null ? true : stored === "true";
@@ -59,8 +63,40 @@ export default function DisplaySettings() {
     <div className="space-y-6 max-w-md">
       <h2 className="text-sm font-semibold">Display Settings</h2>
 
+      {/* Appearance */}
+      <div className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border p-4 space-y-3">
+        <p className="text-xs text-gray-500 dark:text-muted-foreground font-medium uppercase tracking-wider">Appearance</p>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setTheme("light")}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-all",
+              theme === "light"
+                ? "bg-[#8B9A7E] text-white border-[#8B9A7E]"
+                : "bg-transparent text-gray-600 dark:text-gray-400 border-gray-200 dark:border-border hover:border-[#8B9A7E]/50"
+            )}
+          >
+            <Sun className="w-4 h-4" />
+            Light
+          </button>
+          <button
+            onClick={() => setTheme("dark")}
+            className={cn(
+              "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-all",
+              theme === "dark"
+                ? "bg-[#8B9A7E] text-white border-[#8B9A7E]"
+                : "bg-transparent text-gray-600 dark:text-gray-400 border-gray-200 dark:border-border hover:border-[#8B9A7E]/50"
+            )}
+          >
+            <Moon className="w-4 h-4" />
+            Dark
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 dark:text-muted-foreground">Your preference is saved per account and persists across reloads.</p>
+      </div>
+
       {/* Calendar */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+      <div className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border p-4 space-y-4">
         <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Calendar</p>
         <div className="flex items-center justify-between gap-4">
           <div>
@@ -74,7 +110,7 @@ export default function DisplaySettings() {
       </div>
 
       {/* Tip Preferences */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
+      <div className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border p-4 space-y-4">
         <div>
           <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Tip Preferences</p>
           <p className="text-xs text-gray-400 mt-1">

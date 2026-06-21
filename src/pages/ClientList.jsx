@@ -157,7 +157,7 @@ export default function ClientList() {
                         {client.photo_url ? (
                           <img src={client.photo_url} alt={client.name} className="w-12 h-12 rounded-full object-cover" />
                         ) : (
-                          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
+                          <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-muted flex items-center justify-center">
                             <User className="w-6 h-6 text-gray-400" />
                           </div>
                         )}
