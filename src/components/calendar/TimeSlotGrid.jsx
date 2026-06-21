@@ -232,10 +232,8 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
     if (e.touches.length === 2 && pinchRef.current.initialDistance) {
       const currentDistance = getHorizontalPinchDistance(e.touches);
       const scale = currentDistance / pinchRef.current.initialDistance;
-      const newZoom = Math.max(0.5, Math.min(3, pinchRef.current.initialZoom * scale));
       setColumnZoom(prev => {
-        // Smooth by interpolating towards target
-        const target = Math.max(0.5, Math.min(3, pinchRef.current.initialZoom * scale));
+        const target = Math.max(0.3, Math.min(0.75, pinchRef.current.initialZoom * scale));
         return prev + (target - prev) * 0.3;
       });
     }
@@ -310,7 +308,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
         <span className="text-[9px] text-gray-400 flex-shrink-0">↔</span>
         <input
           type="range"
-          min={0.5}
+          min={0.3}
           max={0.75}
           step={0.005}
           value={columnZoom}
