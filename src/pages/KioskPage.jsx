@@ -98,6 +98,7 @@ export default function KioskPage() {
           .eq("shop_id", shopId)
           .eq("date", todayStr)
           .or("status.eq.scheduled,status.eq.confirmed,status.eq.checked_in,status.eq.late")
+          .not("client_name", "in", '("Walk-in","Call-in")')
           .order("start_time"),
         supabase
           .from("barbers")
