@@ -6,12 +6,12 @@ import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Trophy, Scissors, Package, ChevronRight, Eye, EyeOff } from "lucide-react";
+import { Trophy, Scissors, Package, Eye, EyeOff } from "lucide-react";
 import { format, startOfDay, startOfWeek, startOfMonth } from "date-fns";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function LeaderboardCard({
-  bookings, cashTransactions, barbers, onCollapse,
+  bookings, cashTransactions, barbers,
   isOwner = false,
   leaderboardVisible = true,
   onToggleVisibility,
@@ -108,15 +108,6 @@ export default function LeaderboardCard({
                   <SelectItem value="month">Month</SelectItem>
                 </SelectContent>
               </Select>
-              {onCollapse && (
-                <button
-                  onClick={onCollapse}
-                  className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                  title="Collapse leaderboard"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              )}
             </div>
           </div>
         </CardHeader>

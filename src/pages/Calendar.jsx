@@ -8,7 +8,7 @@ import TimeSlotGrid from "../components/calendar/TimeSlotGrid";
 import BookingFormModal from "../components/calendar/BookingFormModal";
 import QuickBookingModal from "../components/calendar/QuickBookingModal";
 import BookingContextMenu from "../components/calendar/BookingContextMenu";
-import { Loader2, Sparkles, ChevronLeft } from "lucide-react";
+import { Loader2, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BarberAssistant from "../components/assistant/BarberAssistant";
 import LeaderboardCard from "../components/calendar/LeaderboardCard";
@@ -535,18 +535,29 @@ export default function CalendarPage() {
               </span>
             </button>
           ) : (
-            <div className="p-4 overflow-y-auto flex-1">
-              <LeaderboardCard
-                bookings={bookings}
-                cashTransactions={cashTransactions}
-                barbers={barbers}
-                onCollapse={() => toggleLeaderboard(true)}
-                isOwner={isOwner}
-                leaderboardVisible={leaderboardVisible}
-                onToggleVisibility={handleToggleLeaderboard}
-                currentUserEmail={user?.email}
-              />
-            </div>
+            <>
+              <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 flex-shrink-0">
+                <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Leaderboard</span>
+                <button
+                  onClick={() => toggleLeaderboard(true)}
+                  className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                  title="Collapse leaderboard"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="p-4 overflow-y-auto flex-1">
+                <LeaderboardCard
+                  bookings={bookings}
+                  cashTransactions={cashTransactions}
+                  barbers={barbers}
+                  isOwner={isOwner}
+                  leaderboardVisible={leaderboardVisible}
+                  onToggleVisibility={handleToggleLeaderboard}
+                  currentUserEmail={user?.email}
+                />
+              </div>
+            </>
           )}
         </div>
       )}
