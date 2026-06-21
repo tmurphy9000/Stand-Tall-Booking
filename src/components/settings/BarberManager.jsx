@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,10 +37,22 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState({
     name: "", email: "", phone: "", service_commission_rate: 50, product_commission_rate: 10,
-    is_active: true, photo_url: "",
+    is_active: true, photo_url: "", access_level_id: null,
   });
   const [gateResult, setGateResult] = useState(null);
   const { checkBarberLimit } = usePlanGate();
+
+  const { data: accessLevels = [] } = useQuery({
+    queryKey: ["accessLevels"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("access_levels")
+        .select("id, name, is_active, legacy_permission_level")
+        .eq("is_active", true)
+        .order("name");
+      return data ?? [];
+    },
+  });
 
   const openNew = () => {
     const activeCount = barbers.filter(b => b.is_active !== false).length;
@@ -53,7 +66,7 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
       return;
     }
     setEditing(null);
-    setForm({ name: "", email: "", phone: "", service_commission_rate: 50, product_commission_rate: 10, is_active: true, photo_url: "" });
+    setForm({ name: "", email: "", phone: "", service_commission_rate: 50, product_commission_rate: 10, is_active: true, photo_url: "", access_level_id: null });
     setShowForm(true);
   };
 
@@ -233,15 +246,22 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
               </div>
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Permission Classification</Label>
-              <Select value={form.permission_level || "service_provider"} onValueChange={v => set("permission_level", v)}>
+              <Label className="text-xs text-gray-500">Access Level</Label>
+              <Select
+                value={form.access_level_id || ""}
+                onValueChange={v => {
+                  const level = accessLevels.find(l => l.id === v);
+                  set("access_level_id", v || null);
+                  if (level?.legacy_permission_level) set("permission_level", level.legacy_permission_level);
+                }}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select permission level" />
+                  <SelectValue placeholder="Select access level" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="service_provider">Service Provider</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="owner">Owner</SelectItem>
+                  {accessLevels.map(level => (
+                    <SelectItem key={level.id} value={level.id}>{level.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
   console.log("[inviteBarber] Called by user:", caller.email);
 
   // Parse request body
-  let body: { name?: string; email?: string; phone?: string; permission_level?: string; temp_password?: string };
+  let body: { name?: string; email?: string; phone?: string; permission_level?: string; access_level_id?: string; temp_password?: string };
   try {
     body = await req.json();
   } catch (e) {
@@ -53,8 +53,8 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid request body" });
   }
 
-  const { name, email, phone, permission_level, temp_password } = body;
-  console.log("[inviteBarber] Inviting barber:", { name, email, phone, permission_level });
+  const { name, email, phone, permission_level, access_level_id, temp_password } = body;
+  console.log("[inviteBarber] Inviting barber:", { name, email, phone, permission_level, access_level_id });
 
   if (!name || !email || !temp_password) {
     console.error("[inviteBarber] Missing required fields:", { name: !!name, email: !!email, temp_password: !!temp_password });
@@ -148,6 +148,7 @@ Deno.serve(async (req) => {
         email,
         phone: phone || null,
         permission_level: permission_level || "service_provider",
+        access_level_id: access_level_id || null,
         is_active: true,
         online_bookable: true,
         user_id: authUserId,

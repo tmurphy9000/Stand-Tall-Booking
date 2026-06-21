@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +16,7 @@ const EMPTY_FORM = {
   last_name: "",
   phone: "",
   email: "",
-  role: "service_provider",
+  access_level_id: "",
   temp_password: "",
 };
 
@@ -33,6 +34,18 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
   const [payrollEntry, setPayrollEntry] = useState("send");
   const [payroll, setPayroll] = useState(EMPTY_PAYROLL);
 
+  const { data: accessLevels = [] } = useQuery({
+    queryKey: ["accessLevels"],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("access_levels")
+        .select("id, name, legacy_permission_level")
+        .eq("is_active", true)
+        .order("name");
+      return data ?? [];
+    },
+  });
+
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
   const setP = (k, v) => setPayroll(prev => ({ ...prev, [k]: v }));
 
@@ -46,13 +59,18 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
 
     setLoading(true);
     try {
+      // Resolve access level → legacy permission_level for sync mode
+      const selectedLevel = accessLevels.find(l => l.id === form.access_level_id);
+      const permissionLevel = selectedLevel?.legacy_permission_level ?? "service_provider";
+
       // Create barber record + Supabase Auth user via edge function
       const { data, error } = await supabase.functions.invoke("inviteBarber", {
         body: {
           name: fullName,
           email: form.email,
           phone: form.phone,
-          permission_level: form.role,
+          permission_level: permissionLevel,
+          access_level_id: form.access_level_id || null,
           temp_password: form.temp_password,
         },
       });
@@ -130,13 +148,13 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
             </div>
 
             <div>
-              <Label className="text-xs text-gray-500">Role</Label>
-              <Select value={form.role} onValueChange={v => set("role", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+              <Label className="text-xs text-gray-500">Access Level</Label>
+              <Select value={form.access_level_id} onValueChange={v => set("access_level_id", v)}>
+                <SelectTrigger><SelectValue placeholder="Select access level" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="service_provider">Service Provider (Barber)</SelectItem>
-                  <SelectItem value="manager">Manager</SelectItem>
-                  <SelectItem value="owner">Owner</SelectItem>
+                  {accessLevels.map(level => (
+                    <SelectItem key={level.id} value={level.id}>{level.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

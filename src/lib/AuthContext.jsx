@@ -6,8 +6,25 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [currentBarber, setCurrentBarber] = useState(null);
+  const [accessLevelPermissions, setAccessLevelPermissions] = useState({});
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+
+  const loadAccessLevelPermissions = async (accessLevelId) => {
+    if (!accessLevelId) {
+      setAccessLevelPermissions({});
+      return;
+    }
+    const { data } = await supabase
+      .from('access_level_permissions')
+      .select('permission_key, permission_value, limit_value')
+      .eq('access_level_id', accessLevelId);
+    const map = {};
+    data?.forEach(p => {
+      map[p.permission_key] = { value: p.permission_value ?? 'none', limit: p.limit_value ?? null };
+    });
+    setAccessLevelPermissions(map);
+  };
 
   const fetchBarber = async (userId, email) => {
     console.log('[AuthContext] fetchBarber — user_id:', userId, '| email:', email);
@@ -22,6 +39,7 @@ export const AuthProvider = ({ children }) => {
 
     if (byId) {
       setCurrentBarber(byId);
+      await loadAccessLevelPermissions(byId.access_level_id);
       return;
     }
 
@@ -33,6 +51,7 @@ export const AuthProvider = ({ children }) => {
       .maybeSingle();
     console.log('[AuthContext] lookup by email:', byEmail, '| error:', emailError);
     setCurrentBarber(byEmail ?? null);
+    await loadAccessLevelPermissions(byEmail?.access_level_id ?? null);
   };
 
   useEffect(() => {
@@ -54,6 +73,7 @@ export const AuthProvider = ({ children }) => {
       } else {
         setUser(null);
         setCurrentBarber(null);
+        setAccessLevelPermissions({});
         setIsAuthenticated(false);
         setIsLoadingAuth(false);
       }
@@ -66,6 +86,7 @@ export const AuthProvider = ({ children }) => {
     await supabase.auth.signOut();
     setUser(null);
     setCurrentBarber(null);
+    setAccessLevelPermissions({});
     setIsAuthenticated(false);
     window.location.href = '/barber-login';
   };
@@ -74,6 +95,7 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider value={{
       user,
       currentBarber,
+      accessLevelPermissions,
       isAuthenticated,
       isLoadingAuth,
       logout,

@@ -17,6 +17,7 @@ import ServiceManager from "../components/settings/ServiceManager";
 import ShopHoursEditor from "../components/settings/ShopHoursEditor";
 import PermissionsManager from "../components/settings/PermissionsManager";
 import RolePermissionsManager from "../components/settings/RolePermissionsManager";
+import AccessLevelManager from "../components/settings/AccessLevelManager";
 import AdminPasswordManager from "../components/settings/AdminPasswordManager";
 import InviteBarberForm from "../components/settings/InviteBarberForm";
 import TermsAndConditions from "../components/settings/TermsAndConditions";
@@ -133,7 +134,7 @@ export default function SettingsPage() {
     ...(hasFullAccess ? [
       { value: "payroll", label: "Payroll", icon: DollarSign },
     ] : []),
-    ...(hasFullAccess ? [{ value: "permissions", label: "Permissions", icon: Shield }] : []),
+    ...(hasFullAccess ? [{ value: "access_levels", label: "Access Levels", icon: Shield }] : []),
     { value: "subscription", label: "Subscription", icon: CreditCard },
     { value: "payments", label: "Payments", icon: Wallet },
     ...(hasFullAccess ? [{ value: "calloff", label: "Call-Off", icon: PhoneOff }] : []),
@@ -368,12 +369,7 @@ export default function SettingsPage() {
         {activeTab === "subscription" && <SubscriptionManager />}
         {activeTab === "payments" && <PaymentsSettings />}
 
-        {hasFullAccess && activeTab === "permissions" && (
-          <div className="space-y-4">
-            <PermissionsManager />
-            <RolePermissionsManager />
-          </div>
-        )}
+        {hasFullAccess && activeTab === "access_levels" && <AccessLevelManager />}
       </div>
 
       <InviteBarberForm

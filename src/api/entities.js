@@ -122,4 +122,6 @@ export const entities = {
   BarberSensitiveInfo: createEntity('barber_sensitive_info'),
   TimeOffRequest: createEntity('time_off_requests'),
   User: createEntity('users'),
+  AccessLevel: createEntity('access_levels'),
+  AccessLevelPermission: createEntity('access_level_permissions'),
 };
