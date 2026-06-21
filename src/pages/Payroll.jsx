@@ -15,16 +15,18 @@ import { usePlanGate } from "@/hooks/usePlanGate";
 import PlanGateModal from "@/components/PlanGateModal";
 
 export default function PayrollPage() {
-  const { hasFullAccess } = usePermissions();
+  const { hasPermission, currentBarber } = usePermissions();
+  const canViewOwn = hasPermission('payroll.own');
+  const canViewAll  = hasPermission('payroll.all');
 
   useEffect(() => {
-    if (!hasFullAccess) {
+    if (!canViewOwn) {
       toast.error("Access Denied", {
-        description: "You don't have permission to access this. Contact your owner or manager.",
+        description: "You don't have permission to access payroll. Contact your owner or manager.",
         icon: <Lock className="w-4 h-4" />,
       });
     }
-  }, [hasFullAccess]);
+  }, [canViewOwn]);
   const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), "yyyy-MM-dd"));
   const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), "yyyy-MM-dd"));
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -82,7 +84,7 @@ export default function PayrollPage() {
       };
     });
 
-  if (!hasFullAccess) {
+  if (!canViewOwn) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center space-y-2">
@@ -103,6 +105,58 @@ export default function PayrollPage() {
   }
 
   const grandTotal = payrollData.reduce((sum, b) => sum + b.totalEarnings, 0);
+
+  // Personal payroll view for barbers without all-staff access
+  if (!canViewAll && currentBarber) {
+    const my = payrollData.find(d => d.id === currentBarber.id) ?? {
+      serviceCommission: 0, productCommission: 0, tips: 0, totalEarnings: 0, completedServices: 0,
+    };
+    return (
+      <div className="p-6 max-w-md mx-auto">
+        <h1 className="text-2xl font-bold text-[#0A0A0A] mb-1">My Payroll</h1>
+        <div className="flex items-center gap-3 mb-6">
+          <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-8 w-38 text-sm" />
+          <span className="text-gray-400">–</span>
+          <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-8 w-38 text-sm" />
+        </div>
+        <div className="space-y-3">
+          <Card className="border-[#8B9A7E]/20">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Service Commission</span>
+                <span className="text-xl font-bold text-[#8B9A7E]">${my.serviceCommission.toFixed(2)}</span>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-[#8B9A7E]/20">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Product Commission</span>
+                <span className="text-xl font-bold text-[#8B9A7E]">${my.productCommission.toFixed(2)}</span>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-[#8B9A7E]/20">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600">Tips</span>
+                <span className="text-xl font-bold text-[#8B9A7E]">${my.tips.toFixed(2)}</span>
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-2 border-[#8B9A7E] bg-[#8B9A7E]/5">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-[#0A0A0A]">Total Earnings</span>
+                <span className="text-2xl font-bold text-[#8B9A7E]">${my.totalEarnings.toFixed(2)}</span>
+              </div>
+            </CardContent>
+          </Card>
+          <p className="text-xs text-gray-400 text-center pt-2">{my.completedServices} services completed in this period</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-7xl mx-auto">

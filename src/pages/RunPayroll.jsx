@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { usePermissions } from "../components/permissions/usePermissions";
 
 export default function RunPayrollPage() {
-  const { hasFullAccess } = usePermissions();
+  const { hasPermission } = usePermissions();
   const [dateRange, setDateRange] = useState("30");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
@@ -123,7 +123,7 @@ export default function RunPayrollPage() {
     }
   };
 
-  if (!hasFullAccess) {
+  if (!hasPermission('payroll.management')) {
     return (
       <div className="p-6">
         <Card className="max-w-md mx-auto mt-12">

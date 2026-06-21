@@ -31,7 +31,8 @@ function buildGustoAuthUrl(clientId, state) {
 
 export default function PayrollManager() {
   const queryClient = useQueryClient();
-  const { hasFullAccess } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canManagePayroll = hasPermission('payroll.management');
   const { shopId } = useShop();
   const [searchParams] = useSearchParams();
   const [showForm, setShowForm] = useState(false);
@@ -50,7 +51,7 @@ export default function PayrollManager() {
   const { data: sensitiveInfo = [] } = useQuery({
     queryKey: ["barberSensitiveInfo"],
     queryFn: () => entities.BarberSensitiveInfo.list(),
-    enabled: hasFullAccess,
+    enabled: canManagePayroll,
   });
 
   const { data: gustoConnection, isLoading: gustoLoading, refetch: refetchGusto } = useQuery({
@@ -65,7 +66,7 @@ export default function PayrollManager() {
       if (error) throw error;
       return data;
     },
-    enabled: hasFullAccess && !!shopId,
+    enabled: canManagePayroll && !!shopId,
   });
 
   const isGustoConnected = !!gustoConnection;
@@ -77,7 +78,7 @@ export default function PayrollManager() {
       if (error) throw error;
       return data.payrolls ?? [];
     },
-    enabled: isGustoConnected && hasFullAccess,
+    enabled: isGustoConnected && canManagePayroll,
     retry: false,
   });
 
@@ -185,7 +186,7 @@ export default function PayrollManager() {
     return `****${account.slice(-4)}`;
   };
 
-  if (!hasFullAccess) {
+  if (!canManagePayroll) {
     return <AccessDenied />;
   }
 

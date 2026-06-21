@@ -19,7 +19,8 @@ export default function ClientList() {
   const [search, setSearch] = useState("");
   const [importOpen, setImportOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const { hasFullAccess } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canManageClients = hasPermission('clients.management');
   const loadMoreRef = useRef(null);
 
   const {
@@ -38,10 +39,10 @@ export default function ClientList() {
   });
 
   const { data: searchResults = [], isLoading: isSearching } = useQuery({
-    queryKey: ["clients", "search", search, hasFullAccess],
+    queryKey: ["clients", "search", search, canManageClients],
     queryFn: () =>
       entities.Client.search(search, {
-        columns: hasFullAccess ? ["name", "email", "phone"] : ["name"],
+        columns: canManageClients ? ["name", "email", "phone"] : ["name"],
         sortField: "name",
       }),
     enabled: search.length > 0,
@@ -111,7 +112,7 @@ export default function ClientList() {
             </div>
           </div>
 
-          {hasFullAccess && (
+          {canManageClients && (
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={downloadClientImportTemplate}>
                 <FileDown className="w-4 h-4 mr-2" />
@@ -137,7 +138,7 @@ export default function ClientList() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <Input
-              placeholder={hasFullAccess ? "Search clients by name, email, or phone..." : "Search clients by name..."}
+              placeholder={canManageClients ? "Search clients by name, email, or phone..." : "Search clients by name..."}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
@@ -163,7 +164,7 @@ export default function ClientList() {
                         )}
                         <div>
                           <p className="font-semibold">{client.name}</p>
-                          {hasFullAccess && (
+                          {canManageClients && (
                             <div className="flex items-center gap-3 text-xs text-gray-500">
                               {client.email && (
                                 <span className="flex items-center gap-1">
@@ -233,7 +234,7 @@ export default function ClientList() {
         )}
       </div>
 
-      {hasFullAccess && (
+      {canManageClients && (
         <ImportClientsDialog open={importOpen} onOpenChange={setImportOpen} />
       )}
     </div>

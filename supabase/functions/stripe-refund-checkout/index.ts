@@ -34,19 +34,30 @@ Deno.serve(async (req) => {
   const { data: { user }, error: authError } = await adminClient.auth.getUser(jwt);
   if (authError || !user) return json({ error: "Unauthorized" }, 401);
 
-  // Verify the caller is owner or manager
+  // Verify the caller has refund permission
   const { data: barber } = await adminClient
     .from("barbers")
-    .select("permission_level, is_active")
+    .select("permission_level, is_active, access_level_id")
     .eq("email", user.email)
     .single();
 
   const isSuperAdmin = user.email === "tmurphy9000@gmail.com";
-  const hasFullAccess = isSuperAdmin ||
-    barber?.permission_level === "owner" ||
-    barber?.permission_level === "manager";
 
-  if (!hasFullAccess) return json({ error: "Forbidden" }, 403);
+  let hasRefundPermission = false;
+  if (barber?.access_level_id) {
+    const { data: perm } = await adminClient
+      .from("access_level_permissions")
+      .select("permission_value")
+      .eq("access_level_id", barber.access_level_id)
+      .eq("permission_key", "checkout.refunds")
+      .maybeSingle();
+    hasRefundPermission = perm?.permission_value === "modify" || perm?.permission_value === "modify_with_limit";
+  } else {
+    // Legacy fallback: barbers not yet migrated to access_level_id
+    hasRefundPermission = barber?.permission_level === "owner" || barber?.permission_level === "manager";
+  }
+
+  if (!isSuperAdmin && !hasRefundPermission) return json({ error: "Forbidden" }, 403);
 
   let body: { bookingId: string; amountCents?: number; reason?: string };
   try {

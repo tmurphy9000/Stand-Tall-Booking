@@ -47,8 +47,8 @@ export default function CalendarPage() {
   const [mobileCalView, setMobileCalView] = useState("mine");
   const { isMobile } = useViewMode();
   const { currentBarber, user } = useAuth();
-  const { isOwner } = usePermissions();
-  console.log('[Calendar] currentBarber:', currentBarber, '| permission_level:', currentBarber?.permission_level, '| isOwner:', isOwner);
+  const { hasPermission } = usePermissions();
+  const isOwner = hasPermission('calendar.configuration', 'modify');
 
   useEffect(() => {
     const handler = () => setIsNarrowScreen(window.innerWidth < 768);

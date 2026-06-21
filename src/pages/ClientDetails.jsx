@@ -13,7 +13,8 @@ import { CopyButton } from "@/components/ui/copy-button";
 export default function ClientDetails() {
   const [searchParams] = useSearchParams();
   const clientId = searchParams.get("id");
-  const { hasFullAccess, user: staffUser } = usePermissions();
+  const { hasPermission, user: staffUser } = usePermissions();
+  const canManageClients = hasPermission('clients.management', 'modify');
   const queryClient = useQueryClient();
 
   const toggleDepositRequired = useMutation({
@@ -87,7 +88,7 @@ export default function ClientDetails() {
           )}
           <div>
             <h1 className="text-2xl font-bold">{client.name}</h1>
-            {hasFullAccess && (
+            {canManageClients && (
               <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
                 {client.email && (
                   <span className="flex items-center gap-1">
@@ -135,7 +136,7 @@ export default function ClientDetails() {
         </div>
 
         {/* Deposit Required */}
-        {hasFullAccess && (
+        {canManageClients && (
           <Card className="mb-6">
             <CardContent className="p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">

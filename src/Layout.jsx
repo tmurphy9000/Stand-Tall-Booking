@@ -26,7 +26,7 @@ const settingsTab = { name: "Settings", icon: Settings, page: "Settings" };
 export default function Layout({ children, currentPageName }) {
   const showTabs = !["ClientList"].includes(currentPageName);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { hasFullAccess, currentBarber, user } = usePermissions();
+  const { hasFullAccess, currentBarber, user, hasPermission } = usePermissions();
   const { logout, user: authUser } = useAuth();
   const { isMobile, setIsMobile } = useViewMode();
 
@@ -127,7 +127,7 @@ export default function Layout({ children, currentPageName }) {
             {user && (
               <NotificationBell userEmail={user.email} userType="staff" navStyle />
             )}
-            {currentBarber?.permission_level === "service_provider" ? (
+            {!hasPermission('settings.general', 'modify') ? (
               <button
                 onClick={() => toast.error("Access Denied", {
                   description: "You don't have permission to access this. Contact your owner or manager.",
@@ -211,7 +211,7 @@ export default function Layout({ children, currentPageName }) {
                     </Link>
                   );
                 })}
-              {currentBarber?.permission_level === "service_provider" ? (
+              {!hasPermission('settings.general', 'modify') ? (
                 <button
                   onClick={() => toast.error("Access Denied", {
                     description: "Contact your owner or manager.",

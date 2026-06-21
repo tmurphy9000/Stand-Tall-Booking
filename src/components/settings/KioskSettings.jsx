@@ -11,7 +11,7 @@ import { Copy, ExternalLink, RefreshCw, Tablet, AlertTriangle, Loader2, CheckCir
 import { toast } from "sonner";
 
 export default function KioskSettings() {
-  const { hasFullAccess } = usePermissions();
+  const { hasPermission } = usePermissions();
   const queryClient = useQueryClient();
   const [regenerating, setRegenerating] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
@@ -28,7 +28,7 @@ export default function KioskSettings() {
     ? `${window.location.origin}/checkin/${kioskToken}`
     : null;
 
-  if (!hasFullAccess) return <AccessDenied />;
+  if (!hasPermission('settings.general', 'modify')) return <AccessDenied />;
 
   if (isLoading) {
     return (

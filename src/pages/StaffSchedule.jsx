@@ -15,7 +15,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 
 export default function StaffSchedule() {
   const queryClient = useQueryClient();
-  const { user, currentBarber, hasFullAccess } = usePermissions();
+  const { user, currentBarber, hasPermission } = usePermissions();
+  const canManageTimeOff = hasPermission('time_off.all', 'modify');
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [formData, setFormData] = useState({
     start_date: "",
@@ -162,7 +163,7 @@ export default function StaffSchedule() {
       )}
 
       {/* Pending Approvals (for admins/managers) */}
-      {hasFullAccess && pendingRequests.length > 0 && (
+      {canManageTimeOff && pendingRequests.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Pending Approvals</CardTitle>
@@ -211,7 +212,7 @@ export default function StaffSchedule() {
       )}
 
       {/* All Approved Time Off (for admins/managers) */}
-      {hasFullAccess && (
+      {canManageTimeOff && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Approved Time Off</CardTitle>
@@ -293,7 +294,7 @@ export default function StaffSchedule() {
         </DialogContent>
       </Dialog>
 
-      {!currentBarber && !hasFullAccess && (
+      {!currentBarber && !canManageTimeOff && (
         <Card>
           <CardContent className="p-8 text-center">
             <p className="text-gray-600">You need to be linked to a barber profile to manage schedules.</p>

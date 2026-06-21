@@ -15,16 +15,17 @@ import { usePermissions } from "../components/permissions/usePermissions";
 export default function AdminReportingPage() {
   const [dateRange, setDateRange] = useState("30");
   const [barberFilter, setBarberFilter] = useState("all");
-  const { hasFullAccess } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canViewAllReports = hasPermission('reports.all_barbers');
 
   useEffect(() => {
-    if (!hasFullAccess) {
+    if (!canViewAllReports) {
       toast.error("Access Denied", {
         description: "You don't have permission to access this. Contact your owner or manager.",
         icon: <Lock className="w-4 h-4" />,
       });
     }
-  }, [hasFullAccess]);
+  }, [canViewAllReports]);
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["bookings-all"],
@@ -284,7 +285,7 @@ export default function AdminReportingPage() {
     toast.success("Report exported to CSV");
   };
 
-  if (!hasFullAccess) {
+  if (!canViewAllReports) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center space-y-2">

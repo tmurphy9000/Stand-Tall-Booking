@@ -15,7 +15,7 @@ import { Card, CardContent } from "@/components/ui/card";
 export default function ReportsPage() {
   const [dateRange, setDateRange] = useState("30");
   const [barberFilter, setBarberFilter] = useState("all");
-  const { hasFullAccess, currentBarber } = usePermissions();
+  const { hasPermission, currentBarber } = usePermissions();
 
   const { data: bookings = [], isLoading } = useQuery({
     queryKey: ["bookings-all"],
@@ -289,8 +289,8 @@ export default function ReportsPage() {
     toast.success("Report exported to CSV");
   };
 
-  // Service provider view - only show their own commissions
-  if (!hasFullAccess && currentBarber) {
+  // Limited-access view — show own commissions only
+  if (!hasPermission('reports.all_barbers') && currentBarber) {
     const barberData = staffPerformance.find(s => s.name === currentBarber.name) || {
       serviceRevenue: 0,
       productRevenue: 0,
@@ -354,7 +354,7 @@ export default function ReportsPage() {
     );
   }
 
-  if (!hasFullAccess) {
+  if (!hasPermission('reports.own')) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center space-y-2">
