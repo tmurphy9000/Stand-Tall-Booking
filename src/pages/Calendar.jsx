@@ -35,7 +35,14 @@ export default function CalendarPage() {
   const [initialPinchDistance, setInitialPinchDistance] = useState(null);
   const [initialZoomLevel, setInitialZoomLevel] = useState(1);
   const [showAssistant, setShowAssistant] = useState(false);
-  const [leaderboardCollapsed, setLeaderboardCollapsed] = useState(() => window.innerWidth < 768);
+  const [leaderboardCollapsed, setLeaderboardCollapsed] = useState(() => {
+    const saved = localStorage.getItem("leaderboardCollapsed");
+    return saved !== null ? saved === "true" : window.innerWidth < 768;
+  });
+  const toggleLeaderboard = (collapsed) => {
+    setLeaderboardCollapsed(collapsed);
+    localStorage.setItem("leaderboardCollapsed", String(collapsed));
+  };
   const [isNarrowScreen, setIsNarrowScreen] = useState(() => window.innerWidth < 768);
   const [mobileCalView, setMobileCalView] = useState("mine");
   const { isMobile } = useViewMode();
@@ -514,28 +521,26 @@ export default function CalendarPage() {
           style={{ width: leaderboardCollapsed ? "2.5rem" : "20rem" }}
         >
           {leaderboardCollapsed ? (
-            <div className="flex flex-col items-center pt-3 gap-3 h-full">
-              <button
-                onClick={() => setLeaderboardCollapsed(false)}
-                className="p-1.5 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                title="Expand leaderboard"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
+            <button
+              onClick={() => toggleLeaderboard(false)}
+              className="flex flex-col items-center pt-3 gap-3 h-full w-full hover:bg-gray-50 transition-colors cursor-pointer"
+              title="Expand leaderboard"
+            >
+              <ChevronLeft className="w-4 h-4 text-gray-400" />
               <span
                 className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest"
                 style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
               >
                 Leaderboard
               </span>
-            </div>
+            </button>
           ) : (
             <div className="p-4 overflow-y-auto flex-1">
               <LeaderboardCard
                 bookings={bookings}
                 cashTransactions={cashTransactions}
                 barbers={barbers}
-                onCollapse={() => setLeaderboardCollapsed(true)}
+                onCollapse={() => toggleLeaderboard(true)}
                 isOwner={isOwner}
                 leaderboardVisible={leaderboardVisible}
                 onToggleVisibility={handleToggleLeaderboard}
