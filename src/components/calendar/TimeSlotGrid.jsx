@@ -311,8 +311,8 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
         <input
           type="range"
           min={0.5}
-          max={2}
-          step={0.02}
+          max={1.25}
+          step={0.01}
           value={columnZoom}
           onChange={(e) => setColumnZoom(parseFloat(e.target.value))}
           className="flex-1 h-1 accent-[#8B9A7E] cursor-pointer"
