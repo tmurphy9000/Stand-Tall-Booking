@@ -202,7 +202,7 @@ const MIN_COLUMN_WIDTH = 60;
 export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlotClick, onBookingContext, onDrop, onBookingResize, zoomLevel = 1 }) {
   const containerRef = React.useRef(null);
   const [containerWidth, setContainerWidth] = React.useState(0);
-  const [columnZoom, setColumnZoom] = useState(1);
+  const [columnZoom, setColumnZoom] = useState(0.625);
   const pinchRef = useRef({ initialDistance: null, initialZoom: 1 });
 
   React.useEffect(() => {
