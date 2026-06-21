@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useLayoutEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,6 +15,20 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
   const [showLate, setShowLate] = useState(false);
   const [showDeleteBlock, setShowDeleteBlock] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
+
+  const menuRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const el = menuRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    if (rect.bottom > window.innerHeight - 8) {
+      el.style.top = `${Math.max(8, window.innerHeight - rect.height - 8)}px`;
+    }
+    if (rect.right > window.innerWidth - 8) {
+      el.style.left = `${Math.max(8, window.innerWidth - rect.width - 8)}px`;
+    }
+  }, [position.x, position.y]);
 
   const isBlock = booking?.client_name === "BLOCKED TIME";
 
@@ -52,6 +66,7 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
       {/* Context dropdown */}
       {!showCancel && !showNoShow && !showLate && !showDeleteBlock && (
         <div
+          ref={menuRef}
           className="fixed z-50 bg-white rounded-xl shadow-xl border border-gray-100 py-1 min-w-[180px]"
           style={{ top: position.y, left: position.x }}
         >

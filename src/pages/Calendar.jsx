@@ -195,7 +195,7 @@ export default function CalendarPage() {
   const handleBookingContext = (e, booking) => {
     e.preventDefault();
     e.stopPropagation();
-    setContextMenu({ booking, position: { x: Math.min(e.clientX, window.innerWidth - 200), y: Math.min(e.clientY, window.innerHeight - 250) } });
+    setContextMenu({ booking, position: { x: Math.min(e.clientX, window.innerWidth - 200), y: e.clientY } });
   };
 
   const deleteBooking = useMutation({

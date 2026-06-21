@@ -365,11 +365,12 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
           </div>
         )}
 
-        {/* Time grid */}
-        {timeSlots.map((slot, i) => {
-          return (
-            <div key={slot.time} className="flex" style={{ height: `${slotHeight}px` }}>
-              <div className="w-14 flex-shrink-0 pr-2 text-right">
+        {/* Time grid — column-per-barber layout: block children with explicit height
+            stack with zero gaps, eliminating the flex row-wrapper dead zone */}
+        <div className="flex">
+          <div className="w-14 flex-shrink-0">
+            {timeSlots.map((slot) => (
+              <div key={slot.time} className="pr-2 text-right" style={{ height: `${slotHeight}px` }}>
                 <span className={cn(
                   "text-[10px] leading-none relative -top-1.5",
                   slot.isHour ? "text-gray-600 font-bold" : "text-gray-400"
@@ -377,11 +378,14 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
                   {slot.label}
                 </span>
               </div>
-              {barbers.map((barber) => {
+            ))}
+          </div>
+          {barbers.map((barber) => (
+            <div key={barber.id} style={{ width: `${COLUMN_WIDTH}px`, minWidth: `${COLUMN_WIDTH}px` }}>
+              {timeSlots.map((slot, i) => {
                 const bookable = isSlotBookable(slot.time, barber.hours, shopHours, dayName);
                 const slotBookings = getBookingsForBarberSlot(barber.id, slot.time);
                 const isDragOver = dragOverSlot === `${barber.id}-${slot.time}`;
-
                 return (
                   <div
                     key={`${barber.id}-${slot.time}`}
@@ -392,7 +396,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
                       slot.minute === 0 && "border-t border-gray-200/50",
                       isDragOver && bookable && "bg-[#8B9A7E]/10"
                     )}
-                    style={{ width: `${COLUMN_WIDTH}px`, minWidth: `${COLUMN_WIDTH}px` }}
+                    style={{ height: `${slotHeight}px` }}
                     onClick={(e) => bookable && onSlotClick(e, barber, slot.time, dateStr)}
                     onDragOver={(e) => bookable && handleDragOver(e, barber.id, slot.time)}
                     onDragLeave={() => setDragOverSlot(null)}
@@ -414,8 +418,8 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
                 );
               })}
             </div>
-          );
-        })}
+          ))}
+        </div>
       </div>
     </div>
     </div>
