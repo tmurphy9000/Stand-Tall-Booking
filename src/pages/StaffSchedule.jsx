@@ -52,11 +52,16 @@ export default function StaffSchedule() {
   });
 
   const handleSubmitRequest = () => {
-    if (!currentBarber || !formData.start_date || !formData.end_date) {
-      toast.error("Please fill in all required fields");
+    console.log("[StaffSchedule] submit — currentBarber:", currentBarber, "| formData:", formData);
+    if (!currentBarber) {
+      toast.error("Your account is not linked to a barber profile");
       return;
     }
-    
+    if (!formData.start_date || !formData.end_date) {
+      toast.error("Please select start and end dates");
+      return;
+    }
+
     createRequest.mutate({
       barber_id: currentBarber.id,
       barber_name: currentBarber.name,

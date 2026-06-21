@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff, Tag, Monitor, CreditCard, Bell, BookOpen, Lock, Wallet, Tablet, ChevronRight } from "lucide-react";
+import { Loader2, Store, Users, Scissors, Clock, Shield, Mail, DollarSign, PhoneOff, Tag, Monitor, CreditCard, Bell, BookOpen, Lock, Wallet, Tablet, ChevronRight, CalendarOff } from "lucide-react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "../utils";
 import { cn } from "@/lib/utils";
@@ -29,6 +29,7 @@ import PaymentsSettings from "../components/settings/PaymentsSettings";
 import ClientNotificationsSettings from "../components/settings/ClientNotificationsSettings";
 import BookingPageSettings from "../components/settings/BookingPageSettings";
 import KioskSettings from "../components/settings/KioskSettings";
+import StaffSchedule from "./StaffSchedule";
 import { usePermissions } from "../components/permissions/usePermissions";
 import { usePlanGate } from "@/hooks/usePlanGate";
 import PlanGateModal from "@/components/PlanGateModal";
@@ -136,6 +137,7 @@ export default function SettingsPage() {
     { value: "subscription", label: "Subscription", icon: CreditCard },
     { value: "payments", label: "Payments", icon: Wallet },
     ...(hasFullAccess ? [{ value: "calloff", label: "Call-Off", icon: PhoneOff }] : []),
+    { value: "timeoff", label: "Time-Off", icon: CalendarOff },
   ];
 
   const inviteBarberClick = () => {
@@ -362,6 +364,7 @@ export default function SettingsPage() {
         {hasFullAccess && activeTab === "calloff" && <CallOffManager />}
         {hasFullAccess && activeTab === "payroll" && <PayrollManager />}
 
+        {activeTab === "timeoff" && <StaffSchedule />}
         {activeTab === "subscription" && <SubscriptionManager />}
         {activeTab === "payments" && <PaymentsSettings />}
 

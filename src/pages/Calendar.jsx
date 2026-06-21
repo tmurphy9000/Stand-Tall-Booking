@@ -86,6 +86,11 @@ export default function CalendarPage() {
     queryFn: () => entities.CashTransaction.list("-date", 500),
   });
 
+  const { data: approvedTimeOff = [] } = useQuery({
+    queryKey: ["timeOffRequests", "approved"],
+    queryFn: () => entities.TimeOffRequest.filter({ status: "approved" }),
+  });
+
   const createBooking = useMutation({
     mutationFn: (data) => entities.Booking.create(data),
     onSuccess: () => {
@@ -371,6 +376,7 @@ export default function CalendarPage() {
           onDrop={handleDrop}
           onBookingResize={handleBookingResize}
           zoomLevel={zoomLevel}
+          approvedTimeOff={approvedTimeOff}
         />
       ) : (
         <div className="flex-1 overflow-x-auto">

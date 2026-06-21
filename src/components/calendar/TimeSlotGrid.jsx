@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { format, parse, addMinutes, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -199,7 +199,7 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
 
 const MIN_COLUMN_WIDTH = 60;
 
-export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlotClick, onBookingContext, onDrop, onBookingResize, zoomLevel = 1 }) {
+export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlotClick, onBookingContext, onDrop, onBookingResize, zoomLevel = 1, approvedTimeOff = [] }) {
   const containerRef = React.useRef(null);
   const [containerWidth, setContainerWidth] = React.useState(0);
   const [columnZoom, setColumnZoom] = useState(0.625);
@@ -253,6 +253,18 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
   const timeSlots = generateTimeSlots(7, 22);
   const dayName = format(date, "EEEE").toLowerCase();
   const dateStr = format(date, "yyyy-MM-dd");
+
+  // Barbers whose approved time-off covers the current date
+  const barbersOnTimeOff = useMemo(() => {
+    const ids = new Set();
+    for (const req of approvedTimeOff) {
+      if (req.barber_id && dateStr >= req.start_date && dateStr <= req.end_date) {
+        ids.add(req.barber_id);
+      }
+    }
+    return ids;
+  }, [approvedTimeOff, dateStr]);
+
   const gridRef = useRef(null);
   const [dragOverSlot, setDragOverSlot] = useState(null);
   const [now, setNow] = useState(new Date());
@@ -330,6 +342,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
               b.status !== "cancelled"
             ).length;
             
+            const isOnTimeOff = barbersOnTimeOff.has(barber.id);
             return (
               <div key={barber.id} className="px-1 py-1 text-center border-l border-gray-50" style={{ width: `${COLUMN_WIDTH}px`, minWidth: `${COLUMN_WIDTH}px` }}>
                 <div className="flex flex-col items-center gap-0.5">
@@ -344,6 +357,11 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
                   <span className="text-[8px] font-bold text-[#8B9A7E] bg-[#8B9A7E]/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">
                     {barberAppointmentCount} appts
                   </span>
+                  {isOnTimeOff && (
+                    <span className="text-[8px] font-semibold text-orange-600 bg-orange-50 border border-orange-200 px-1.5 py-0.5 rounded-full whitespace-nowrap">
+                      Time Off
+                    </span>
+                  )}
                 </div>
               </div>
             );
@@ -380,10 +398,12 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
               </div>
             ))}
           </div>
-          {barbers.map((barber) => (
+          {barbers.map((barber) => {
+            const barberOnTimeOff = barbersOnTimeOff.has(barber.id);
+            return (
             <div key={barber.id} style={{ width: `${COLUMN_WIDTH}px`, minWidth: `${COLUMN_WIDTH}px` }}>
               {timeSlots.map((slot, i) => {
-                const bookable = isSlotBookable(slot.time, barber.hours, shopHours, dayName);
+                const bookable = !barberOnTimeOff && isSlotBookable(slot.time, barber.hours, shopHours, dayName);
                 const slotBookings = getBookingsForBarberSlot(barber.id, slot.time);
                 const isDragOver = dragOverSlot === `${barber.id}-${slot.time}`;
                 return (
@@ -391,7 +411,8 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
                     key={`${barber.id}-${slot.time}`}
                     className={cn(
                       "calendar-slot border-l border-b border-gray-50 relative",
-                      !bookable && "bg-gray-200/80",
+                      barberOnTimeOff && "bg-orange-50/70",
+                      !barberOnTimeOff && !bookable && "bg-gray-200/80",
                       bookable && "hover:bg-[#8B9A7E]/5 cursor-pointer",
                       slot.minute === 0 && "border-t border-gray-200/50",
                       isDragOver && bookable && "bg-[#8B9A7E]/10"
@@ -418,7 +439,8 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
                 );
               })}
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

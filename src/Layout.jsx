@@ -14,7 +14,6 @@ import { useAuth } from "./lib/AuthContext";
 const tabs = [
   { name: "Calendar", icon: Calendar, page: "Calendar" },
   { name: "Quick Checkout", shortName: "Checkout", icon: DollarSign, page: "QuickCheckout" },
-  { name: "Schedule", icon: Users, page: "StaffSchedule" },
   { name: "Clients", icon: Users, page: "ClientList" },
   { name: "Inventory", icon: Package, page: "Inventory" },
   { name: "Personal Report", shortName: "Report", icon: BarChart3, page: "Reports" },
@@ -97,7 +96,6 @@ export default function Layout({ children, currentPageName }) {
             {tabs
               .filter(tab => {
                 if (tab.requiresFullAccess && !hasFullAccess) return false;
-                if (tab.page === "StaffSchedule" && !currentBarber && !hasFullAccess) return false;
                 return true;
               })
               .map((tab) => {
@@ -194,8 +192,7 @@ export default function Layout({ children, currentPageName }) {
               {tabs
                 .filter(tab => {
                   if (tab.requiresFullAccess && !hasFullAccess) return false;
-                  if (tab.page === "StaffSchedule" && !currentBarber && !hasFullAccess) return false;
-                  return true;
+                    return true;
                 })
                 .map((tab) => {
                   const isActive = currentPageName === tab.page;

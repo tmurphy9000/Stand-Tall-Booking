@@ -27,17 +27,20 @@ Deno.serve(async (req) => {
     return json({ error: "Server configuration error" }, 500);
   }
 
-  let body: { code: string; shopId: string; redirectUri: string };
+  let body: { code: string; shopId: string };
   try {
     body = await req.json();
   } catch {
     return json({ error: "Invalid request body" }, 400);
   }
 
-  const { code, shopId, redirectUri } = body;
-  if (!code || !shopId || !redirectUri) {
-    return json({ error: "code, shopId, and redirectUri are required" }, 400);
+  const { code, shopId } = body;
+  if (!code || !shopId) {
+    return json({ error: "code and shopId are required" }, 400);
   }
+
+  // redirect_uri must match what is registered in the Gusto developer dashboard
+  const redirectUri = Deno.env.get("APP_ORIGIN") ?? "https://standtallbooking.com";
 
   console.log("[gusto-oauth-callback] exchanging code for shopId:", shopId);
 
