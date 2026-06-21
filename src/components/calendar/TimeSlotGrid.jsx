@@ -368,7 +368,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
         {/* Time grid */}
         {timeSlots.map((slot, i) => {
           return (
-            <div key={slot.time} className="flex">
+            <div key={slot.time} className="flex" style={{ height: `${slotHeight}px` }}>
               <div className="w-14 flex-shrink-0 pr-2 text-right">
                 <span className={cn(
                   "text-[10px] leading-none relative -top-1.5",
