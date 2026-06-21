@@ -198,7 +198,6 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
 }
 
 const MIN_COLUMN_WIDTH = 60;
-const MAX_COLUMN_WIDTH = 200;
 
 export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlotClick, onBookingContext, onDrop, onBookingResize, zoomLevel = 1 }) {
   const containerRef = React.useRef(null);
@@ -251,7 +250,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
   const baseColumnWidth = barbers.length > 0 && availableWidth > 0
     ? Math.max(MIN_COLUMN_WIDTH, Math.floor(availableWidth / barbers.length))
     : 140;
-  const COLUMN_WIDTH = Math.max(MIN_COLUMN_WIDTH, Math.min(MAX_COLUMN_WIDTH, Math.floor(baseColumnWidth * columnZoom)));
+  const COLUMN_WIDTH = Math.max(MIN_COLUMN_WIDTH, Math.floor(baseColumnWidth * columnZoom));
   const slotHeight = BASE_SLOT_HEIGHT * zoomLevel;
   const timeSlots = generateTimeSlots(7, 22);
   const dayName = format(date, "EEEE").toLowerCase();
@@ -317,7 +316,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
           value={columnZoom}
           onChange={(e) => setColumnZoom(parseFloat(e.target.value))}
           className="flex-1 h-1 accent-[#8B9A7E] cursor-pointer"
-          style={{ accentColor: '#8B9A7E' }}
+          style={{ accentColor: '#8B9A7E', touchAction: 'none' }}
         />
         <span className="text-[9px] text-gray-400 flex-shrink-0">↔</span>
       </div>
