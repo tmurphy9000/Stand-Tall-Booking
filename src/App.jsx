@@ -1,5 +1,4 @@
 import { Toaster } from "sonner"
-import { ViewModeProvider } from '@/lib/ViewModeContext'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
@@ -74,7 +73,6 @@ function App() {
   return (
     <AuthProvider>
       <ThemeProvider>
-      <ViewModeProvider>
         <QueryClientProvider client={queryClientInstance}>
           <Router>
             <NavigationTracker />
@@ -82,7 +80,6 @@ function App() {
           </Router>
           <Toaster />
         </QueryClientProvider>
-      </ViewModeProvider>
       </ThemeProvider>
     </AuthProvider>
   );

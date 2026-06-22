@@ -1,13 +1,11 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
-import { Calendar, Package, BarChart3, Settings, DollarSign, ChevronLeft, ChevronRight, Users, Lock, Monitor, Smartphone, LogOut } from "lucide-react";
+import { Calendar, Package, BarChart3, Settings, DollarSign, ChevronLeft, ChevronRight, Users, Lock, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NotificationBell from "./components/notifications/NotificationBell";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { Switch } from "@/components/ui/switch";
-import { useViewMode } from "./lib/ViewModeContext";
 import { usePermissions } from "./components/permissions/usePermissions";
 import { useAuth } from "./lib/AuthContext";
 
@@ -28,7 +26,6 @@ export default function Layout({ children, currentPageName }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { hasFullAccess, currentBarber, user, hasPermission } = usePermissions();
   const { logout, user: authUser } = useAuth();
-  const { isMobile, setIsMobile } = useViewMode();
 
   return (
     <div className="h-[100dvh] bg-[#FAFAF8] dark:bg-background flex overflow-hidden">
@@ -46,20 +43,6 @@ export default function Layout({ children, currentPageName }) {
               className="w-24 h-24 rounded-lg"
             />
           </Link>
-
-          {/* View Mode Toggle */}
-          <div className={cn("px-2 py-2 border-b border-white/10 flex flex-col items-center gap-1 flex-shrink-0", sidebarCollapsed && "opacity-0")}>
-            <div className="flex items-center gap-1.5">
-              <Monitor className={cn("w-3 h-3", !isMobile ? "text-[#8B9A7E]" : "text-white/40")} />
-              <Switch
-                checked={isMobile}
-                onCheckedChange={setIsMobile}
-                className="scale-75 data-[state=checked]:bg-[#8B9A7E]"
-              />
-              <Smartphone className={cn("w-3 h-3", isMobile ? "text-[#8B9A7E]" : "text-white/40")} />
-            </div>
-            <span className="text-[8px] text-white/40">{isMobile ? "Mobile" : "Desktop"}</span>
-          </div>
 
           {/* User/Sign In Section */}
           <div className={cn("px-2 py-3 border-b border-white/10 flex-shrink-0", sidebarCollapsed && "opacity-0")}>

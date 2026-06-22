@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import BarberAssistant from "../components/assistant/BarberAssistant";
 import LeaderboardCard from "../components/calendar/LeaderboardCard";
 import CheckoutModal from "../components/checkout/CheckoutModal";
-import { useViewMode } from "../lib/ViewModeContext";
+import { useIsMobile } from "../hooks/use-mobile";
 import { useAuth } from "../lib/AuthContext";
 import { usePermissions } from "../components/permissions/usePermissions";
 import { runGapMinimization } from "../lib/scheduleOptimizer";
@@ -45,7 +45,7 @@ export default function CalendarPage() {
   };
   const [isNarrowScreen, setIsNarrowScreen] = useState(() => window.innerWidth < 768);
   const [mobileCalView, setMobileCalView] = useState("mine");
-  const { isMobile } = useViewMode();
+  const isMobile = useIsMobile();
   const { currentBarber, user } = useAuth();
   const { hasPermission } = usePermissions();
   const isOwner = hasPermission('calendar.configuration', 'modify');
