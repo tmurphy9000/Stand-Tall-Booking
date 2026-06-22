@@ -60,6 +60,7 @@ import QuickCheckout from './pages/QuickCheckout';
 import Reports from './pages/Reports';
 import RunPayroll from './pages/RunPayroll';
 import Settings from './pages/Settings';
+import Marketing from './pages/Marketing';
 import StaffSchedule from './pages/StaffSchedule';
 import __Layout from './Layout.jsx';
 
@@ -78,6 +79,7 @@ export const PAGES = {
     "Reports": Reports,
     "RunPayroll": RunPayroll,
     "Settings": Settings,
+    "Marketing": Marketing,
     "StaffSchedule": StaffSchedule,
 }
 
