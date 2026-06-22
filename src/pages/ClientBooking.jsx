@@ -969,6 +969,10 @@ function generateSlots(start, end, intervalMins) {
   return slots;
 }
 
+function isBarberOnTimeOff(barberId, dateStr, timeOff) {
+  return timeOff.some(r => r.barber_id === barberId && dateStr >= r.start_date && dateStr <= r.end_date);
+}
+
 function isSlotTaken(slotTime, duration, bookings) {
   const [sh, sm] = slotTime.split(":").map(Number);
   const slotStart = sh * 60 + sm;
@@ -982,7 +986,7 @@ function isSlotTaken(slotTime, duration, bookings) {
   });
 }
 
-function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack, allBarbers = [], minNotice = 0, guestService = null, guestBarber = null, guestTiming = "back_to_back" }) {
+function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack, allBarbers = [], minNotice = 0, guestService = null, guestBarber = null, guestTiming = "back_to_back", approvedTimeOff = [] }) {
   const [selectedDate, setSelectedDate] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [guestBookings, setGuestBookings] = useState([]);
@@ -1015,7 +1019,9 @@ function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack,
         if (isAny) {
           const working = allBarbers.filter(b => {
             const dh = b.hours?.[dayName];
-            return dh && !dh.off && !dh.closed;
+            if (!dh || dh.off || dh.closed) return false;
+            if (isBarberOnTimeOff(b.id, dateStr, approvedTimeOff)) return false;
+            return true;
           });
           if (working.length === 0) continue;
           try {
@@ -1052,6 +1058,7 @@ function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack,
         } else {
           const dayHours = barber?.hours?.[dayName];
           if (!dayHours || dayHours.off || dayHours.closed) continue;
+          if (isBarberOnTimeOff(barber.id, dateStr, approvedTimeOff)) continue;
           try {
             if (!bookingsCacheRef.current[dateStr]) {
               bookingsCacheRef.current[dateStr] = await entities.Booking.filter({ shop_id: shopId, barber_id: barber.id, date: dateStr });
@@ -1116,13 +1123,16 @@ function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack,
     if (isAny) {
       const anyWorking = allBarbers.some(b => {
         const dh = b.hours?.[dayName];
-        return dh && !dh.off && !dh.closed;
+        if (!dh || dh.off || dh.closed) return false;
+        if (isBarberOnTimeOff(b.id, dateStr, approvedTimeOff)) return false;
+        return true;
       });
       isOff = allBarbers.length > 0 && !anyWorking;
     } else {
       const hasHours = barber?.hours && Object.keys(barber.hours).length > 0;
       const dayHours = barber?.hours?.[dayName];
-      isOff = hasHours && (!dayHours || dayHours.off || dayHours.closed);
+      isOff = isBarberOnTimeOff(barber?.id, dateStr, approvedTimeOff) ||
+              (hasHours && (!dayHours || dayHours.off || dayHours.closed));
     }
     return { dateStr, dayLabel: format(d, "EEE"), dayNum: format(d, "d"), monthLabel: format(d, "MMM"), isOff };
   });
@@ -1195,6 +1205,7 @@ function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack,
 
       if (guestBarber.id === "any") {
         const result = allBarbers.some(b => {
+          if (isBarberOnTimeOff(b.id, selectedDate, approvedTimeOff)) return false;
           const dh = b.hours?.[dayName];
           if (!dh || dh.off || dh.closed) return false;
           if (guestTime < (dh.start || "09:00") || guestTime >= (dh.end || "18:00")) return false;
@@ -1206,6 +1217,7 @@ function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack,
 
       // Specific guest barber — hours check always runs first when hours are configured,
       // regardless of timing mode, then booking-conflict check follows.
+      if (isBarberOnTimeOff(guestBarber.id, selectedDate, approvedTimeOff)) return false;
       const guestHasHours = guestBarber.hours && Object.keys(guestBarber.hours).length > 0;
       console.log("[guest] barber:", guestBarber.name, "| dayName:", dayName,
         "| guestTime:", guestTime, "| timing:", guestTiming, "| hasHours:", guestHasHours,
@@ -1236,6 +1248,7 @@ function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack,
       allBarbers.forEach(b => {
         const dh = b.hours?.[dayName];
         if (!dh || dh.off || dh.closed) return;
+        if (isBarberOnTimeOff(b.id, selectedDate, approvedTimeOff)) return;
         generateSlots(dh.start || "09:00", dh.end || "18:00", 30).forEach(s => timeSet.add(s.time));
       });
       return Array.from(timeSet).sort().map(time => {
@@ -1244,6 +1257,7 @@ function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack,
         const anyFree = !isPast && allBarbers.some(b => {
           const dh = b.hours?.[dayName];
           if (!dh || dh.off || dh.closed) return false;
+          if (isBarberOnTimeOff(b.id, selectedDate, approvedTimeOff)) return false;
           if (time < (dh.start || "09:00") || time >= (dh.end || "18:00")) return false;
           return !isSlotTaken(time, serviceDuration, bookings.filter(bk => bk.barber_id === b.id));
         }) && checkGuestFree(time);
@@ -1253,13 +1267,14 @@ function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack,
 
     const dayHours = barber.hours?.[dayName];
     if (!dayHours || dayHours.off || dayHours.closed) return [];
+    if (isBarberOnTimeOff(barber.id, selectedDate, approvedTimeOff)) return [];
     return generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 30).map(slot => ({
       ...slot,
       taken: isSlotTaken(slot.time, serviceDuration, bookings) ||
              (cutoffHHMM !== null && slot.time <= cutoffHHMM) ||
              !checkGuestFree(slot.time),
     }));
-  }, [selectedDate, barber, bookings, guestBookings, serviceDuration, allBarbers, isAny, minNotice, guestBarber, guestService, guestTiming]);
+  }, [selectedDate, barber, bookings, guestBookings, serviceDuration, allBarbers, isAny, minNotice, guestBarber, guestService, guestTiming, approvedTimeOff]);
 
   return (
     <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
@@ -1879,6 +1894,7 @@ export default function ClientBooking() {
   const [myApptClient, setMyApptClient]   = useState(null);
   const [myApptBookings, setMyApptBookings] = useState([]);
 
+  const [approvedTimeOff, setApprovedTimeOff] = useState([]);
   const [selectedBarber, setSelectedBarber] = useState(null);
   const [selectedService, setSelectedService] = useState(null);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -1938,6 +1954,18 @@ export default function ClientBooking() {
       console.log("[ClientBooking] deposit settings query — data:", depositSettings, "| error:", depositError);
       const activeBarbers = allBarbers.filter((b) => b.is_active !== false && b.online_bookable !== false && !b.bookings_blocked);
       setBarbers(sortBarbersForBooking(activeBarbers, todaysBookings, settings.schedule_optimizer_enabled !== false));
+
+      // Fetch approved time-off scoped to this shop's active barbers so the
+      // booking page can block those dates from online booking.
+      const barberIds = activeBarbers.map(b => b.id);
+      if (barberIds.length > 0) {
+        const { data: timeOffData } = await supabase
+          .from("time_off_requests")
+          .select("barber_id, start_date, end_date")
+          .eq("status", "approved")
+          .in("barber_id", barberIds);
+        setApprovedTimeOff(timeOffData || []);
+      }
       setAllServices(svcs.filter((s) => s.is_active !== false));
       setShopSettings(settings);
       const resolvedDepositConfig = {
@@ -2277,6 +2305,7 @@ export default function ClientBooking() {
             maxDays={maxDays}
             minNotice={minBookingNotice}
             allBarbers={barbers}
+            approvedTimeOff={approvedTimeOff}
             guestService={hasGuest ? guestService : null}
             guestBarber={hasGuest ? guestBarber : null}
             guestTiming={hasGuest ? guestTiming : "back_to_back"}
