@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight, Plus, RefreshCw, CalendarIcon } from "lucide-react";
 
@@ -10,6 +10,12 @@ import { Calendar } from "@/components/ui/calendar";
 
 export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, setViewMode, onNewBooking, barberGroupIndex, setBarberGroupIndex, totalBarberGroups, zoomLevel, setZoomLevel, onRefresh, isRefreshing, mobileCalView, setMobileCalView }) {
   const [calOpen, setCalOpen] = useState(false);
+  const [now, setNow] = useState(new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   const goNext = () => {
     setCurrentDate(prev => addDays(prev, viewMode === "day" ? 1 : 7));
@@ -38,12 +44,13 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
 
         <Popover open={calOpen} onOpenChange={setCalOpen}>
           <PopoverTrigger asChild>
-            <button className="flex items-center gap-1 text-xs font-semibold text-[#0A0A0A] hover:text-[#8B9A7E] transition-colors">
+            <button className="flex items-center gap-1 text-xs font-semibold text-[#0A0A0A] dark:text-gray-100 hover:text-[#8B9A7E] transition-colors">
               <CalendarIcon className="w-3.5 h-3.5" />
               {viewMode === "day"
                 ? format(currentDate, "EEEE, MMM d")
                 : `${format(weekStart, "MMM d")} - ${format(addDays(weekStart, 6), "MMM d, yyyy")}`
               }
+              <span className="hidden md:inline text-gray-400 dark:text-gray-500 font-normal"> • {format(now, "h:mm a")}</span>
             </button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0 z-50" align="center">
