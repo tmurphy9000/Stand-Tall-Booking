@@ -1,11 +1,12 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { entities } from "@/api/entities";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, User, Phone, Mail, Loader2, ShieldAlert, MessageSquare } from "lucide-react";
+import { ArrowLeft, User, Phone, Mail, Loader2, ShieldAlert, MessageSquare, CalendarDays } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { createPageUrl, formatPhoneNumber } from "../utils";
 import { usePermissions } from "../components/permissions/usePermissions";
 import { CopyButton } from "@/components/ui/copy-button";
@@ -31,6 +32,13 @@ export default function ClientDetails() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["client", clientId] }),
   });
 
+  const saveBirthdate = useMutation({
+    mutationFn: (birthdate) => entities.Client.update(clientId, { birthdate: birthdate || null }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["client", clientId] }),
+  });
+
+  const [birthdateInput, setBirthdateInput] = useState("");
+
   const { data: client, isLoading: clientLoading } = useQuery({
     queryKey: ["client", clientId],
     queryFn: () => entities.Client.filter({ id: clientId }).then(r => r[0]),
@@ -44,6 +52,10 @@ export default function ClientDetails() {
   });
 
   const clientBookings = allBookings.filter(b => b.client_id === clientId);
+
+  useEffect(() => {
+    if (client) setBirthdateInput(client.birthdate ?? "");
+  }, [client]);
 
   if (clientLoading) {
     return (
@@ -187,6 +199,34 @@ export default function ClientDetails() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Birthdate */}
+        {canManageClients && (
+          <Card className="mb-6">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <CalendarDays className="w-4 h-4 text-[#8B9A7E] flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">Birthday</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">Used for automated birthday emails</p>
+                  </div>
+                </div>
+                <Input
+                  type="date"
+                  value={birthdateInput}
+                  onChange={e => setBirthdateInput(e.target.value)}
+                  onBlur={e => {
+                    const val = e.target.value;
+                    if (val !== (client.birthdate ?? "")) saveBirthdate.mutate(val);
+                  }}
+                  disabled={saveBirthdate.isPending}
+                  className="w-40 h-8 text-sm"
+                />
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Staff Notes */}
         {client.staff_notes && (

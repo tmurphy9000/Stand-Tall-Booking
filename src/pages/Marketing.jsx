@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Megaphone, Tag, History, Settings, Mail, Plus, ChevronLeft,
   Send, Sparkles, Link2, Loader2, Users, FileText, TicketPercent,
-  Eye, EyeOff, Check,
+  Eye, EyeOff, Check, Star, RefreshCw, CalendarDays, Info,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -733,6 +734,245 @@ function HistoryTab({ campaigns, campaignStats }) {
   );
 }
 
+// ── Marketing Settings tab ────────────────────────────────────────────────────
+
+const DEFAULT_MS = {
+  review_request_enabled:       false,
+  review_request_after_visits:  3,
+  google_review_enabled:        false,
+  google_review_url:            "",
+  yelp_review_enabled:          false,
+  yelp_review_url:              "",
+  winback_enabled:              false,
+  winback_days:                 60,
+  winback_template_id:          "",
+  winback_promo_code_id:        "",
+  birthday_enabled:             false,
+  birthday_template_id:         "",
+};
+
+function MarketingSettingsTab({ shopSettings, templates, promoCodes, onSaved }) {
+  const [form, setForm]       = useState({ ...DEFAULT_MS, ...(shopSettings?.marketing_settings ?? {}) });
+  const [saving, setSaving]   = useState(false);
+  const [running, setRunning] = useState({ review: false, winback: false, birthday: false });
+
+  function set(key, val) { setForm(f => ({ ...f, [key]: val })); }
+
+  async function save() {
+    if (!shopSettings?.id) { toast.error("Could not locate shop settings row"); return; }
+    setSaving(true);
+    try {
+      const { error } = await supabase
+        .from("shop_settings")
+        .update({ marketing_settings: form })
+        .eq("id", shopSettings.id);
+      if (error) throw error;
+      toast.success("Settings saved");
+      onSaved?.();
+    } catch (err) {
+      toast.error("Failed to save settings", { description: err?.message });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function runNow(type) {
+    setRunning(r => ({ ...r, [type]: true }));
+    const fnMap = { review: "automation-review-request", winback: "automation-winback", birthday: "automation-birthday" };
+    try {
+      const { data, error } = await supabase.functions.invoke(fnMap[type], { body: {} });
+      if (error) throw error;
+      if (data?.skipped) toast.info(`Automation skipped: ${data.skipped}`);
+      else toast.success(`Ran: ${data?.sent ?? 0} email${data?.sent !== 1 ? "s" : ""} sent${data?.failed ? `, ${data.failed} failed` : ""}`);
+    } catch (err) {
+      toast.error(`Failed to run ${type} automation`, { description: err?.message });
+    } finally {
+      setRunning(r => ({ ...r, [type]: false }));
+    }
+  }
+
+  const winbackTemplates  = templates.filter(t => t.segment_type === "win_back");
+  const birthdayTemplates = templates.filter(t => t.segment_type === "birthday" || t.name?.toLowerCase().includes("birthday"));
+
+  return (
+    <div className="p-6 max-w-2xl space-y-8">
+
+      {/* ── Review Request ── */}
+      <section className="space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <Star className="w-4 h-4 text-amber-500" />
+              <h3 className="font-semibold">Review Request</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">Send a one-time review request after a client's Nth visit. Fires once per client, ever.</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={() => runNow("review")} disabled={running.review}>
+              {running.review ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
+              Run now
+            </Button>
+            <Switch checked={!!form.review_request_enabled} onCheckedChange={v => set("review_request_enabled", v)} className="data-[state=checked]:bg-[#8B9A7E]" />
+          </div>
+        </div>
+
+        {form.review_request_enabled && (
+          <div className="pl-6 space-y-4 border-l-2 border-[#8B9A7E]/30">
+            <div className="flex items-center gap-3">
+              <Label className="text-sm whitespace-nowrap">Send after</Label>
+              <Input type="number" value={form.review_request_after_visits} onChange={e => set("review_request_after_visits", Number(e.target.value))} className="w-20 h-8" min={1} max={20} />
+              <span className="text-sm text-muted-foreground">completed visits</span>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <Switch checked={!!form.google_review_enabled} onCheckedChange={v => set("google_review_enabled", v)} className="data-[state=checked]:bg-[#8B9A7E]" />
+                <Label className="text-sm">Google Reviews</Label>
+              </div>
+              {form.google_review_enabled && (
+                <Input value={form.google_review_url} onChange={e => set("google_review_url", e.target.value)} placeholder="https://g.page/r/your-business/review" className="h-8 text-sm" />
+              )}
+
+              <div className="flex items-center gap-3">
+                <Switch checked={!!form.yelp_review_enabled} onCheckedChange={v => set("yelp_review_enabled", v)} className="data-[state=checked]:bg-[#8B9A7E]" />
+                <Label className="text-sm">Yelp Reviews</Label>
+              </div>
+              {form.yelp_review_enabled && (
+                <Input value={form.yelp_review_url} onChange={e => set("yelp_review_url", e.target.value)} placeholder="https://www.yelp.com/writeareview/biz/..." className="h-8 text-sm" />
+              )}
+            </div>
+          </div>
+        )}
+      </section>
+
+      <div className="border-t border-border" />
+
+      {/* ── Win-Back ── */}
+      <section className="space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <RefreshCw className="w-4 h-4 text-blue-500" />
+              <h3 className="font-semibold">Win-Back</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">Daily: email clients whose last completed visit was exactly N days ago.</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={() => runNow("winback")} disabled={running.winback}>
+              {running.winback ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
+              Run now
+            </Button>
+            <Switch checked={!!form.winback_enabled} onCheckedChange={v => set("winback_enabled", v)} className="data-[state=checked]:bg-[#8B9A7E]" />
+          </div>
+        </div>
+
+        {form.winback_enabled && (
+          <div className="pl-6 space-y-4 border-l-2 border-[#8B9A7E]/30">
+            <div className="flex items-center gap-3">
+              <Label className="text-sm whitespace-nowrap">Days since last visit</Label>
+              <Input type="number" value={form.winback_days} onChange={e => set("winback_days", Number(e.target.value))} className="w-24 h-8" min={7} />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-sm">Template</Label>
+              <Select value={form.winback_template_id || "__default"} onValueChange={v => set("winback_template_id", v === "__default" ? "" : v)}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Use default win-back template" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__default">Default (built-in)</SelectItem>
+                  {winbackTemplates.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {promoCodes.length > 0 && (
+              <div className="space-y-1.5">
+                <Label className="text-sm">Promo code to include</Label>
+                <Select value={form.winback_promo_code_id || "__none"} onValueChange={v => set("winback_promo_code_id", v === "__none" ? "" : v)}>
+                  <SelectTrigger className="h-8 text-sm">
+                    <SelectValue placeholder="None" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__none">None</SelectItem>
+                    {promoCodes.map(p => (
+                      <SelectItem key={p.id} value={p.id}>{p.code} ({p.type === "percent" ? `${p.value}%` : `$${p.value}`} off)</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">Template must include {"{{"+"promo_code"+"}}"} placeholder.</p>
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      <div className="border-t border-border" />
+
+      {/* ── Birthday ── */}
+      <section className="space-y-4">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 mb-0.5">
+              <CalendarDays className="w-4 h-4 text-pink-500" />
+              <h3 className="font-semibold">Birthday</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">Daily: send a birthday email to clients whose birthday is today. Once per calendar year per client.</p>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={() => runNow("birthday")} disabled={running.birthday}>
+              {running.birthday ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : <RefreshCw className="w-3.5 h-3.5 mr-1" />}
+              Run now
+            </Button>
+            <Switch checked={!!form.birthday_enabled} onCheckedChange={v => set("birthday_enabled", v)} className="data-[state=checked]:bg-[#8B9A7E]" />
+          </div>
+        </div>
+
+        {form.birthday_enabled && (
+          <div className="pl-6 space-y-4 border-l-2 border-[#8B9A7E]/30">
+            <p className="text-sm text-muted-foreground">
+              Client birthdates are set per client in the Clients tab. The default "Happy Birthday" template is used unless you select a custom one.
+            </p>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Template</Label>
+              <Select value={form.birthday_template_id || "__default"} onValueChange={v => set("birthday_template_id", v === "__default" ? "" : v)}>
+                <SelectTrigger className="h-8 text-sm">
+                  <SelectValue placeholder="Use default birthday template" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__default">Default (built-in)</SelectItem>
+                  {birthdayTemplates.map(t => (
+                    <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <div className="border-t border-border" />
+
+      {/* ── Scheduling info ── */}
+      <section className="flex gap-3 p-4 rounded-xl bg-muted/40 border border-border">
+        <Info className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
+        <div className="text-sm text-muted-foreground space-y-1">
+          <p className="font-medium text-foreground">Setting up daily scheduling</p>
+          <p>Use the <strong>Run now</strong> buttons above to test any automation immediately.</p>
+          <p>For automated daily sends, go to the <strong>Supabase Dashboard → Edge Functions</strong>, select each automation function, and add a schedule of <code className="font-mono text-xs">0 10 * * *</code> (10 AM UTC daily).</p>
+        </div>
+      </section>
+
+      <Button onClick={save} disabled={saving} className="bg-[#8B9A7E] hover:bg-[#7a8970] text-white">
+        {saving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+        Save settings
+      </Button>
+    </div>
+  );
+}
+
 // ── Main Marketing page ────────────────────────────────────────────────────────
 
 export default function Marketing() {
@@ -742,6 +982,7 @@ export default function Marketing() {
   const [campaigns, setCampaigns]         = useState([]);
   const [templates, setTemplates]         = useState([]);
   const [promoCodes, setPromoCodes]       = useState([]);
+  const [shopSettings, setShopSettings]   = useState(null);
   const [shop, setShop]                   = useState(null);
   const [loading, setLoading]             = useState(true);
   const [campaignStats, setCampaignStats] = useState({}); // campaign_id -> { opens, clicks }
@@ -749,14 +990,16 @@ export default function Marketing() {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [shopRes, campaignRes, promoRes] = await Promise.all([
+      const [shopRes, campaignRes, promoRes, settingsRes] = await Promise.all([
         supabase.from("shops").select("id, name, url_slug").limit(1).single(),
         supabase.from("marketing_campaigns").select("*").order("created_at", { ascending: false }),
         supabase.from("promo_codes").select("id, code, type, value").eq("active", true).order("code"),
+        supabase.from("shop_settings").select("id, marketing_settings").limit(1).single(),
       ]);
 
-      if (shopRes.data)     setShop(shopRes.data);
-      if (promoRes.data)    setPromoCodes(promoRes.data);
+      if (shopRes.data)      setShop(shopRes.data);
+      if (promoRes.data)     setPromoCodes(promoRes.data);
+      if (settingsRes.data)  setShopSettings(settingsRes.data);
 
       const allCampaigns = campaignRes.data ?? [];
       setTemplates(allCampaigns.filter(c => c.status === "template"));
@@ -909,11 +1152,11 @@ export default function Marketing() {
             )}
 
             {activeTab === "settings" && (
-              <EmptyTab
-                icon={Settings}
-                title="Marketing Settings"
-                description="Configure your Google and Yelp review links, set automation timing, and manage email sender preferences."
-                phase="Phase 4"
+              <MarketingSettingsTab
+                shopSettings={shopSettings}
+                templates={templates}
+                promoCodes={promoCodes}
+                onSaved={loadData}
               />
             )}
           </>
