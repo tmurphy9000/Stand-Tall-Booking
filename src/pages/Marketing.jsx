@@ -958,10 +958,15 @@ function MarketingSettingsTab({ shopSettings, templates, promoCodes, onSaved }) 
       {/* ── Scheduling info ── */}
       <section className="flex gap-3 p-4 rounded-xl bg-muted/40 border border-border">
         <Info className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-        <div className="text-sm text-muted-foreground space-y-1">
-          <p className="font-medium text-foreground">Setting up daily scheduling</p>
-          <p>Use the <strong>Run now</strong> buttons above to test any automation immediately.</p>
-          <p>For automated daily sends, go to the <strong>Supabase Dashboard → Edge Functions</strong>, select each automation function, and add a schedule of <code className="font-mono text-xs">0 10 * * *</code> (10 AM UTC daily).</p>
+        <div className="text-sm text-muted-foreground space-y-2">
+          <p className="font-medium text-foreground">Daily scheduling is set up via pg_cron</p>
+          <p>Each automation runs daily at <strong>10 AM US Eastern (14:00 UTC)</strong> via a database cron job. Use the <strong>Run now</strong> buttons above to trigger them immediately for testing.</p>
+          <p>One-time setup required — run this once in the <strong>Supabase SQL Editor</strong>:</p>
+          <code className="block font-mono text-xs bg-muted px-3 py-2 rounded border border-border whitespace-pre">
+            {"ALTER DATABASE postgres\n  SET app.settings.service_role_key = '<your-service-role-key>';"}
+          </code>
+          <p>Find your service role key at <strong>Project Settings → API → service_role</strong>. Until set, cron jobs run but authentication fails silently.</p>
+          <p>To verify the jobs are active, run in the SQL Editor: <code className="font-mono text-xs">SELECT jobname, schedule, active FROM cron.job WHERE jobname LIKE 'automation-%';</code></p>
         </div>
       </section>
 
