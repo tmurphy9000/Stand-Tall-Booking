@@ -225,11 +225,11 @@ export default function StaffSchedule() {
                 {timeOffRequests
                   .filter(r => r.status === "approved")
                   .map(request => (
-                    <div key={request.id} className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                    <div key={request.id} className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-semibold text-sm">{request.barber_name}</p>
-                          <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
+                          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">{request.barber_name}</p>
+                          <div className="flex items-center gap-2 mt-1 text-sm text-gray-600 dark:text-gray-300">
                             <Calendar className="w-4 h-4" />
                             <span>
                               {format(parseISO(request.start_date), "MMM d")} - {format(parseISO(request.end_date), "MMM d, yyyy")}

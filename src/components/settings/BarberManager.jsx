@@ -129,7 +129,7 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
 
       <div className="space-y-2">
         {barbers.map(b => (
-          <div key={b.id} className="bg-gray-50 rounded-xl px-3 py-3 flex items-center gap-3">
+          <div key={b.id} className="bg-gray-50 dark:bg-muted/30 rounded-xl px-3 py-3 flex items-center gap-3">
             {b.photo_url ? (
               <img src={b.photo_url} alt={b.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-[#B0BFA4]/30 flex-shrink-0" />
             ) : (
@@ -139,7 +139,7 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
             )}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <p className="text-sm font-medium">{b.name}</p>
+                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{b.name}</p>
                 {b.is_active !== false ? (
                   <span className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">Active</span>
                 ) : (
@@ -202,7 +202,7 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
               {form.photo_url ? (
                 <img src={form.photo_url} alt="" className="w-16 h-16 rounded-full object-cover ring-2 ring-[#B0BFA4]/30 flex-shrink-0" />
               ) : (
-                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-muted flex items-center justify-center flex-shrink-0">
                   {form.name ? (
                     <span className="text-xl font-bold text-gray-400">{form.name.charAt(0).toUpperCase()}</span>
                   ) : (
@@ -212,7 +212,7 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
               )}
               <div className="flex flex-col gap-1">
                 <label htmlFor="barber-photo-upload" className="cursor-pointer">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium hover:bg-gray-50 transition-colors">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-border text-xs font-medium hover:bg-gray-50 dark:hover:bg-muted/30 transition-colors">
                     {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
                     {uploading ? "Uploading…" : "Upload Photo"}
                   </div>
@@ -265,7 +265,7 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-muted/30 rounded-lg border dark:border-border">
               <div>
                 <Label className="text-sm font-medium">Employment Status</Label>
                 <p className="text-xs text-gray-500">{form.is_active !== false ? "Active" : "Terminated"}</p>
