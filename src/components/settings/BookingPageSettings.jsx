@@ -109,12 +109,12 @@ function InfoModal({ title, children, onClose }) {
       onClick={onClose}
     >
       <div
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+        className="relative bg-white dark:bg-card rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h3 className="text-sm font-semibold text-gray-900">{title}</h3>
-          <button onClick={onClose} className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-border">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+          <button onClick={onClose} className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-muted transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -374,8 +374,8 @@ export default function BookingPageSettings() {
             <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Your Booking URL</h3>
             <InfoButton onClick={() => setActiveModal("bookingUrl")} />
           </div>
-          <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
-            <p className="text-sm font-mono text-gray-700 break-all select-all">
+          <div className="p-3 bg-gray-50 dark:bg-muted/30 border border-gray-200 dark:border-border rounded-lg">
+            <p className="text-sm font-mono text-gray-700 dark:text-gray-300 break-all select-all">
               {BASE_URL}/book/{urlSlug}
             </p>
           </div>
@@ -497,15 +497,15 @@ export default function BookingPageSettings() {
         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Shop Logo</h3>
         <div className="flex items-center gap-4">
           {logoUrl ? (
-            <img src={logoUrl} alt="Booking logo" className="w-16 h-16 rounded-xl object-cover border border-gray-200" />
+            <img src={logoUrl} alt="Booking logo" className="w-16 h-16 rounded-xl object-cover border border-gray-200 dark:border-border" />
           ) : (
-            <div className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center">
+            <div className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-200 dark:border-border flex items-center justify-center">
               <Upload className="w-5 h-5 text-gray-300" />
             </div>
           )}
           <div>
             <Label htmlFor="logo-upload" className="cursor-pointer">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 text-xs font-medium hover:bg-gray-50 transition-colors">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-border text-xs font-medium hover:bg-gray-50 dark:hover:bg-muted/30 transition-colors">
                 {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                 {uploading ? "Uploading…" : "Upload Logo"}
               </div>
@@ -605,7 +605,7 @@ export default function BookingPageSettings() {
       </section>
 
       {/* ── Bottom save ── */}
-      <div className="flex justify-end pt-2 border-t border-gray-100">
+      <div className="flex justify-end pt-2 border-t border-gray-100 dark:border-border">
         <Button
           size="sm"
           className="h-8 bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white gap-2"
@@ -633,7 +633,7 @@ export default function BookingPageSettings() {
 
       {activeModal === "iframe" && (
         <InfoModal title="Embed with iFrame" onClose={() => setActiveModal(null)}>
-          <div className="flex items-center justify-center w-full h-20 mb-3 bg-gray-50 rounded-xl border border-gray-100">
+          <div className="flex items-center justify-center w-full h-20 mb-3 bg-gray-50 dark:bg-muted/30 rounded-xl border border-gray-100 dark:border-border">
             <div className="flex flex-col items-center gap-1">
               <div className="w-24 h-10 rounded-lg bg-gray-200 flex items-center justify-center">
                 <div className="w-16 h-6 rounded bg-[#8B9A7E]/50" />
@@ -653,7 +653,7 @@ export default function BookingPageSettings() {
 
       {activeModal === "scriptTag" && (
         <InfoModal title="Embed with Script Tag" onClose={() => setActiveModal(null)}>
-          <div className="flex items-center justify-center w-full h-20 mb-3 bg-gray-50 rounded-xl border border-gray-100">
+          <div className="flex items-center justify-center w-full h-20 mb-3 bg-gray-50 dark:bg-muted/30 rounded-xl border border-gray-100 dark:border-border">
             <div className="text-[10px] text-gray-400 font-mono px-4 text-center leading-relaxed">
               {'<script src="…"'}<br />{'  data-shop="your-shop"'}<br />{'></script>'}
             </div>

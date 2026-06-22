@@ -51,7 +51,7 @@ export default function ServiceManager({ services, onCreate, onUpdate, onDelete 
 
       <div className="space-y-2">
         {services.map(s => (
-          <div key={s.id} className="bg-gray-50 rounded-lg px-3 py-2 flex items-center justify-between">
+          <div key={s.id} className="bg-gray-50 dark:bg-muted/30 rounded-lg px-3 py-2 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">{s.name}</p>
               <p className="text-[10px] text-gray-400">{s.duration}min • ${s.price}</p>

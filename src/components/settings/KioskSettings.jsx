@@ -105,7 +105,7 @@ export default function KioskSettings() {
               <Input
                 value={kioskUrl}
                 readOnly
-                className="font-mono text-xs text-gray-600 bg-gray-50"
+                className="font-mono text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-muted/30"
               />
               <Button
                 size="sm"
@@ -146,7 +146,7 @@ export default function KioskSettings() {
               Regenerate link
             </button>
           ) : (
-            <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2.5">
+            <div className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-3 space-y-2.5">
               <div className="flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <p className="text-xs text-amber-800 leading-relaxed">
@@ -176,7 +176,7 @@ export default function KioskSettings() {
           )}
 
           {/* Usage note */}
-          <p className="text-[10px] text-gray-400 leading-relaxed border-t border-gray-100 pt-3">
+          <p className="text-[10px] text-gray-400 leading-relaxed border-t border-gray-100 dark:border-border pt-3">
             Open this URL on any tablet or touchscreen browser and leave it running. No login required — access is controlled by the unique token in the URL.
           </p>
         </div>

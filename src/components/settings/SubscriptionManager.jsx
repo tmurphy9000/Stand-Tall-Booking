@@ -58,7 +58,7 @@ export default function SubscriptionManager() {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900">Manage Subscription</h2>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Manage Subscription</h2>
         <p className="text-sm text-gray-500 mt-1">View your current plan and active features.</p>
       </div>
 
@@ -77,10 +77,10 @@ export default function SubscriptionManager() {
       {/* Core Features Table */}
       <div>
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Included in Your Plan</p>
-        <div className="overflow-x-auto border border-gray-200 rounded-xl">
+        <div className="overflow-x-auto border border-gray-200 dark:border-border rounded-xl">
           <table className="w-full text-sm min-w-[400px]">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
+              <tr className="bg-gray-50 dark:bg-muted/30 border-b border-gray-200 dark:border-border">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Feature</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
@@ -88,8 +88,8 @@ export default function SubscriptionManager() {
             </thead>
             <tbody>
               {CORE_FEATURES.map((f, i) => (
-                <tr key={f.name} className={i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
-                  <td className="px-4 py-3 font-medium text-gray-800">{f.name}</td>
+                <tr key={f.name} className={i % 2 === 0 ? "bg-white dark:bg-card" : "bg-gray-50/50 dark:bg-muted/20"}>
+                  <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-200">{f.name}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{f.description}</td>
                   <td className="px-4 py-3 text-center">
                     <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-100">
@@ -106,10 +106,10 @@ export default function SubscriptionManager() {
       {/* Add-On Features Table */}
       <div>
         <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Add-On Features</p>
-        <div className="overflow-x-auto border border-gray-200 rounded-xl">
+        <div className="overflow-x-auto border border-gray-200 dark:border-border rounded-xl">
           <table className="w-full text-sm min-w-[480px]">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-200">
+              <tr className="bg-gray-50 dark:bg-muted/30 border-b border-gray-200 dark:border-border">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Feature</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
                 <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">Price/mo</th>
@@ -118,15 +118,15 @@ export default function SubscriptionManager() {
             </thead>
             <tbody>
               {ADDON_FEATURES.map((f, i) => (
-                <tr key={f.name} className={i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
-                  <td className="px-4 py-3 font-medium text-gray-800">{f.name}</td>
+                <tr key={f.name} className={i % 2 === 0 ? "bg-white dark:bg-card" : "bg-gray-50/50 dark:bg-muted/20"}>
+                  <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-200">{f.name}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs">{f.description}</td>
                   <td className="px-4 py-3 text-center text-xs text-gray-400 font-medium">{f.price}</td>
                   <td className="px-4 py-3 text-center">
                     {f.status === "active" ? (
                       <Badge className="bg-green-100 text-green-700 border-0 text-xs">Active</Badge>
                     ) : (
-                      <Badge className="bg-gray-100 text-gray-500 border-0 text-xs">Coming Soon</Badge>
+                      <Badge className="bg-gray-100 dark:bg-muted text-gray-500 dark:text-gray-300 border-0 text-xs">Coming Soon</Badge>
                     )}
                   </td>
                 </tr>
@@ -138,7 +138,7 @@ export default function SubscriptionManager() {
       </div>
 
       {/* Cancel */}
-      <div className="border border-red-100 bg-red-50 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="border border-red-100 dark:border-red-900 bg-red-50 dark:bg-red-950/30 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-red-700">Cancel Subscription</p>
           <p className="text-xs text-red-500 mt-0.5">Your account will remain active until the end of the billing period.</p>
@@ -165,11 +165,11 @@ export default function SubscriptionManager() {
               This will end your Stand Tall Pro plan at the end of the current billing period. All your data will be preserved but you'll lose access to the platform.
             </DialogDescription>
           </DialogHeader>
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-600 dark:text-gray-300">
             To confirm, please contact our support team or type <strong>CANCEL</strong> below.
           </p>
           <input
-            className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm mt-1"
+            className="w-full border border-gray-200 dark:border-border rounded-md px-3 py-2 text-sm mt-1"
             placeholder="Type CANCEL to confirm"
             value={cancelConfirmText}
             onChange={e => setCancelConfirmText(e.target.value)}

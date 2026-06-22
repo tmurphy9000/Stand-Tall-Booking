@@ -38,9 +38,9 @@ export default function ShopHoursEditor({ hours = {}, onChange }) {
       {DAYS.map(day => {
         const dayHrs = hours[day] || { start: "08:00", end: "20:00", closed: false };
         return (
-          <div key={day} className="bg-gray-50 rounded-lg px-3 py-2 space-y-2">
+          <div key={day} className="bg-gray-50 dark:bg-muted/30 rounded-lg px-3 py-2 space-y-2">
             <div className="flex items-center gap-3">
-              <span className="w-12 text-xs font-medium capitalize">{day.slice(0, 3)}</span>
+              <span className="w-12 text-xs font-medium capitalize text-gray-700 dark:text-gray-200">{day.slice(0, 3)}</span>
               <Switch checked={!dayHrs.closed} onCheckedChange={v => updateDay(day, "closed", !v)} />
               {dayHrs.closed && <span className="text-xs text-gray-400">Closed</span>}
             </div>

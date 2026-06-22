@@ -317,7 +317,7 @@ export default function PaymentsSettings() {
         </div>
 
         <div className={`flex items-start gap-3 p-4 rounded-xl border ${
-          isStripeConnected ? "bg-green-50 border-green-200" : "bg-gray-50 border-gray-200"
+          isStripeConnected ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800" : "bg-gray-50 dark:bg-muted/30 border-gray-200 dark:border-border"
         }`}>
           {isStripeConnected
             ? <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
@@ -374,7 +374,7 @@ export default function PaymentsSettings() {
             </p>
           </div>
 
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-muted/30 rounded-lg border dark:border-border">
             <div>
               <Label className="text-sm font-medium">Require deposit for all online bookings</Label>
               <p className="text-xs text-gray-500">
@@ -422,7 +422,7 @@ export default function PaymentsSettings() {
                 </p>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-muted/30 rounded-lg border dark:border-border">
                 <div>
                   <Label className="text-sm font-medium">Allow pre-tip</Label>
                   <p className="text-xs text-gray-500">Allow clients to add a tip when paying their deposit</p>
@@ -495,7 +495,7 @@ export default function PaymentsSettings() {
                       <div
                         key={reader.id}
                         className={`flex items-center justify-between p-3 rounded-lg border ${
-                          isReaderConnected ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
+                          isReaderConnected ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-muted/30 border-gray-200 dark:border-border'
                         }`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
@@ -549,8 +549,8 @@ export default function PaymentsSettings() {
 
               {/* Register reader form */}
               {showRegisterForm ? (
-                <div className="p-3 border border-gray-200 rounded-lg space-y-3 bg-gray-50">
-                  <p className="text-xs font-medium text-gray-700">Register a reader</p>
+                <div className="p-3 border border-gray-200 dark:border-border rounded-lg space-y-3 bg-gray-50 dark:bg-muted/30">
+                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Register a reader</p>
                   <div>
                     <Label className="text-xs">Registration code</Label>
                     <Input
@@ -615,7 +615,7 @@ export default function PaymentsSettings() {
             </p>
           </div>
           <div className="space-y-2">
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-muted/30 rounded-lg border dark:border-border">
               <div>
                 <Label className="text-sm font-medium">Collect tip on terminal</Label>
                 <p className="text-xs text-gray-500">
@@ -627,7 +627,7 @@ export default function PaymentsSettings() {
                 onCheckedChange={(v) => updateTerminalBehavior('collect_tip_on_terminal', v)}
               />
             </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
+            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-muted/30 rounded-lg border dark:border-border">
               <div>
                 <Label className="text-sm font-medium">Auto-print receipt</Label>
                 <p className="text-xs text-gray-500">

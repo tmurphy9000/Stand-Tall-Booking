@@ -133,7 +133,7 @@ export default function CallOffManager() {
                 </div>
                 <div className="border rounded-lg p-3 space-y-2 max-h-64 overflow-y-auto">
                   {bookings.map(booking => (
-                    <div key={booking.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 rounded">
+                    <div key={booking.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-muted/30 rounded">
                       <Checkbox
                         checked={selectedBookings.includes(booking.id)}
                         onCheckedChange={() => toggleBooking(booking.id)}
@@ -183,7 +183,7 @@ export default function CallOffManager() {
           )}
 
           {selectedBarber && bookings.length === 0 && (
-            <Card className="bg-gray-50">
+            <Card className="bg-gray-50 dark:bg-muted/30">
               <CardContent className="p-4 text-center">
                 <p className="text-sm text-gray-500">No scheduled appointments found for {selectedBarberName} on {format(selectedDate, "MMM d, yyyy")}</p>
               </CardContent>

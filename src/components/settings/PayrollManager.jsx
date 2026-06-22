@@ -399,11 +399,11 @@ export default function PayrollManager() {
               {barbers.filter(b => b.is_active !== false).map(barber => (
                 <div
                   key={barber.id}
-                  className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 border border-gray-100"
+                  className="flex items-center justify-between px-3 py-2 rounded-lg bg-gray-50 dark:bg-muted/30 border border-gray-100 dark:border-border"
                 >
                   <p className="text-xs font-medium">{barber.name}</p>
                   {/* Placeholder — real sync check will be wired up later */}
-                  <span className="text-[10px] font-medium bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">
+                  <span className="text-[10px] font-medium bg-gray-100 dark:bg-muted text-gray-500 dark:text-gray-300 px-2 py-0.5 rounded-full">
                     Not yet synced
                   </span>
                 </div>
@@ -425,16 +425,16 @@ export default function PayrollManager() {
                 <Loader2 className="w-3 h-3 animate-spin" /> Loading payroll runs…
               </div>
             ) : payrollRuns.length === 0 ? (
-              <div className="text-center py-6 rounded-lg bg-gray-50 border border-gray-100">
+              <div className="text-center py-6 rounded-lg bg-gray-50 dark:bg-muted/30 border border-gray-100 dark:border-border">
                 <DollarSign className="w-6 h-6 mx-auto text-gray-300 mb-1.5" />
                 <p className="text-xs text-gray-500">No payroll runs yet — click <span className="font-medium">Run Payroll</span> to get started.</p>
               </div>
             ) : (
-              <div className="rounded-lg border border-gray-100 overflow-hidden">
+              <div className="rounded-lg border border-gray-100 dark:border-border overflow-hidden">
                 <div className="overflow-x-auto">
                 <table className="w-full text-xs min-w-[320px]">
                   <thead>
-                    <tr className="bg-gray-50 border-b border-gray-100">
+                    <tr className="bg-gray-50 dark:bg-muted/30 border-b border-gray-100 dark:border-border">
                       <th className="text-left px-3 py-2 font-medium text-gray-500">Pay Period</th>
                       <th className="text-left px-3 py-2 font-medium text-gray-500">Status</th>
                       <th className="text-right px-3 py-2 font-medium text-gray-500">Net Pay</th>
@@ -449,10 +449,10 @@ export default function PayrollManager() {
                       return (
                         <tr
                           key={run.payroll_uuid ?? i}
-                          className="border-b border-gray-50 last:border-0 cursor-pointer hover:bg-amber-50/60 transition-colors"
+                          className="border-b border-gray-50 dark:border-border last:border-0 cursor-pointer hover:bg-amber-50/60 dark:hover:bg-amber-900/20 transition-colors"
                           onClick={() => run.payroll_uuid && setSelectedPayrollUuid(run.payroll_uuid)}
                         >
-                          <td className="px-3 py-2 text-gray-700">
+                          <td className="px-3 py-2 text-gray-700 dark:text-gray-300">
                             {start && end
                               ? `${new Date(start + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" })} – ${new Date(end + "T00:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`
                               : "—"}
@@ -464,7 +464,7 @@ export default function PayrollManager() {
                               <span className="bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded-full font-medium">Pending</span>
                             )}
                           </td>
-                          <td className="px-3 py-2 text-right font-medium text-gray-700">
+                          <td className="px-3 py-2 text-right font-medium text-gray-700 dark:text-gray-300">
                             {netPay != null
                               ? new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(Number(netPay))
                               : "—"}
@@ -521,7 +521,7 @@ export default function PayrollManager() {
                   {/* Meta row: pay date + status */}
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-gray-500">
-                      Pay date: <span className="text-gray-800 font-medium">{fmtDate(payrollDetail.check_date)}</span>
+                      Pay date: <span className="text-gray-800 dark:text-gray-200 font-medium">{fmtDate(payrollDetail.check_date)}</span>
                     </span>
                     {payrollDetail.processed ? (
                       <span className="bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Processed</span>
@@ -532,24 +532,24 @@ export default function PayrollManager() {
 
                   {/* Totals */}
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-lg bg-gray-50 border border-gray-100 px-4 py-3">
+                    <div className="rounded-lg bg-gray-50 dark:bg-muted/30 border border-gray-100 dark:border-border px-4 py-3">
                       <p className="text-[10px] text-gray-400 mb-0.5">Gross Pay</p>
-                      <p className="text-sm font-semibold text-gray-800">{fmt(payrollDetail.totals?.gross_pay)}</p>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{fmt(payrollDetail.totals?.gross_pay)}</p>
                     </div>
-                    <div className="rounded-lg bg-gray-50 border border-gray-100 px-4 py-3">
+                    <div className="rounded-lg bg-gray-50 dark:bg-muted/30 border border-gray-100 dark:border-border px-4 py-3">
                       <p className="text-[10px] text-gray-400 mb-0.5">Net Pay</p>
-                      <p className="text-sm font-semibold text-gray-800">{fmt(payrollDetail.totals?.net_pay)}</p>
+                      <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">{fmt(payrollDetail.totals?.net_pay)}</p>
                     </div>
                   </div>
 
                   {/* Employee breakdown */}
                   {payrollDetail.employee_compensations?.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-gray-600 mb-2">Employee Breakdown</p>
-                      <div className="rounded-lg border border-gray-100 overflow-hidden">
+                      <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Employee Breakdown</p>
+                      <div className="rounded-lg border border-gray-100 dark:border-border overflow-hidden">
                         <table className="w-full text-xs">
                           <thead>
-                            <tr className="bg-gray-50 border-b border-gray-100">
+                            <tr className="bg-gray-50 dark:bg-muted/30 border-b border-gray-100 dark:border-border">
                               <th className="text-left px-3 py-2 font-medium text-gray-500">Name</th>
                               <th className="text-right px-3 py-2 font-medium text-gray-500">Gross</th>
                               <th className="text-right px-3 py-2 font-medium text-gray-500">Net</th>
@@ -557,10 +557,10 @@ export default function PayrollManager() {
                           </thead>
                           <tbody>
                             {payrollDetail.employee_compensations.map((emp) => (
-                              <tr key={emp.employee_uuid} className="border-b border-gray-50 last:border-0">
-                                <td className="px-3 py-2 font-medium text-gray-700">{emp.employee_name}</td>
+                              <tr key={emp.employee_uuid} className="border-b border-gray-50 dark:border-border last:border-0">
+                                <td className="px-3 py-2 font-medium text-gray-700 dark:text-gray-300">{emp.employee_name}</td>
                                 <td className="px-3 py-2 text-right text-gray-600">{fmt(emp.gross_pay)}</td>
-                                <td className="px-3 py-2 text-right text-gray-700 font-medium">{fmt(emp.net_pay)}</td>
+                                <td className="px-3 py-2 text-right text-gray-700 dark:text-gray-300 font-medium">{fmt(emp.net_pay)}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -572,11 +572,11 @@ export default function PayrollManager() {
                   {/* Contractor payments (if any) */}
                   {payrollDetail.contractor_payments?.length > 0 && (
                     <div>
-                      <p className="text-xs font-semibold text-gray-600 mb-2">Contractor Payments</p>
-                      <div className="rounded-lg border border-gray-100 overflow-hidden">
+                      <p className="text-xs font-semibold text-gray-600 dark:text-gray-300 mb-2">Contractor Payments</p>
+                      <div className="rounded-lg border border-gray-100 dark:border-border overflow-hidden">
                         <table className="w-full text-xs">
                           <thead>
-                            <tr className="bg-gray-50 border-b border-gray-100">
+                            <tr className="bg-gray-50 dark:bg-muted/30 border-b border-gray-100 dark:border-border">
                               <th className="text-left px-3 py-2 font-medium text-gray-500">Name</th>
                               <th className="text-right px-3 py-2 font-medium text-gray-500">Wage</th>
                               {payrollDetail.contractor_payments.some(c => c.hours) && (
@@ -586,9 +586,9 @@ export default function PayrollManager() {
                           </thead>
                           <tbody>
                             {payrollDetail.contractor_payments.map((cp) => (
-                              <tr key={cp.contractor_uuid} className="border-b border-gray-50 last:border-0">
-                                <td className="px-3 py-2 font-medium text-gray-700">{cp.contractor_name}</td>
-                                <td className="px-3 py-2 text-right text-gray-700 font-medium">{fmt(cp.wage)}</td>
+                              <tr key={cp.contractor_uuid} className="border-b border-gray-50 dark:border-border last:border-0">
+                                <td className="px-3 py-2 font-medium text-gray-700 dark:text-gray-300">{cp.contractor_name}</td>
+                                <td className="px-3 py-2 text-right text-gray-700 dark:text-gray-300 font-medium">{fmt(cp.wage)}</td>
                                 {payrollDetail.contractor_payments.some(c => c.hours) && (
                                   <td className="px-3 py-2 text-right text-gray-600">{cp.hours ?? "—"}</td>
                                 )}

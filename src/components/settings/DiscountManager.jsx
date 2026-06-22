@@ -77,7 +77,7 @@ export default function DiscountManager() {
 
       <div className="space-y-2">
         {discounts.map((d) => (
-          <div key={d.id} className="flex items-center justify-between bg-white border border-gray-100 rounded-lg px-4 py-3">
+          <div key={d.id} className="flex items-center justify-between bg-white dark:bg-card border border-gray-100 dark:border-border rounded-lg px-4 py-3">
             <div className="flex items-center gap-3">
               <Tag className="w-4 h-4 text-[#8B9A7E]" />
               <div>
