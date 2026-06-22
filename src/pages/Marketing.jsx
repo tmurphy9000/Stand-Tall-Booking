@@ -656,7 +656,7 @@ function CampaignList({ campaigns, onNewCampaign, onShowTemplates }) {
 
 // ── History tab ────────────────────────────────────────────────────────────────
 
-function HistoryTab({ campaigns }) {
+function HistoryTab({ campaigns, campaignStats }) {
   const sent = campaigns.filter(c => c.status === "sent");
 
   if (sent.length === 0) {
@@ -664,17 +664,24 @@ function HistoryTab({ campaigns }) {
       <EmptyTab
         icon={History}
         title="No send history yet"
-        description="Once you send a campaign, it will appear here with delivery stats."
+        description="Once you send a campaign, it will appear here with open and click rates per send."
         phase="your first send"
       />
     );
+  }
+
+  function pct(count, total) {
+    if (!total || total === 0) return "—";
+    return `${Math.round((count / total) * 100)}%`;
   }
 
   return (
     <div>
       <div className="px-6 py-4 border-b border-border">
         <h2 className="font-semibold">Send history</h2>
-        <p className="text-sm text-muted-foreground mt-0.5">Open and click rates will appear here once Phase 3 tracking is deployed.</p>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Open rates reflect email client image loading. Some clients block tracking pixels, so actual rates may be higher.
+        </p>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
@@ -688,22 +695,37 @@ function HistoryTab({ campaigns }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {sent.map(c => (
-              <tr key={c.id} className="hover:bg-muted/20 transition-colors">
-                <td className="px-6 py-4">
-                  <p className="font-medium truncate max-w-[220px]">{c.name || c.subject}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    {c.sent_at ? format(new Date(c.sent_at), "MMM d, yyyy 'at' h:mm a") : "—"}
-                  </p>
-                </td>
-                <td className="px-4 py-4 text-muted-foreground text-xs whitespace-nowrap">
-                  {SEGMENT_LABELS[c.segment_type] ?? c.segment_type}
-                </td>
-                <td className="px-4 py-4 text-right font-medium">{c.recipient_count ?? "—"}</td>
-                <td className="px-4 py-4 text-right text-muted-foreground">—</td>
-                <td className="px-6 py-4 text-right text-muted-foreground">—</td>
-              </tr>
-            ))}
+            {sent.map(c => {
+              const stats   = campaignStats[c.id] ?? { opens: 0, clicks: 0 };
+              const openPct  = pct(stats.opens,  c.recipient_count);
+              const clickPct = pct(stats.clicks, c.recipient_count);
+              return (
+                <tr key={c.id} className="hover:bg-muted/20 transition-colors">
+                  <td className="px-6 py-4">
+                    <p className="font-medium truncate max-w-[220px]">{c.name || c.subject}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {c.sent_at ? format(new Date(c.sent_at), "MMM d, yyyy 'at' h:mm a") : "—"}
+                    </p>
+                  </td>
+                  <td className="px-4 py-4 text-muted-foreground text-xs whitespace-nowrap">
+                    {SEGMENT_LABELS[c.segment_type] ?? c.segment_type}
+                  </td>
+                  <td className="px-4 py-4 text-right font-medium">{c.recipient_count ?? "—"}</td>
+                  <td className="px-4 py-4 text-right">
+                    <span className="font-medium">{openPct}</span>
+                    {stats.opens > 0 && (
+                      <span className="text-xs text-muted-foreground ml-1">({stats.opens})</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <span className="font-medium">{clickPct}</span>
+                    {stats.clicks > 0 && (
+                      <span className="text-xs text-muted-foreground ml-1">({stats.clicks})</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -722,6 +744,7 @@ export default function Marketing() {
   const [promoCodes, setPromoCodes]       = useState([]);
   const [shop, setShop]                   = useState(null);
   const [loading, setLoading]             = useState(true);
+  const [campaignStats, setCampaignStats] = useState({}); // campaign_id -> { opens, clicks }
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -737,7 +760,25 @@ export default function Marketing() {
 
       const allCampaigns = campaignRes.data ?? [];
       setTemplates(allCampaigns.filter(c => c.status === "template"));
-      setCampaigns(allCampaigns.filter(c => c.status !== "template"));
+      const nonTemplates = allCampaigns.filter(c => c.status !== "template");
+      setCampaigns(nonTemplates);
+
+      // Fetch open/click stats for sent campaigns
+      const sentIds = nonTemplates.filter(c => c.status === "sent").map(c => c.id);
+      if (sentIds.length > 0) {
+        const { data: sends } = await supabase
+          .from("campaign_sends")
+          .select("campaign_id, opened_at, clicked_at")
+          .in("campaign_id", sentIds);
+
+        const stats = {};
+        for (const s of sends ?? []) {
+          if (!stats[s.campaign_id]) stats[s.campaign_id] = { opens: 0, clicks: 0 };
+          if (s.opened_at)  stats[s.campaign_id].opens++;
+          if (s.clicked_at) stats[s.campaign_id].clicks++;
+        }
+        setCampaignStats(stats);
+      }
 
       // Seed default templates if shop has none yet
       const shopId = shopRes.data?.id;
@@ -864,7 +905,7 @@ export default function Marketing() {
             )}
 
             {activeTab === "history" && (
-              <HistoryTab campaigns={campaigns} />
+              <HistoryTab campaigns={campaigns} campaignStats={campaignStats} />
             )}
 
             {activeTab === "settings" && (

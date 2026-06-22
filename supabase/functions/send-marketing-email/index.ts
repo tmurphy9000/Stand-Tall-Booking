@@ -13,14 +13,26 @@ function json(body: unknown, status = 200) {
   });
 }
 
+// Wrap every absolute URL in the HTML through the click-tracking endpoint.
+// Only http/https hrefs are wrapped — mailto:, tel:, # are left untouched.
+function wrapLinks(html: string, sendId: string, trackBase: string): string {
+  return html.replace(
+    /href="(https?:\/\/[^"]+)"/g,
+    (_, url) =>
+      `href="${trackBase}/click?sid=${sendId}&url=${encodeURIComponent(url)}"`,
+  );
+}
+
 function buildMarketingHtml(args: {
   client_name: string;
   body_html: string;
   shop_name: string;
   booking_url: string;
   promo_code?: string;
+  send_id: string;
+  track_base: string;
 }): string {
-  const { client_name, body_html, shop_name, booking_url, promo_code } = args;
+  const { client_name, body_html, shop_name, booking_url, promo_code, send_id, track_base } = args;
 
   const content = (body_html || "")
     .replace(/\{\{client_name\}\}/g, client_name)
@@ -35,7 +47,9 @@ function buildMarketingHtml(args: {
         : '<span style="color:#999">[promo code]</span>',
     );
 
-  return `<!DOCTYPE html>
+  const pixel = `<img src="${track_base}/open?sid=${send_id}" width="1" height="1" style="width:1px!important;height:1px!important;border:0;display:block" alt="">`;
+
+  let html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -53,6 +67,7 @@ function buildMarketingHtml(args: {
         </tr>
         <tr>
           <td style="padding:40px;color:#333333;font-size:15px;line-height:1.8">
+            ${pixel}
             ${content}
           </td>
         </tr>
@@ -69,9 +84,14 @@ function buildMarketingHtml(args: {
   </table>
 </body>
 </html>`;
+
+  // Wrap all absolute links through the click tracker
+  html = wrapLinks(html, send_id, track_base);
+
+  return html;
 }
 
-type Client = { id: string; name: string | null; email: string };
+type Client  = { id: string; name: string | null; email: string };
 type Booking = { client_id: string; date: string };
 
 Deno.serve(async (req) => {
@@ -104,7 +124,9 @@ Deno.serve(async (req) => {
 
   if (campErr || !campaign) return json({ error: "Campaign not found" }, 404);
   if (campaign.status === "sent") return json({ error: "Campaign already sent" }, 400);
-  if (!campaign.subject || !campaign.body_html) return json({ error: "Campaign is missing subject or body" }, 400);
+  if (!campaign.subject || !campaign.body_html) {
+    return json({ error: "Campaign is missing subject or body" }, 400);
+  }
 
   // ── Shop info ───────────────────────────────────────────────────────────────
   const { data: shop } = await db
@@ -115,9 +137,9 @@ Deno.serve(async (req) => {
 
   const shopName   = shop?.name ?? "Stand Tall Barbershop";
   const urlSlug    = shop?.url_slug ?? "";
-  const bookingUrl = urlSlug
-    ? `${Deno.env.get("PUBLIC_SITE_URL") ?? "https://standtallbooking.com"}/book/${urlSlug}`
-    : "https://standtallbooking.com/book";
+  const siteBase   = Deno.env.get("PUBLIC_SITE_URL") ?? "https://standtallbooking.com";
+  const bookingUrl = urlSlug ? `${siteBase}/book/${urlSlug}` : `${siteBase}/book`;
+  const trackBase  = `${supabaseUrl}/functions/v1/marketing-track`;
 
   // ── Promo code ──────────────────────────────────────────────────────────────
   let promoCodeValue: string | undefined;
@@ -147,8 +169,8 @@ Deno.serve(async (req) => {
   let eligibleClients: Client[] = allClients as Client[];
 
   if (campaign.segment_type === "win_back") {
-    const days    = Number(campaign.segment_params?.days ?? 60);
-    const cutoff  = new Date();
+    const days     = Number(campaign.segment_params?.days ?? 60);
+    const cutoff   = new Date();
     cutoff.setDate(cutoff.getDate() - days);
     const cutoffStr = cutoff.toISOString().split("T")[0];
 
@@ -164,7 +186,6 @@ Deno.serve(async (req) => {
     for (const b of (lastBookings ?? []) as Booking[]) {
       if (!lastVisit[b.client_id]) lastVisit[b.client_id] = b.date;
     }
-
     eligibleClients = eligibleClients.filter(c => {
       const lv = lastVisit[c.id];
       return lv !== undefined && lv < cutoffStr;
@@ -179,7 +200,7 @@ Deno.serve(async (req) => {
       .neq("status", "cancelled");
 
     const visitedIds = new Set(
-      ((visitedData ?? []) as { client_id: string }[]).map(b => b.client_id)
+      ((visitedData ?? []) as { client_id: string }[]).map(b => b.client_id),
     );
     eligibleClients = eligibleClients.filter(c => !visitedIds.has(c.id));
   }
@@ -188,32 +209,56 @@ Deno.serve(async (req) => {
     return json({ error: "No clients match the selected segment", sent: 0 });
   }
 
-  // ── Send emails ─────────────────────────────────────────────────────────────
-  const sends: Array<{
-    campaign_id: string;
-    client_id: string;
-    channel: string;
-    status: string;
-    sent_at: string;
-  }> = [];
+  // ── Pre-insert campaign_sends rows to obtain unique IDs for tracking ────────
+  // Each recipient gets their own row upfront; the row's UUID is embedded in
+  // their email's tracking pixel and link URLs before the email is built.
+  const now = new Date().toISOString();
+  const { data: insertedSends, error: insertErr } = await db
+    .from("campaign_sends")
+    .insert(
+      eligibleClients.map(c => ({
+        campaign_id,
+        client_id: c.id,
+        channel:   "email",
+        status:    "pending",
+        sent_at:   now,
+      })),
+    )
+    .select("id, client_id");
 
-  let successCount = 0;
-  let failedCount  = 0;
+  if (insertErr || !insertedSends) {
+    console.error("[send-marketing-email] Failed to pre-insert sends:", insertErr);
+    return json({ error: "Failed to initialise send tracking" }, 500);
+  }
+
+  const sendIdByClient: Record<string, string> = {};
+  for (const row of insertedSends as { id: string; client_id: string }[]) {
+    sendIdByClient[row.client_id] = row.id;
+  }
+
+  // ── Send emails ─────────────────────────────────────────────────────────────
+  const successIds: string[] = [];
+  const failedIds:  string[] = [];
 
   for (const client of eligibleClients) {
+    const sendId = sendIdByClient[client.id];
+    if (!sendId) continue;
+
     const html = buildMarketingHtml({
       client_name: client.name ?? "Valued Client",
       body_html:   campaign.body_html,
       shop_name:   shopName,
       booking_url: bookingUrl,
       promo_code:  promoCodeValue,
+      send_id:     sendId,
+      track_base:  trackBase,
     });
 
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        "Authorization":  `Bearer ${resendKey}`,
-        "Content-Type":   "application/json",
+        "Authorization": `Bearer ${resendKey}`,
+        "Content-Type":  "application/json",
       },
       body: JSON.stringify({
         from:    `${shopName} <no-reply@mail.standtallbooking.com>`,
@@ -224,28 +269,37 @@ Deno.serve(async (req) => {
     });
 
     if (res.ok) {
-      successCount++;
-      sends.push({ campaign_id, client_id: client.id, channel: "email", status: "sent",   sent_at: new Date().toISOString() });
+      successIds.push(sendId);
     } else {
-      failedCount++;
-      sends.push({ campaign_id, client_id: client.id, channel: "email", status: "failed", sent_at: new Date().toISOString() });
+      failedIds.push(sendId);
       const errBody = await res.json().catch(() => ({}));
       console.error(`[send-marketing-email] Resend error for ${client.email}:`, errBody);
     }
   }
 
-  // ── Persist sends + update campaign ────────────────────────────────────────
-  if (sends.length > 0) {
-    const { error: insertErr } = await db.from("campaign_sends").insert(sends);
-    if (insertErr) console.error("[send-marketing-email] campaign_sends insert error:", insertErr);
+  // ── Batch update send statuses ──────────────────────────────────────────────
+  const updates: Promise<unknown>[] = [];
+  if (successIds.length > 0) {
+    updates.push(
+      db.from("campaign_sends").update({ status: "sent"   }).in("id", successIds),
+    );
   }
+  if (failedIds.length > 0) {
+    updates.push(
+      db.from("campaign_sends").update({ status: "failed" }).in("id", failedIds),
+    );
+  }
+  await Promise.all(updates);
 
+  // ── Mark campaign as sent ───────────────────────────────────────────────────
   await db.from("marketing_campaigns").update({
     status:          "sent",
-    sent_at:         new Date().toISOString(),
-    recipient_count: successCount,
+    sent_at:         now,
+    recipient_count: successIds.length,
   }).eq("id", campaign_id);
 
-  console.log(`[send-marketing-email] campaign ${campaign_id}: ${successCount} sent, ${failedCount} failed`);
-  return json({ success: true, sent: successCount, failed: failedCount });
+  console.log(
+    `[send-marketing-email] campaign ${campaign_id}: ${successIds.length} sent, ${failedIds.length} failed`,
+  );
+  return json({ success: true, sent: successIds.length, failed: failedIds.length });
 });
