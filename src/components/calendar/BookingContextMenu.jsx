@@ -7,7 +7,12 @@ import { Link } from "react-router-dom";
 import { createPageUrl } from "../../utils";
 import NoShowDialog from "./NoShowDialog";
 import LateDialog from "./LateDialog";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
+
+const fmt12 = (hhmm) => {
+  if (!hhmm) return "";
+  try { return format(parse(hhmm, "HH:mm", new Date()), "h:mm a"); } catch { return hhmm; }
+};
 
 export default function BookingContextMenu({ booking, position, onClose, onAction }) {
   const [showCancel, setShowCancel] = useState(false);
@@ -72,7 +77,7 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
         >
           <div className="px-3 py-2 border-b border-border">
             <p className="text-xs font-semibold text-popover-foreground">{booking.client_name}</p>
-            <p className="text-[10px] text-muted-foreground">{booking.service_name} • {booking.start_time}</p>
+            <p className="text-[10px] text-muted-foreground">{booking.service_name} • {fmt12(booking.start_time)}</p>
             {booking.deposit_amount_paid > 0 && (
               <div className="flex items-center gap-1 mt-1">
                 <DollarSign className="w-3 h-3" style={{ color: "#16a34a" }} />
@@ -158,7 +163,7 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
           </DialogHeader>
           <div className="py-2 space-y-1">
             <p className="text-sm text-muted-foreground">
-              {booking?.barber_name} — {booking?.start_time}{booking?.end_time ? ` to ${booking.end_time}` : ""} on{" "}
+              {booking?.barber_name} — {fmt12(booking?.start_time)}{booking?.end_time ? ` to ${fmt12(booking.end_time)}` : ""} on{" "}
               {booking?.date ? format(new Date(booking.date + "T12:00:00"), "MMM d, yyyy") : ""}
             </p>
             {booking?.repeat_group_id && (

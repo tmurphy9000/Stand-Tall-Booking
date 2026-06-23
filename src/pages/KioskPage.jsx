@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
   Search, CheckCircle, Phone, ArrowLeft, ArrowRight,
@@ -10,6 +10,11 @@ import {
 
 const todayStr = format(new Date(), "yyyy-MM-dd");
 const todayDisplay = format(new Date(), "EEEE, MMMM d, yyyy");
+
+const fmt12 = (hhmm) => {
+  if (!hhmm) return "";
+  try { return format(parse(hhmm, "HH:mm", new Date()), "h:mm a"); } catch { return hhmm; }
+};
 
 function normalizePhone(p) {
   return (p || "").replace(/\D/g, "");
@@ -31,7 +36,7 @@ function AppointmentRow({ booking, onSelect }) {
       <div className="flex-1 min-w-0">
         <p className="text-xl font-semibold text-gray-900 truncate">{booking.client_name}</p>
         <p className="text-base text-gray-500 mt-1 truncate">
-          {booking.start_time} · {booking.barber_name} · {booking.service_name}
+          {fmt12(booking.start_time)} · {booking.barber_name} · {booking.service_name}
         </p>
       </div>
       {alreadyCheckedIn ? (
@@ -208,7 +213,7 @@ export default function KioskPage() {
 
     const notifications = Array.from(notifyEmails).map(email => ({
       title: "Client Checked In",
-      message: `${selectedBooking.client_name} checked in for their ${selectedBooking.start_time} appointment with ${barber?.name || selectedBooking.barber_name}.`,
+      message: `${selectedBooking.client_name} checked in for their ${fmt12(selectedBooking.start_time)} appointment with ${barber?.name || selectedBooking.barber_name}.`,
       recipient_email: email,
       recipient_type: "staff",
       type: "client_check_in",
@@ -324,7 +329,7 @@ export default function KioskPage() {
                 <Clock className="w-5 h-5 text-[#8B9A7E] flex-shrink-0" />
                 <div>
                   <p className="text-sm text-gray-400">Time</p>
-                  <p className="text-lg font-semibold text-gray-800">{selectedBooking.start_time}</p>
+                  <p className="text-lg font-semibold text-gray-800">{fmt12(selectedBooking.start_time)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3">

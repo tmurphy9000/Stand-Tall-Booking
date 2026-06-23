@@ -17,7 +17,7 @@ import {
   Wallet, CreditCard, Banknote, RotateCcw, Plus, Minus,
   History, Download, Printer,
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
+import { format, parse, parseISO } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
 import AddBarberDialog from "../components/payroll/AddBarberDialog";
@@ -29,6 +29,11 @@ import WithdrawalForm from "../components/cash/WithdrawalForm";
 import CashInForm from "../components/cash/CashInForm";
 
 const todayStr = () => format(new Date(), "yyyy-MM-dd");
+
+const fmt12 = (hhmm) => {
+  if (!hhmm) return "";
+  try { return format(parse(hhmm, "HH:mm", new Date()), "h:mm a"); } catch { return hhmm; }
+};
 
 function txId(booking) {
   return "#" + booking.id.replace(/-/g, "").slice(-8).toUpperCase();
@@ -399,7 +404,7 @@ export default function TransactionsPage() {
     const rows = displayBookings.map(b => `
       <tr>
         <td>${txId(b)}</td>
-        <td>${b.date ?? ""} ${b.start_time ?? ""}</td>
+        <td>${b.date ?? ""} ${fmt12(b.start_time ?? "")}</td>
         <td>${b.client_name || "Walk-in"}</td>
         <td>${b.service_name ?? ""}</td>
         <td>${productDisplay(b) ?? "—"}</td>
@@ -658,7 +663,7 @@ export default function TransactionsPage() {
                       <td className="px-2 py-1.5 font-mono text-[9px] text-muted-foreground whitespace-nowrap">{txId(b)}</td>
                       <td className="px-2 py-1.5 text-muted-foreground whitespace-nowrap">
                         <div className="text-[10px]">{b.date}</div>
-                        <div className="text-[9px] text-muted-foreground">{b.start_time ?? "—"}</div>
+                        <div className="text-[9px] text-muted-foreground">{fmt12(b.start_time) || "—"}</div>
                       </td>
                       <td className="px-2 py-1.5 font-medium max-w-[90px]">
                         <div className="truncate">{b.client_name || "Walk-in"}</div>

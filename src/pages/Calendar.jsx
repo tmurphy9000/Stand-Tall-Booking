@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { entities } from "@/api/entities";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { format, addDays, startOfWeek } from "date-fns";
+import { format, parse, addDays, startOfWeek } from "date-fns";
 import CalendarHeader from "../components/calendar/CalendarHeader";
 import TimeSlotGrid from "../components/calendar/TimeSlotGrid";
 import BookingFormModal from "../components/calendar/BookingFormModal";
@@ -19,6 +19,11 @@ import { useAuth } from "../lib/AuthContext";
 import { usePermissions } from "../components/permissions/usePermissions";
 import { runGapMinimization } from "../lib/scheduleOptimizer";
 import { toast } from "sonner";
+
+const fmt12 = (hhmm) => {
+  if (!hhmm) return "";
+  try { return format(parse(hhmm, "HH:mm", new Date()), "h:mm a"); } catch { return hhmm; }
+};
 
 const BARBERS_PER_GROUP = 5;
 
@@ -413,7 +418,7 @@ export default function CalendarPage() {
                       className="bg-card dark:bg-card rounded-lg border border-border dark:border-border p-2 cursor-pointer hover:border-[#8B9A7E]/30 transition-all"
                     >
                       <p className="text-[10px] font-semibold">{b.client_name}</p>
-                      <p className="text-[9px] text-muted-foreground">{b.barber_name} • {b.start_time} - {b.end_time}</p>
+                      <p className="text-[9px] text-muted-foreground">{b.barber_name} • {fmt12(b.start_time)} – {fmt12(b.end_time)}</p>
                       <p className="text-[9px] text-[#8B9A7E]">{b.service_name}</p>
                     </div>
                   ))}

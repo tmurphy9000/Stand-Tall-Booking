@@ -10,6 +10,12 @@ import { Input } from "@/components/ui/input";
 import { createPageUrl, formatPhoneNumber } from "../utils";
 import { usePermissions } from "../components/permissions/usePermissions";
 import { CopyButton } from "@/components/ui/copy-button";
+import { format, parse } from "date-fns";
+
+const fmt12 = (hhmm) => {
+  if (!hhmm) return "";
+  try { return format(parse(hhmm, "HH:mm", new Date()), "h:mm a"); } catch { return hhmm; }
+};
 
 export default function ClientDetails() {
   const [searchParams] = useSearchParams();
@@ -250,7 +256,7 @@ export default function ClientDetails() {
                   <CardContent className="p-3 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">{b.service_name}</p>
-                      <p className="text-xs text-muted-foreground">{b.barber_name} • {b.date} {b.start_time}</p>
+                      <p className="text-xs text-muted-foreground">{b.barber_name} • {b.date} {fmt12(b.start_time)}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-semibold">${(b.final_price || b.price || 0).toFixed(2)}</p>

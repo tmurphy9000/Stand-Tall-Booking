@@ -9,9 +9,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 import { CalendarIcon, Send, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+
+const fmt12 = (hhmm) => {
+  if (!hhmm) return "";
+  try { return format(parse(hhmm, "HH:mm", new Date()), "h:mm a"); } catch { return hhmm; }
+};
 
 export default function CallOffManager() {
   const [selectedBarber, setSelectedBarber] = useState("");
@@ -141,7 +146,7 @@ export default function CallOffManager() {
                       <div className="flex-1">
                         <p className="text-sm font-medium">{booking.client_name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {booking.start_time} • {booking.service_name}
+                          {fmt12(booking.start_time)} • {booking.service_name}
                           {booking.client_email && ` • ${booking.client_email}`}
                         </p>
                       </div>

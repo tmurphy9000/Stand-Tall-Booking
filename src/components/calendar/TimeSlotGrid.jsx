@@ -3,6 +3,11 @@ import { format, parse, addMinutes, isSameDay } from "date-fns";
 import { cn } from "@/lib/utils";
 
 const BASE_SLOT_HEIGHT = 20;
+
+const fmt12 = (hhmm) => {
+  if (!hhmm) return "";
+  try { return format(parse(hhmm, "HH:mm", new Date()), "h:mm a"); } catch { return hhmm; }
+};
 const SLOT_MINUTES = 15;
 
 function generateTimeSlots(startHour = 8, endHour = 21) {
@@ -180,7 +185,7 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
         </div>
       </div>
       <p className="text-[9px] truncate opacity-75">{booking.service_name}</p>
-      <p className="text-[9px] opacity-60">{booking.start_time} - {booking.end_time}</p>
+      <p className="text-[9px] opacity-60">{fmt12(booking.start_time)} – {fmt12(booking.end_time)}</p>
       {booking.status === "checked_in" && (
         <div className="flex items-center gap-0.5 mt-0.5">
           <div className="w-1.5 h-1.5 rounded-full bg-green-500 flex-shrink-0" />
