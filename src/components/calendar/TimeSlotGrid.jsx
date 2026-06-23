@@ -250,7 +250,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
     : 140;
   const COLUMN_WIDTH = Math.max(MIN_COLUMN_WIDTH, Math.floor(baseColumnWidth * columnZoom));
   const slotHeight = BASE_SLOT_HEIGHT * zoomLevel;
-  const timeSlots = generateTimeSlots(7, 22);
+  const timeSlots = generateTimeSlots(5, 24);
   const dayName = format(date, "EEEE").toLowerCase();
   const dateStr = format(date, "yyyy-MM-dd");
 
@@ -276,7 +276,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
 
   const isToday = isSameDay(date, now);
   const currentTimeTop = isToday
-    ? ((now.getHours() - 7) * 60 + now.getMinutes()) / SLOT_MINUTES * slotHeight
+    ? ((now.getHours() - 5) * 60 + now.getMinutes()) / SLOT_MINUTES * slotHeight
     : null;
 
   const getBookingsForBarberSlot = useCallback((barberId, time) => {
