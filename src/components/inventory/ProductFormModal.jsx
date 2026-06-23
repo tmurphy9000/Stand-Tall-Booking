@@ -34,34 +34,34 @@ export default function ProductFormModal({ open, onClose, onSave, product }) {
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div>
-            <Label className="text-xs text-gray-500">Product Name *</Label>
+            <Label className="text-xs text-muted-foreground">Product Name *</Label>
             <Input value={form.name} onChange={e => set("name", e.target.value)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-gray-500">SKU</Label>
+              <Label className="text-xs text-muted-foreground">SKU</Label>
               <Input value={form.sku} onChange={e => set("sku", e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Category</Label>
+              <Label className="text-xs text-muted-foreground">Category</Label>
               <Input value={form.category} onChange={e => set("category", e.target.value)} />
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <Label className="text-xs text-gray-500">Cost</Label>
+              <Label className="text-xs text-muted-foreground">Cost</Label>
               <Input type="number" value={form.cost_per_unit} onChange={e => set("cost_per_unit", e.target.value === "" ? "" : parseFloat(e.target.value))} />
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Retail Price *</Label>
+              <Label className="text-xs text-muted-foreground">Retail Price *</Label>
               <Input type="number" value={form.retail_price} onChange={e => set("retail_price", e.target.value === "" ? "" : parseFloat(e.target.value))} />
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Stock</Label>
+              <Label className="text-xs text-muted-foreground">Stock</Label>
               <Input type="number" value={form.stock_quantity} onChange={e => set("stock_quantity", e.target.value === "" ? "" : parseInt(e.target.value))} />
             </div>
           </div>
-          <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3">
+          <div className="flex items-center justify-between bg-muted/30 rounded-lg p-3">
             <div>
               <Label className="text-sm">Tax Enabled</Label>
               {form.tax_enabled && (
@@ -73,7 +73,7 @@ export default function ProductFormModal({ open, onClose, onSave, product }) {
                     className="w-20 h-7 text-xs"
                     step="0.1"
                   />
-                  <span className="text-xs text-gray-400 ml-1">%</span>
+                  <span className="text-xs text-muted-foreground ml-1">%</span>
                 </div>
               )}
             </div>

@@ -63,16 +63,16 @@ export default function CashTrackerPage() {
       <div className="bg-[#0A0A0A] rounded-2xl p-5 text-white">
         <div className="flex items-center gap-2 mb-3">
           <Wallet className="w-5 h-5 text-[#C9A94E]" />
-          <span className="text-xs text-gray-400 uppercase tracking-wider">Cash On Hand</span>
+          <span className="text-xs text-muted-foreground uppercase tracking-wider">Cash On Hand</span>
         </div>
         <p className="text-3xl font-bold text-[#C9A94E]">${cashOnHand.toFixed(2)}</p>
         <div className="flex gap-6 mt-3">
           <div>
-            <p className="text-[10px] text-gray-500">Today In</p>
+            <p className="text-[10px] text-muted-foreground">Today In</p>
             <p className="text-sm font-semibold text-green-400">+${todayInflow.toFixed(2)}</p>
           </div>
           <div>
-            <p className="text-[10px] text-gray-500">Today Out</p>
+            <p className="text-[10px] text-muted-foreground">Today Out</p>
             <p className="text-sm font-semibold text-red-400">-${todayOutflow.toFixed(2)}</p>
           </div>
         </div>
@@ -101,7 +101,7 @@ export default function CashTrackerPage() {
       {/* Filters */}
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search..." className="pl-9 h-9" />
         </div>
         <Select value={filterType} onValueChange={setFilterType}>
@@ -126,7 +126,7 @@ export default function CashTrackerPage() {
             const config = typeConfig[tx.type] || typeConfig.outflow;
             const Icon = config.icon;
             return (
-              <div key={tx.id} className="bg-white rounded-xl border border-gray-100 p-3 flex items-center gap-3">
+              <div key={tx.id} className="bg-card rounded-xl border border-border p-3 flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-lg ${config.bg} flex items-center justify-center`}>
                   <Icon className={`w-4 h-4 ${config.color}`} />
                 </div>
@@ -135,7 +135,7 @@ export default function CashTrackerPage() {
                     <p className="text-sm font-medium truncate">{tx.barber_name || config.label}</p>
                     <Badge variant="secondary" className="text-[9px]">{config.label}</Badge>
                   </div>
-                  <p className="text-[10px] text-gray-400 truncate">
+                  <p className="text-[10px] text-muted-foreground truncate">
                     {tx.date} {tx.time} {tx.note && `• ${tx.note}`}
                   </p>
                 </div>
@@ -146,7 +146,7 @@ export default function CashTrackerPage() {
             );
           })}
           {filtered.length === 0 && (
-            <p className="text-center text-gray-400 text-sm py-12">No transactions found.</p>
+            <p className="text-center text-muted-foreground text-sm py-12">No transactions found.</p>
           )}
         </div>
       )}

@@ -67,20 +67,20 @@ export default function StripeCallback() {
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-muted/30">
       <div className="text-center space-y-4 max-w-sm px-6">
         {status === "loading" && (
           <>
             <Loader2 className="w-10 h-10 animate-spin text-[#8B9A7E] mx-auto" />
-            <p className="text-gray-700 font-medium">Connecting your Stripe account…</p>
-            <p className="text-gray-400 text-sm">This usually takes a few seconds.</p>
+            <p className="text-muted-foreground font-medium">Connecting your Stripe account…</p>
+            <p className="text-muted-foreground text-sm">This usually takes a few seconds.</p>
           </>
         )}
         {status === "success" && (
           <>
             <CheckCircle className="w-10 h-10 text-green-500 mx-auto" />
             <p className="text-gray-800 font-semibold text-lg">Stripe connected!</p>
-            <p className="text-gray-500 text-sm">Redirecting you back to settings…</p>
+            <p className="text-muted-foreground text-sm">Redirecting you back to settings…</p>
           </>
         )}
         {status === "error" && (

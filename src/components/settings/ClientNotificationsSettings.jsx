@@ -85,8 +85,8 @@ export default function ClientNotificationsSettings() {
   return (
     <div className="max-w-2xl space-y-6">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900">Client Notifications</h2>
-        <p className="text-sm text-gray-500 mt-1">
+        <h2 className="text-lg font-semibold text-foreground">Client Notifications</h2>
+        <p className="text-sm text-muted-foreground mt-1">
           Control which automated messages are sent to clients for their appointments.
         </p>
       </div>
@@ -96,26 +96,26 @@ export default function ClientNotificationsSettings() {
         {NOTIFICATION_ROWS.map((row) => {
           const Icon = row.icon;
           return (
-            <div key={row.key} className="border border-gray-200 rounded-xl overflow-hidden">
-              <div className="flex items-start gap-3 px-4 py-3 bg-gray-50 border-b border-gray-100">
+            <div key={row.key} className="border border-border rounded-xl overflow-hidden">
+              <div className="flex items-start gap-3 px-4 py-3 bg-muted/30 border-b border-border">
                 <div className="w-7 h-7 rounded-lg bg-[#8B9A7E]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
                   <Icon className="w-3.5 h-3.5 text-[#6B7A5E]" />
                 </div>
                 <div>
                   <p className="font-medium text-gray-800 text-sm">{row.label}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">{row.description}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{row.description}</p>
                 </div>
               </div>
               <div className="divide-y divide-gray-100">
                 <div className="flex items-center justify-between px-4 py-3">
-                  <span className="flex items-center gap-1.5 text-xs text-gray-500">
+                  <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     <Mail className="w-3.5 h-3.5" /> Email
                   </span>
                   <Switch checked={settings[row.emailKey]} onCheckedChange={v => set(row.emailKey, v)} />
                 </div>
                 {row.extraKey && (
                   <div className="flex items-center justify-between px-4 py-3">
-                    <span className="text-xs text-gray-500">Timing</span>
+                    <span className="text-xs text-muted-foreground">Timing</span>
                     <div className="flex items-center gap-1.5">
                       <Input
                         type="number"
@@ -125,7 +125,7 @@ export default function ClientNotificationsSettings() {
                         onChange={e => set(row.extraKey, parseInt(e.target.value) || 1)}
                         className="w-14 h-8 text-center text-xs"
                       />
-                      <span className="text-xs text-gray-400 whitespace-nowrap">{row.extraLabel}</span>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">{row.extraLabel}</span>
                     </div>
                   </div>
                 )}
@@ -136,25 +136,25 @@ export default function ClientNotificationsSettings() {
       </div>
 
       {/* Desktop: full 4-column table */}
-      <div className="hidden sm:block overflow-x-auto border border-gray-200 rounded-xl">
+      <div className="hidden sm:block overflow-x-auto border border-border rounded-xl">
         <table className="w-full text-sm min-w-[480px]">
           <thead>
-            <tr className="bg-gray-50 border-b border-gray-200">
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/2">
+            <tr className="bg-muted/30 border-b border-border">
+              <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider w-1/2">
                 Notification
               </th>
-              <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 <span className="flex items-center justify-center gap-1">
                   <Mail className="w-3.5 h-3.5" /> Email
                 </span>
               </th>
-              <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                <span className="flex items-center justify-center gap-1 text-gray-400">
+              <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <span className="flex items-center justify-center gap-1 text-muted-foreground">
                   <MessageSquare className="w-3.5 h-3.5" /> SMS
                   <span className="text-[10px] font-normal">(soon)</span>
                 </span>
               </th>
-              <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <th className="text-center px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 Timing
               </th>
             </tr>
@@ -163,7 +163,7 @@ export default function ClientNotificationsSettings() {
             {NOTIFICATION_ROWS.map((row, i) => {
               const Icon = row.icon;
               return (
-                <tr key={row.key} className={i % 2 === 0 ? "bg-white" : "bg-gray-50/50"}>
+                <tr key={row.key} className={i % 2 === 0 ? "bg-card" : "bg-muted/50"}>
                   <td className="px-4 py-4">
                     <div className="flex items-start gap-3">
                       <div className="w-8 h-8 rounded-lg bg-[#8B9A7E]/10 flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -171,7 +171,7 @@ export default function ClientNotificationsSettings() {
                       </div>
                       <div>
                         <p className="font-medium text-gray-800 text-sm">{row.label}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{row.description}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">{row.description}</p>
                       </div>
                     </div>
                   </td>
@@ -200,7 +200,7 @@ export default function ClientNotificationsSettings() {
                           onChange={e => set(row.extraKey, parseInt(e.target.value) || 1)}
                           className="w-16 h-8 text-center text-xs"
                         />
-                        <span className="text-xs text-gray-400 whitespace-nowrap">{row.extraLabel}</span>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">{row.extraLabel}</span>
                       </div>
                     ) : (
                       <span className="text-xs text-gray-300">—</span>

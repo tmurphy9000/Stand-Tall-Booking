@@ -43,7 +43,7 @@ export default function NoShowDialog({ open, booking, onClose, onConfirm }) {
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Mark <strong>{booking.client_name}</strong>'s appointment as a no-show?
           </p>
           
@@ -71,7 +71,7 @@ export default function NoShowDialog({ open, booking, onClose, onConfirm }) {
             </div>
 
             {notifyClient && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-gray-600">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-muted-foreground">
                 <p className="mb-1">Client will be notified via email:</p>
                 <p className="font-mono text-blue-700">{booking.client_email || "No email on file"}</p>
                 <p className="mt-2">Shop contact: <strong>728-289-1010</strong></p>

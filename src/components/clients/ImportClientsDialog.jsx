@@ -190,7 +190,7 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
                 <TooltipTrigger asChild>
                   <button
                     type="button"
-                    className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                    className="text-muted-foreground hover:text-muted-foreground focus:outline-none"
                     aria-label="Supported platforms"
                   >
                     <Info className="w-4 h-4" />
@@ -214,18 +214,18 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
 
         {checking && (
           <div className="flex flex-col items-center justify-center gap-4 py-12">
-            <Loader2 className="w-10 h-10 text-gray-400 animate-spin" />
+            <Loader2 className="w-10 h-10 text-muted-foreground animate-spin" />
           </div>
         )}
 
         {showUpload && (
           <div className="flex flex-col items-center justify-center gap-4 py-12 border-2 border-dashed rounded-lg">
             {uploading ? (
-              <Loader2 className="w-10 h-10 text-gray-400 animate-spin" />
+              <Loader2 className="w-10 h-10 text-muted-foreground animate-spin" />
             ) : (
-              <Upload className="w-10 h-10 text-gray-400" />
+              <Upload className="w-10 h-10 text-muted-foreground" />
             )}
-            <p className="text-sm text-gray-500 text-center max-w-sm">
+            <p className="text-sm text-muted-foreground text-center max-w-sm">
               {uploading ? `Uploading ${fileName}...` : "Select a CSV, Excel, or PDF file to import."}
             </p>
             <input
@@ -245,14 +245,14 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
 
         {job && job.status !== "failed" && (
           <div className="flex flex-col items-center justify-center gap-4 py-8">
-            <Loader2 className="w-10 h-10 text-gray-400 animate-spin" />
-            <p className="text-sm text-gray-500 text-center max-w-sm">
+            <Loader2 className="w-10 h-10 text-muted-foreground animate-spin" />
+            <p className="text-sm text-muted-foreground text-center max-w-sm">
               Large files may take a few minutes to process. Feel free to leave this open in the
               background while we work through it.
             </p>
             <div className="w-full space-y-2">
               <Progress value={progress} />
-              <p className="text-sm text-gray-500 text-center">
+              <p className="text-sm text-muted-foreground text-center">
                 {importedCount > 0
                   ? `Imported ${importedCount} client${importedCount === 1 ? "" : "s"} so far...`
                   : "Reading file and extracting clients..."}
@@ -264,7 +264,7 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
         {job && job.status === "failed" && (
           <div className="flex flex-col items-center justify-center gap-4 py-12">
             <AlertCircle className="w-10 h-10 text-red-500" />
-            <p className="text-sm text-gray-600 text-center max-w-sm">
+            <p className="text-sm text-muted-foreground text-center max-w-sm">
               {job.error || "Something went wrong while importing this file."}
             </p>
           </div>

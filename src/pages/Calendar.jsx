@@ -389,20 +389,20 @@ export default function CalendarPage() {
         <div className="flex-1 overflow-x-auto">
           <div className="flex">
             {dateRange.map(dateStr => (
-              <div key={dateStr} className="min-w-[300px] flex-1 border-r border-gray-100 dark:border-border">
-                <div className="sticky top-0 bg-[#FAFAF8] dark:bg-background px-3 py-2 border-b border-gray-100 dark:border-border text-center">
+              <div key={dateStr} className="min-w-[300px] flex-1 border-r border-border dark:border-border">
+                <div className="sticky top-0 bg-[#FAFAF8] dark:bg-background px-3 py-2 border-b border-border dark:border-border text-center">
                   <p className="text-xs font-semibold">{format(new Date(dateStr + "T12:00:00"), "EEE")}</p>
-                  <p className="text-[10px] text-gray-400">{format(new Date(dateStr + "T12:00:00"), "MMM d")}</p>
+                  <p className="text-[10px] text-muted-foreground">{format(new Date(dateStr + "T12:00:00"), "MMM d")}</p>
                 </div>
                 <div className="p-2 space-y-1">
                   {bookings.filter(b => b.date === dateStr && b.status !== "cancelled").map(b => (
                     <div
                       key={b.id}
                       onClick={(e) => handleBookingContext(e, b)}
-                      className="bg-white dark:bg-card rounded-lg border border-gray-100 dark:border-border p-2 cursor-pointer hover:border-[#8B9A7E]/30 transition-all"
+                      className="bg-card dark:bg-card rounded-lg border border-border dark:border-border p-2 cursor-pointer hover:border-[#8B9A7E]/30 transition-all"
                     >
                       <p className="text-[10px] font-semibold">{b.client_name}</p>
-                      <p className="text-[9px] text-gray-400">{b.barber_name} • {b.start_time} - {b.end_time}</p>
+                      <p className="text-[9px] text-muted-foreground">{b.barber_name} • {b.start_time} - {b.end_time}</p>
                       <p className="text-[9px] text-[#8B9A7E]">{b.service_name}</p>
                     </div>
                   ))}
@@ -457,12 +457,12 @@ export default function CalendarPage() {
         <>
           <div className="fixed inset-0 z-40" onClick={() => setSlotMenu({ barber: null, time: null, date: null, position: { x: 0, y: 0 } })} />
           <div
-            className="fixed z-50 bg-white dark:bg-card rounded-lg shadow-xl border border-gray-200 dark:border-border p-2 min-w-[180px]"
+            className="fixed z-50 bg-card dark:bg-card rounded-lg shadow-xl border border-border dark:border-border p-2 min-w-[180px]"
             style={{ top: slotMenu.position.y, left: slotMenu.position.x }}
           >
-            <div className="px-2 py-1 border-b border-gray-100 dark:border-border mb-1">
-              <p className="text-xs font-semibold text-gray-700 dark:text-gray-200">{slotMenu.barber.name}</p>
-              <p className="text-[10px] text-gray-500">{slotMenu.time} • {format(new Date(slotMenu.date + "T12:00:00"), "MMM d")}</p>
+            <div className="px-2 py-1 border-b border-border dark:border-border mb-1">
+              <p className="text-xs font-semibold text-muted-foreground dark:text-gray-200">{slotMenu.barber.name}</p>
+              <p className="text-[10px] text-muted-foreground">{slotMenu.time} • {format(new Date(slotMenu.date + "T12:00:00"), "MMM d")}</p>
             </div>
             <button
               onClick={() => {
@@ -470,7 +470,7 @@ export default function CalendarPage() {
                 setShowQuickBooking(true);
                 setSlotMenu({ barber: null, time: null, date: null, position: { x: 0, y: 0 } });
               }}
-              className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-muted rounded flex items-center gap-2"
+              className="w-full text-left px-3 py-2 text-xs hover:bg-accent dark:hover:bg-muted rounded flex items-center gap-2"
             >
               <span>📅</span> Walk-in / Call-in
             </button>
@@ -480,7 +480,7 @@ export default function CalendarPage() {
                 setShowBookingForm(true);
                 setSlotMenu({ barber: null, time: null, date: null, position: { x: 0, y: 0 } });
               }}
-              className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-muted rounded flex items-center gap-2"
+              className="w-full text-left px-3 py-2 text-xs hover:bg-accent dark:hover:bg-muted rounded flex items-center gap-2"
             >
               <span>👤</span> Regular Appointment
             </button>
@@ -496,7 +496,7 @@ export default function CalendarPage() {
                 setShowBookingForm(true);
                 setSlotMenu({ barber: null, time: null, date: null, position: { x: 0, y: 0 } });
               }}
-              className="w-full text-left px-3 py-2 text-xs hover:bg-gray-50 dark:hover:bg-muted rounded flex items-center gap-2"
+              className="w-full text-left px-3 py-2 text-xs hover:bg-accent dark:hover:bg-muted rounded flex items-center gap-2"
             >
               <span>🚫</span> Block Time
             </button>
@@ -517,18 +517,18 @@ export default function CalendarPage() {
       {/* Leaderboard Sidebar — hidden in mobile mode; hidden for non-owners when leaderboardVisible is false */}
       {!isMobile && (leaderboardVisible || isOwner) && (
         <div
-          className="flex-shrink-0 border-l border-gray-100 dark:border-border bg-white dark:bg-card flex flex-col transition-all duration-300 overflow-hidden"
+          className="flex-shrink-0 border-l border-border dark:border-border bg-card dark:bg-card flex flex-col transition-all duration-300 overflow-hidden"
           style={{ width: leaderboardCollapsed ? "2.5rem" : "20rem" }}
         >
           {leaderboardCollapsed ? (
             <button
               onClick={() => toggleLeaderboard(false)}
-              className="flex flex-col items-center pt-3 gap-3 h-full w-full hover:bg-gray-50 dark:hover:bg-muted transition-colors cursor-pointer"
+              className="flex flex-col items-center pt-3 gap-3 h-full w-full hover:bg-accent dark:hover:bg-muted transition-colors cursor-pointer"
               title="Expand leaderboard"
             >
-              <ChevronLeft className="w-4 h-4 text-gray-400" />
+              <ChevronLeft className="w-4 h-4 text-muted-foreground" />
               <span
-                className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest"
+                className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest"
                 style={{ writingMode: "vertical-rl", transform: "rotate(180deg)" }}
               >
                 Leaderboard
@@ -536,11 +536,11 @@ export default function CalendarPage() {
             </button>
           ) : (
             <>
-              <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-border flex-shrink-0">
-                <span className="text-[10px] font-semibold text-gray-500 dark:text-muted-foreground uppercase tracking-wider">Leaderboard</span>
+              <div className="flex items-center justify-between px-3 py-2 border-b border-border dark:border-border flex-shrink-0">
+                <span className="text-[10px] font-semibold text-muted-foreground dark:text-muted-foreground uppercase tracking-wider">Leaderboard</span>
                 <button
                   onClick={() => toggleLeaderboard(true)}
-                  className="p-1 rounded hover:bg-gray-100 dark:hover:bg-muted text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  className="p-1 rounded hover:bg-accent dark:hover:bg-muted text-muted-foreground hover:text-muted-foreground dark:hover:text-gray-300 transition-colors"
                   title="Collapse leaderboard"
                 >
                   <ChevronRight className="w-4 h-4" />

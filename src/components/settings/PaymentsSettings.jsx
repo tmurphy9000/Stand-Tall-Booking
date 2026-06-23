@@ -311,13 +311,13 @@ export default function PaymentsSettings() {
       <section className="space-y-3">
         <div>
           <h2 className="text-sm font-semibold">Stripe Connect</h2>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Connect your Stripe account so card payments go directly to you.
           </p>
         </div>
 
         <div className={`flex items-start gap-3 p-4 rounded-xl border ${
-          isStripeConnected ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800" : "bg-gray-50 dark:bg-muted/30 border-gray-200 dark:border-border"
+          isStripeConnected ? "bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800" : "bg-muted/30 dark:bg-muted/30 border-border dark:border-border"
         }`}>
           {isStripeConnected
             ? <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
@@ -327,9 +327,9 @@ export default function PaymentsSettings() {
               {isStripeConnected ? "Stripe account connected" : "No Stripe account connected"}
             </p>
             {isStripeConnected ? (
-              <p className="text-xs text-gray-500 font-mono mt-0.5 truncate">{shop.stripe_account_id}</p>
+              <p className="text-xs text-muted-foreground font-mono mt-0.5 truncate">{shop.stripe_account_id}</p>
             ) : (
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Connect to enable card payments at checkout and online deposits.
               </p>
             )}
@@ -357,7 +357,7 @@ export default function PaymentsSettings() {
         </div>
 
         {!isStripeConnected && (
-          <p className="text-[11px] text-gray-400 leading-relaxed">
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
             You'll be redirected to Stripe to authorize the connection. Your clients' card payments and
             online deposits will flow directly into your Stripe account.
           </p>
@@ -369,15 +369,15 @@ export default function PaymentsSettings() {
         <section className="space-y-3">
           <div>
             <h3 className="text-sm font-semibold">Deposits</h3>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Collect a percentage deposit when clients book online to secure their appointment.
             </p>
           </div>
 
-          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-muted/30 rounded-lg border dark:border-border">
+          <div className="flex items-center justify-between p-3 bg-muted/30 dark:bg-muted/30 rounded-lg border dark:border-border">
             <div>
               <Label className="text-sm font-medium">Require deposit for all online bookings</Label>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 {depositConfig.deposit_enabled ? "Deposit required at booking" : "No deposit required"}
               </p>
             </div>
@@ -390,7 +390,7 @@ export default function PaymentsSettings() {
           {depositConfig.deposit_enabled && (
             <>
               <div className="space-y-1">
-                <Label className="text-xs text-gray-500">Deposit percentage (%)</Label>
+                <Label className="text-xs text-muted-foreground">Deposit percentage (%)</Label>
                 <div className="flex items-center gap-2">
                   <Input
                     type="number" min="1" max="100" className="max-w-[120px]"
@@ -400,15 +400,15 @@ export default function PaymentsSettings() {
                       deposit_percentage: Math.min(100, Math.max(1, parseInt(e.target.value) || 20)),
                     }))}
                   />
-                  <span className="text-sm text-gray-500">%</span>
+                  <span className="text-sm text-muted-foreground">%</span>
                 </div>
-                <p className="text-[10px] text-gray-400">
+                <p className="text-[10px] text-muted-foreground">
                   Clients pay this % of their service total at the time of booking.
                 </p>
               </div>
 
               <div className="space-y-1">
-                <Label className="text-xs text-gray-500">Refund window (hours)</Label>
+                <Label className="text-xs text-muted-foreground">Refund window (hours)</Label>
                 <Input
                   type="number" min="0" className="max-w-[160px]"
                   value={depositConfig.deposit_refund_hours}
@@ -417,15 +417,15 @@ export default function PaymentsSettings() {
                     deposit_refund_hours: Math.max(0, parseInt(e.target.value) || 24),
                   }))}
                 />
-                <p className="text-[10px] text-gray-400">
+                <p className="text-[10px] text-muted-foreground">
                   Refund if cancelled more than {depositConfig.deposit_refund_hours}h before appointment.
                 </p>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-muted/30 rounded-lg border dark:border-border">
+              <div className="flex items-center justify-between p-3 bg-muted/30 dark:bg-muted/30 rounded-lg border dark:border-border">
                 <div>
                   <Label className="text-sm font-medium">Allow pre-tip</Label>
-                  <p className="text-xs text-gray-500">Allow clients to add a tip when paying their deposit</p>
+                  <p className="text-xs text-muted-foreground">Allow clients to add a tip when paying their deposit</p>
                 </div>
                 <Switch
                   checked={depositConfig.deposit_pretip_enabled}
@@ -450,7 +450,7 @@ export default function PaymentsSettings() {
         <section className="space-y-3">
           <div>
             <h3 className="text-sm font-semibold">Card Readers</h3>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Manage Stripe Terminal readers for in-person card payments. Connect a reader to take payments
               from the checkout screen.
             </p>
@@ -473,19 +473,19 @@ export default function PaymentsSettings() {
           ) : (
             <>
               {/* Location ID badge */}
-              <div className="flex items-center gap-1.5 text-[11px] text-gray-400 font-mono">
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground font-mono">
                 <MapPin className="w-3 h-3" />
                 <span className="truncate">{shop.stripe_terminal_location_id}</span>
               </div>
 
               {/* Readers list */}
               {readersLoading ? (
-                <div className="flex items-center gap-2 text-sm text-gray-500 py-1">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground py-1">
                   <Loader2 className="w-4 h-4 animate-spin" />
                   Loading readers...
                 </div>
               ) : readers.length === 0 ? (
-                <p className="text-sm text-gray-400 py-1">No readers registered yet.</p>
+                <p className="text-sm text-muted-foreground py-1">No readers registered yet.</p>
               ) : (
                 <div className="space-y-2">
                   {readers.map((reader) => {
@@ -495,17 +495,17 @@ export default function PaymentsSettings() {
                       <div
                         key={reader.id}
                         className={`flex items-center justify-between p-3 rounded-lg border ${
-                          isReaderConnected ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' : 'bg-gray-50 dark:bg-muted/30 border-gray-200 dark:border-border'
+                          isReaderConnected ? 'bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800' : 'bg-muted/30 dark:bg-muted/30 border-border dark:border-border'
                         }`}
                       >
                         <div className="flex items-center gap-3 min-w-0">
-                          <Tablet className={`w-4 h-4 flex-shrink-0 ${isReaderConnected ? 'text-green-600' : 'text-gray-500'}`} />
+                          <Tablet className={`w-4 h-4 flex-shrink-0 ${isReaderConnected ? 'text-green-600' : 'text-muted-foreground'}`} />
                           <div className="min-w-0">
                             <p className="text-sm font-medium truncate">{reader.label || reader.id}</p>
                             <p className="text-xs capitalize">
-                              <span className="text-gray-500">{reader.device_type?.replace(/_/g, ' ')}</span>
+                              <span className="text-muted-foreground">{reader.device_type?.replace(/_/g, ' ')}</span>
                               {' · '}
-                              <span className={reader.status === 'online' ? 'text-green-600' : 'text-gray-400'}>
+                              <span className={reader.status === 'online' ? 'text-green-600' : 'text-muted-foreground'}>
                                 {reader.status}
                               </span>
                               {isReaderConnected && (
@@ -535,7 +535,7 @@ export default function PaymentsSettings() {
                           )}
                           <Button
                             variant="ghost" size="icon"
-                            className="h-7 w-7 text-gray-400 hover:text-red-600 hover:bg-red-50"
+                            className="h-7 w-7 text-muted-foreground hover:text-red-600 hover:bg-red-50"
                             onClick={() => deleteReader(reader.id)}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -549,8 +549,8 @@ export default function PaymentsSettings() {
 
               {/* Register reader form */}
               {showRegisterForm ? (
-                <div className="p-3 border border-gray-200 dark:border-border rounded-lg space-y-3 bg-gray-50 dark:bg-muted/30">
-                  <p className="text-xs font-medium text-gray-700 dark:text-gray-300">Register a reader</p>
+                <div className="p-3 border border-border dark:border-border rounded-lg space-y-3 bg-muted/30 dark:bg-muted/30">
+                  <p className="text-xs font-medium text-muted-foreground dark:text-gray-300">Register a reader</p>
                   <div>
                     <Label className="text-xs">Registration code</Label>
                     <Input
@@ -560,7 +560,7 @@ export default function PaymentsSettings() {
                       onChange={(e) => setRegCode(e.target.value)}
                       autoFocus
                     />
-                    <p className="text-[10px] text-gray-400 mt-1">
+                    <p className="text-[10px] text-muted-foreground mt-1">
                       Shown on the reader's display when ready to pair.
                     </p>
                   </div>
@@ -610,15 +610,15 @@ export default function PaymentsSettings() {
         <section className="space-y-3">
           <div>
             <h3 className="text-sm font-semibold">Terminal Behavior</h3>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Configure how card readers behave during checkout.
             </p>
           </div>
           <div className="space-y-2">
-            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-muted/30 rounded-lg border dark:border-border">
+            <div className="flex items-center justify-between p-3 bg-muted/30 dark:bg-muted/30 rounded-lg border dark:border-border">
               <div>
                 <Label className="text-sm font-medium">Collect tip on terminal</Label>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Show tip selection on the customer-facing reader screen.
                 </p>
               </div>
@@ -627,10 +627,10 @@ export default function PaymentsSettings() {
                 onCheckedChange={(v) => updateTerminalBehavior('collect_tip_on_terminal', v)}
               />
             </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-muted/30 rounded-lg border dark:border-border">
+            <div className="flex items-center justify-between p-3 bg-muted/30 dark:bg-muted/30 rounded-lg border dark:border-border">
               <div>
                 <Label className="text-sm font-medium">Auto-print receipt</Label>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Automatically print a receipt after each completed payment.
                 </p>
               </div>

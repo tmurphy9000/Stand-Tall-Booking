@@ -55,16 +55,16 @@ export default function ChangePassword() {
             </div>
           </div>
 
-          <h1 className="text-2xl font-bold text-center text-[#0A0A0A] mb-2">
+          <h1 className="text-2xl font-bold text-center text-foreground mb-2">
             Change Password
           </h1>
           {currentBarber && (
-            <p className="text-center text-sm text-gray-500 mb-6">Hi {currentBarber.name}!</p>
+            <p className="text-center text-sm text-muted-foreground mb-6">Hi {currentBarber.name}!</p>
           )}
 
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div>
-              <Label className="text-sm text-gray-700">New Password</Label>
+              <Label className="text-sm text-muted-foreground">New Password</Label>
               <div className="relative mt-1">
                 <Input
                   type={showPasswords ? "text" : "password"}
@@ -77,7 +77,7 @@ export default function ChangePassword() {
                 <button
                   type="button"
                   onClick={() => setShowPasswords(!showPasswords)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                 >
                   {showPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -85,7 +85,7 @@ export default function ChangePassword() {
             </div>
 
             <div>
-              <Label className="text-sm text-gray-700">Confirm Password</Label>
+              <Label className="text-sm text-muted-foreground">Confirm Password</Label>
               <Input
                 type={showPasswords ? "text" : "password"}
                 value={confirmPassword}
@@ -112,7 +112,7 @@ export default function ChangePassword() {
 
           <button
             onClick={logout}
-            className="w-full mt-3 text-sm text-gray-500 hover:text-gray-700"
+            className="w-full mt-3 text-sm text-muted-foreground hover:text-muted-foreground"
           >
             Log Out
           </button>

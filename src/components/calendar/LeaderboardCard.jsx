@@ -75,7 +75,7 @@ export default function LeaderboardCard({
 
   return (
     <>
-      <Card className="border-gray-200">
+      <Card className="border-border">
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -89,8 +89,8 @@ export default function LeaderboardCard({
                   title={leaderboardVisible ? "Hide leaderboard from staff" : "Show leaderboard to staff"}
                 >
                   {leaderboardVisible
-                    ? <Eye className="w-3 h-3 text-gray-400" />
-                    : <EyeOff className="w-3 h-3 text-gray-400" />}
+                    ? <Eye className="w-3 h-3 text-muted-foreground" />
+                    : <EyeOff className="w-3 h-3 text-muted-foreground" />}
                   <Switch
                     checked={leaderboardVisible}
                     onCheckedChange={handleToggleClick}
@@ -120,19 +120,19 @@ export default function LeaderboardCard({
             </div>
           )}
           {leaderboard.length === 0 ? (
-            <p className="text-xs text-gray-400 text-center py-4">No activity yet</p>
+            <p className="text-xs text-muted-foreground text-center py-4">No activity yet</p>
           ) : (
             leaderboard.map((entry, idx) => (
               <div
                 key={entry.name}
-                className="flex items-center gap-3 p-2 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors"
+                className="flex items-center gap-3 p-2 rounded-lg bg-muted/30 hover:bg-accent transition-colors"
               >
                 <div className="w-6 h-6 flex items-center justify-center text-lg">
                   {medals[idx] || `#${idx + 1}`}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{entry.name}</p>
-                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><Scissors className="w-3 h-3" />{entry.services}</span>
                     <span className="flex items-center gap-1"><Package className="w-3 h-3" />{entry.products}</span>
                   </div>
@@ -150,7 +150,7 @@ export default function LeaderboardCard({
           <DialogHeader>
             <DialogTitle>Confirm your password</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-muted-foreground">
             {pendingVisible
               ? "Enter your password to make the leaderboard visible to all staff."
               : "Enter your password to hide the leaderboard from staff."}

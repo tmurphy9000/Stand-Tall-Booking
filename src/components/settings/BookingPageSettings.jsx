@@ -72,7 +72,7 @@ function SlugEditor({ shopId, currentSlug }) {
 
   return (
     <div className="space-y-1.5">
-      <p className="text-xs text-gray-400 break-all">{BASE_URL}/book/</p>
+      <p className="text-xs text-muted-foreground break-all">{BASE_URL}/book/</p>
       <div className="flex items-center gap-2">
         <Input
           value={value}
@@ -93,7 +93,7 @@ function SlugEditor({ shopId, currentSlug }) {
           {" "}(only lowercase letters, numbers, and hyphens allowed)
         </p>
       ) : (
-        <p className="text-[10px] text-gray-400">Only lowercase letters, numbers, and hyphens (a–z, 0–9, -).</p>
+        <p className="text-[10px] text-muted-foreground">Only lowercase letters, numbers, and hyphens (a–z, 0–9, -).</p>
       )}
     </div>
   );
@@ -109,12 +109,12 @@ function InfoModal({ title, children, onClose }) {
       onClick={onClose}
     >
       <div
-        className="relative bg-white dark:bg-card rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
+        className="relative bg-card dark:bg-card rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-border">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
-          <button onClick={onClose} className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-muted transition-colors">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border dark:border-border">
+          <h3 className="text-sm font-semibold text-foreground dark:text-gray-100">{title}</h3>
+          <button onClick={onClose} className="p-1 rounded-lg text-muted-foreground hover:text-muted-foreground hover:bg-accent dark:hover:bg-muted transition-colors">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -128,7 +128,7 @@ function InfoButton({ onClick }) {
   return (
     <button
       onClick={onClick}
-      className="inline-flex items-center justify-center w-4 h-4 rounded-full text-gray-400 hover:text-[#8B9A7E] hover:bg-[#8B9A7E]/10 transition-colors flex-shrink-0"
+      className="inline-flex items-center justify-center w-4 h-4 rounded-full text-muted-foreground hover:text-[#8B9A7E] hover:bg-[#8B9A7E]/10 transition-colors flex-shrink-0"
       title="Learn more"
     >
       <Info className="w-3.5 h-3.5" />
@@ -371,11 +371,11 @@ export default function BookingPageSettings() {
       {urlSlug && (
         <section className="space-y-3">
           <div className="flex items-center gap-1.5">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Your Booking URL</h3>
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Your Booking URL</h3>
             <InfoButton onClick={() => setActiveModal("bookingUrl")} />
           </div>
-          <div className="p-3 bg-gray-50 dark:bg-muted/30 border border-gray-200 dark:border-border rounded-lg">
-            <p className="text-sm font-mono text-gray-700 dark:text-gray-300 break-all select-all">
+          <div className="p-3 bg-muted/30 dark:bg-muted/30 border border-border dark:border-border rounded-lg">
+            <p className="text-sm font-mono text-muted-foreground dark:text-gray-300 break-all select-all">
               {BASE_URL}/book/{urlSlug}
             </p>
           </div>
@@ -408,13 +408,13 @@ export default function BookingPageSettings() {
       {urlSlug && (
         <section className="space-y-3">
           <div className="flex items-center gap-2">
-            <Code className="w-3.5 h-3.5 text-gray-400" />
-            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Embed on Your Website</h3>
+            <Code className="w-3.5 h-3.5 text-muted-foreground" />
+            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Embed on Your Website</h3>
           </div>
           <div className="space-y-3">
             <div className="space-y-1.5">
               <div className="flex items-center gap-1.5">
-                <p className="text-xs text-gray-500 font-medium">Option A — iFrame</p>
+                <p className="text-xs text-muted-foreground font-medium">Option A — iFrame</p>
                 <InfoButton onClick={() => setActiveModal("iframe")} />
               </div>
               <CopySnippet
@@ -424,7 +424,7 @@ export default function BookingPageSettings() {
             </div>
             <div className="space-y-1.5">
               <div className="flex items-center gap-1.5">
-                <p className="text-xs text-gray-500 font-medium">Option B — Script tag</p>
+                <p className="text-xs text-muted-foreground font-medium">Option B — Script tag</p>
                 <InfoButton onClick={() => setActiveModal("scriptTag")} />
               </div>
               <CopySnippet
@@ -432,7 +432,7 @@ export default function BookingPageSettings() {
                 value={`<script src="${BASE_URL}/embed.js" data-shop="${urlSlug}"></script>`}
               />
             </div>
-            <p className="text-[10px] text-gray-400">
+            <p className="text-[10px] text-muted-foreground">
               Paste either snippet into your website's HTML where you want the booking form to appear.
             </p>
           </div>
@@ -441,7 +441,7 @@ export default function BookingPageSettings() {
 
       {/* ── Booking window ── */}
       <section className="space-y-3">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Booking Window</h3>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Booking Window</h3>
         <div className="flex items-center gap-2">
           <Input
             type="number"
@@ -459,7 +459,7 @@ export default function BookingPageSettings() {
             </SelectContent>
           </Select>
         </div>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-muted-foreground">
           How far out clients can book online. Currently set to {unitToDays(windowValue, windowUnit)} days.
         </p>
       </section>
@@ -467,17 +467,17 @@ export default function BookingPageSettings() {
       {/* ── Schedule optimizer ── */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Schedule Optimizer</h3>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Schedule Optimizer</h3>
           <Switch checked={scheduleOptimizerEnabled} onCheckedChange={setScheduleOptimizerEnabled} />
         </div>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-muted-foreground">
           Automatically minimizes gaps and balances bookings across your team.
         </p>
       </section>
 
       {/* ── Minimum booking notice ── */}
       <section className="space-y-3">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Minimum Booking Notice</h3>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Minimum Booking Notice</h3>
         <Select value={String(minNotice)} onValueChange={v => setMinNotice(Number(v))}>
           <SelectTrigger className="w-44 h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -487,31 +487,31 @@ export default function BookingPageSettings() {
             ))}
           </SelectContent>
         </Select>
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-muted-foreground">
           Clients cannot book a slot starting within this many minutes from now.
         </p>
       </section>
 
       {/* ── Logo ── */}
       <section className="space-y-3">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Shop Logo</h3>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Shop Logo</h3>
         <div className="flex items-center gap-4">
           {logoUrl ? (
-            <img src={logoUrl} alt="Booking logo" className="w-16 h-16 rounded-xl object-cover border border-gray-200 dark:border-border" />
+            <img src={logoUrl} alt="Booking logo" className="w-16 h-16 rounded-xl object-cover border border-border dark:border-border" />
           ) : (
-            <div className="w-16 h-16 rounded-xl border-2 border-dashed border-gray-200 dark:border-border flex items-center justify-center">
+            <div className="w-16 h-16 rounded-xl border-2 border-dashed border-border dark:border-border flex items-center justify-center">
               <Upload className="w-5 h-5 text-gray-300" />
             </div>
           )}
           <div>
             <Label htmlFor="logo-upload" className="cursor-pointer">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-border text-xs font-medium hover:bg-gray-50 dark:hover:bg-muted/30 transition-colors">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border dark:border-border text-xs font-medium hover:bg-accent dark:hover:bg-muted/30 transition-colors">
                 {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
                 {uploading ? "Uploading…" : "Upload Logo"}
               </div>
             </Label>
             <input id="logo-upload" type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handleLogoUpload} disabled={uploading} />
-            <p className="text-xs text-gray-400 mt-1">Replaces the default logo on the /book page.</p>
+            <p className="text-xs text-muted-foreground mt-1">Replaces the default logo on the /book page.</p>
             <p className="text-xs text-gray-300 mt-0.5">Recommended: 200×200px · PNG or JPG · max 2 MB</p>
           </div>
         </div>
@@ -519,20 +519,20 @@ export default function BookingPageSettings() {
 
       {/* ── Shop info ── */}
       <section className="space-y-3">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Shop Info</h3>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Shop Info</h3>
         <div className="space-y-3">
           <div>
-            <Label className="text-xs text-gray-500">Shop Name</Label>
+            <Label className="text-xs text-muted-foreground">Shop Name</Label>
             <Input value={shopName} onChange={e => setShopName(e.target.value)} placeholder="Stand Tall Barbershop" className="mt-1" />
           </div>
           <div>
-            <Label className="text-xs text-gray-500">Address</Label>
+            <Label className="text-xs text-muted-foreground">Address</Label>
             <Input value={shopAddress} onChange={e => setShopAddress(e.target.value)} placeholder="123 Main St, City, ST 00000" className="mt-1" />
           </div>
           <div>
-            <Label className="text-xs text-gray-500">Business Phone <span className="text-gray-300 font-normal">(optional)</span></Label>
+            <Label className="text-xs text-muted-foreground">Business Phone <span className="text-gray-300 font-normal">(optional)</span></Label>
             <div className="flex items-center gap-2 mt-1">
-              <Phone className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <Phone className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <Input
                 value={businessPhone}
                 onChange={e => setBusinessPhone(e.target.value)}
@@ -540,12 +540,12 @@ export default function BookingPageSettings() {
                 className="flex-1 text-sm"
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1">Your shop's business line — shown on the booking page. Leave blank to hide.</p>
+            <p className="text-xs text-muted-foreground mt-1">Your shop's business line — shown on the booking page. Leave blank to hide.</p>
           </div>
           <div>
-            <Label className="text-xs text-gray-500">Business Email <span className="text-gray-300 font-normal">(optional)</span></Label>
+            <Label className="text-xs text-muted-foreground">Business Email <span className="text-gray-300 font-normal">(optional)</span></Label>
             <div className="flex items-center gap-2 mt-1">
-              <Mail className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <Mail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <Input
                 value={businessEmail}
                 onChange={e => setBusinessEmail(e.target.value)}
@@ -553,14 +553,14 @@ export default function BookingPageSettings() {
                 className="flex-1 text-sm"
               />
             </div>
-            <p className="text-xs text-gray-400 mt-1">Your shop's contact email — shown on the booking page. Leave blank to hide.</p>
+            <p className="text-xs text-muted-foreground mt-1">Your shop's contact email — shown on the booking page. Leave blank to hide.</p>
           </div>
         </div>
       </section>
 
       {/* ── Social links ── */}
       <section className="space-y-3">
-        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Social Media</h3>
+        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Social Media</h3>
         <div className="space-y-3">
           {SOCIAL_PLATFORMS.map(({ key, label, Icon, placeholder }) => (
             <div key={key} className="flex items-center gap-3">
@@ -568,7 +568,7 @@ export default function BookingPageSettings() {
                 checked={social[key]?.enabled ?? false}
                 onCheckedChange={v => setSocial(prev => ({ ...prev, [key]: { ...prev[key], enabled: v } }))}
               />
-              <Icon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+              <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <Input
                 value={social[key]?.url ?? ""}
                 onChange={e => setSocial(prev => ({ ...prev, [key]: { ...prev[key], url: e.target.value } }))}
@@ -579,13 +579,13 @@ export default function BookingPageSettings() {
             </div>
           ))}
         </div>
-        <p className="text-xs text-gray-400">Enabled links appear on the booking page welcome screen.</p>
+        <p className="text-xs text-muted-foreground">Enabled links appear on the booking page welcome screen.</p>
       </section>
 
       {/* ── Cancellation policy ── */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Cancellation Policy</h3>
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Cancellation Policy</h3>
           <Switch checked={cancelPolicyEnabled} onCheckedChange={setCancelPolicyEnabled} />
         </div>
         {cancelPolicyEnabled && (
@@ -597,7 +597,7 @@ export default function BookingPageSettings() {
               rows={4}
               className="text-sm resize-none"
             />
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-muted-foreground">
               Clients will be shown this text on the confirmation step and must check a box before booking.
             </p>
           </div>
@@ -605,7 +605,7 @@ export default function BookingPageSettings() {
       </section>
 
       {/* ── Bottom save ── */}
-      <div className="flex justify-end pt-2 border-t border-gray-100 dark:border-border">
+      <div className="flex justify-end pt-2 border-t border-border dark:border-border">
         <Button
           size="sm"
           className="h-8 bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white gap-2"
@@ -621,11 +621,11 @@ export default function BookingPageSettings() {
       {activeModal === "bookingUrl" && (
         <InfoModal title="Your Booking URL" onClose={() => setActiveModal(null)}>
           <PhoneIllustration />
-          <p className="text-sm text-gray-600 leading-relaxed">
+          <p className="text-sm text-muted-foreground leading-relaxed">
             This is your shop's unique online booking link. Share it anywhere — text it to clients,
             add it to your Instagram bio, your Google Business profile, or anywhere else you promote your shop.
           </p>
-          <p className="text-xs text-gray-400 mt-3">
+          <p className="text-xs text-muted-foreground mt-3">
             You can customize the URL slug below to make it easier to remember.
           </p>
         </InfoModal>
@@ -633,19 +633,19 @@ export default function BookingPageSettings() {
 
       {activeModal === "iframe" && (
         <InfoModal title="Embed with iFrame" onClose={() => setActiveModal(null)}>
-          <div className="flex items-center justify-center w-full h-20 mb-3 bg-gray-50 dark:bg-muted/30 rounded-xl border border-gray-100 dark:border-border">
+          <div className="flex items-center justify-center w-full h-20 mb-3 bg-muted/30 dark:bg-muted/30 rounded-xl border border-border dark:border-border">
             <div className="flex flex-col items-center gap-1">
               <div className="w-24 h-10 rounded-lg bg-gray-200 flex items-center justify-center">
                 <div className="w-16 h-6 rounded bg-[#8B9A7E]/50" />
               </div>
-              <div className="text-[10px] text-gray-400 font-mono">{'<iframe … />'}</div>
+              <div className="text-[10px] text-muted-foreground font-mono">{'<iframe … />'}</div>
             </div>
           </div>
-          <p className="text-sm text-gray-600 leading-relaxed">
+          <p className="text-sm text-muted-foreground leading-relaxed">
             An iFrame embeds the booking form directly into any webpage. Just paste the snippet
             into your site's HTML where you want the form to appear — no JavaScript knowledge needed.
           </p>
-          <p className="text-xs text-gray-400 mt-3">
+          <p className="text-xs text-muted-foreground mt-3">
             Best for: Squarespace, Wix, Webflow, or any HTML page where you can add a custom code block.
           </p>
         </InfoModal>
@@ -653,16 +653,16 @@ export default function BookingPageSettings() {
 
       {activeModal === "scriptTag" && (
         <InfoModal title="Embed with Script Tag" onClose={() => setActiveModal(null)}>
-          <div className="flex items-center justify-center w-full h-20 mb-3 bg-gray-50 dark:bg-muted/30 rounded-xl border border-gray-100 dark:border-border">
-            <div className="text-[10px] text-gray-400 font-mono px-4 text-center leading-relaxed">
+          <div className="flex items-center justify-center w-full h-20 mb-3 bg-muted/30 dark:bg-muted/30 rounded-xl border border-border dark:border-border">
+            <div className="text-[10px] text-muted-foreground font-mono px-4 text-center leading-relaxed">
               {'<script src="…"'}<br />{'  data-shop="your-shop"'}<br />{'></script>'}
             </div>
           </div>
-          <p className="text-sm text-gray-600 leading-relaxed">
+          <p className="text-sm text-muted-foreground leading-relaxed">
             The script tag embed is a lightweight alternative — it injects the booking form automatically
             when the page loads. Just drop the one-line snippet wherever you want the widget to appear.
           </p>
-          <p className="text-xs text-gray-400 mt-3">
+          <p className="text-xs text-muted-foreground mt-3">
             Best for: WordPress, custom HTML sites, or developers who prefer a single-line drop-in.
             The widget is responsive and works on any screen size.
           </p>

@@ -272,7 +272,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
 
         <div className="space-y-4 py-2">
           <div className="relative" ref={dropdownRef}>
-            <Label className="text-xs text-gray-500">Client Name *</Label>
+            <Label className="text-xs text-muted-foreground">Client Name *</Label>
             <Input 
               value={searchTerm} 
               onChange={e => handleNameChange(e.target.value)} 
@@ -280,15 +280,15 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
               placeholder="Start typing client name..." 
             />
             {showDropdown && filteredClients.length > 0 && (
-              <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
+              <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-60 overflow-auto">
                 {filteredClients.map(client => (
                   <button
                     key={client.id}
                     onClick={() => handleClientSelect(client)}
-                    className="w-full px-3 py-2 text-left hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                    className="w-full px-3 py-2 text-left hover:bg-accent border-b border-border last:border-0"
                   >
                     <div className="font-medium text-sm">{client.name}</div>
-                    <div className="text-xs text-gray-500">{client.phone} • {client.email}</div>
+                    <div className="text-xs text-muted-foreground">{client.phone} • {client.email}</div>
                   </button>
                 ))}
               </div>
@@ -297,17 +297,17 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-gray-500">Phone</Label>
+              <Label className="text-xs text-muted-foreground">Phone</Label>
               <Input value={form.client_phone} onChange={e => handleContactChange("client_phone", e.target.value)} placeholder="(555) 123-4567" />
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Email</Label>
+              <Label className="text-xs text-muted-foreground">Email</Label>
               <Input value={form.client_email} onChange={e => handleContactChange("client_email", e.target.value)} placeholder="email@example.com" />
             </div>
           </div>
 
           <div>
-            <Label className="text-xs text-gray-500">Barber *</Label>
+            <Label className="text-xs text-muted-foreground">Barber *</Label>
             <Select value={form.barber_id} onValueChange={v => set("barber_id", v)}>
               <SelectTrigger><SelectValue placeholder="Select barber" /></SelectTrigger>
               <SelectContent>
@@ -324,7 +324,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
           </div>
 
           <div>
-            <Label className="text-xs text-gray-500">Service *</Label>
+            <Label className="text-xs text-muted-foreground">Service *</Label>
             <Select value={form.service_id} onValueChange={v => set("service_id", v)}>
               <SelectTrigger><SelectValue placeholder="Select service" /></SelectTrigger>
               <SelectContent>
@@ -351,27 +351,27 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label className="text-xs text-gray-500">Date</Label>
+              <Label className="text-xs text-muted-foreground">Date</Label>
               <Input type="date" value={form.date} onChange={e => set("date", e.target.value)} />
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Time</Label>
+              <Label className="text-xs text-muted-foreground">Time</Label>
               <Input type="time" value={form.start_time} onChange={e => set("start_time", e.target.value)} step="300" />
             </div>
           </div>
 
           {selectedService && (
-            <div className="bg-gray-50 rounded-lg p-3 text-sm">
+            <div className="bg-muted/30 rounded-lg p-3 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-500">Duration</span>
+                <span className="text-muted-foreground">Duration</span>
                 <span>{serviceDuration} min {selectedBarber?.service_durations?.[form.service_id] && <span className="text-[10px] text-[#8B9A7E]">(custom)</span>}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">Price</span>
+                <span className="text-muted-foreground">Price</span>
                 <span>${servicePrice.toFixed(2)} {selectedBarber?.service_prices?.[form.service_id] !== undefined && <span className="text-[10px] text-[#8B9A7E]">(custom)</span>}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-500">End Time</span>
+                <span className="text-muted-foreground">End Time</span>
                 <span>{endTime}</span>
               </div>
             </div>
@@ -393,13 +393,13 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
                   onClick={() => setRepeatEnabled(p => !p)}
                   className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${repeatEnabled ? "bg-orange-500" : "bg-gray-300"}`}
                 >
-                  <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform ${repeatEnabled ? "translate-x-4" : "translate-x-0.5"}`} />
+                  <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-card shadow transition-transform ${repeatEnabled ? "translate-x-4" : "translate-x-0.5"}`} />
                 </button>
               </div>
               {repeatEnabled && (
                 <>
                   <div>
-                    <Label className="text-xs text-gray-500">Repeat Frequency</Label>
+                    <Label className="text-xs text-muted-foreground">Repeat Frequency</Label>
                     <Select value={repeatFrequency} onValueChange={setRepeatFrequency}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -411,7 +411,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
                     </Select>
                   </div>
                   <div>
-                    <Label className="text-xs text-gray-500">Repeat Until</Label>
+                    <Label className="text-xs text-muted-foreground">Repeat Until</Label>
                     <Input type="date" value={repeatEndDate} onChange={e => setRepeatEndDate(e.target.value)} min={form.date} />
                   </div>
                 </>
@@ -420,7 +420,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
           )}
 
           <div>
-            <Label className="text-xs text-gray-500">Notes</Label>
+            <Label className="text-xs text-muted-foreground">Notes</Label>
             <Textarea value={form.notes} onChange={e => set("notes", e.target.value)} placeholder="Any special instructions..." rows={2} />
           </div>
         </div>
@@ -439,7 +439,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
           <DialogHeader>
             <DialogTitle className="text-base font-semibold">Outside Bookable Hours</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-600 py-2">
+          <p className="text-sm text-muted-foreground py-2">
             This appointment is outside of bookable hours. Do you want to continue?
           </p>
           <DialogFooter>
@@ -460,11 +460,11 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
             <DialogTitle className="text-lg font-semibold text-red-600">Duplicate Account Detected</DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <p className="text-sm text-gray-600 mb-4">
+            <p className="text-sm text-muted-foreground mb-4">
               A client with the same phone or email already exists:
             </p>
             {duplicateClient && (
-              <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-1">
+              <div className="bg-muted/30 rounded-lg p-3 text-sm space-y-1">
                 <div><strong>Name:</strong> {duplicateClient.name}</div>
                 <div><strong>Phone:</strong> {duplicateClient.phone}</div>
                 <div><strong>Email:</strong> {duplicateClient.email}</div>

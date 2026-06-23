@@ -90,7 +90,7 @@ export default function AddBarberDialog({ open, onOpenChange }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Basic Info */}
           <div className="space-y-3 border-b pb-4">
-            <h3 className="text-sm font-medium text-gray-700">Basic Information</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">Basic Information</h3>
             
             <div>
               <Label htmlFor="name" className="text-sm">Name *</Label>
@@ -129,7 +129,7 @@ export default function AddBarberDialog({ open, onOpenChange }) {
 
           {/* Commission Setup */}
           <div className="space-y-3 border-b pb-4">
-            <h3 className="text-sm font-medium text-gray-700">Commission Rates</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">Commission Rates</h3>
             
             <div>
               <Label htmlFor="serviceRate" className="text-sm">Service Commission %</Label>
@@ -142,7 +142,7 @@ export default function AddBarberDialog({ open, onOpenChange }) {
                 onChange={(e) => setFormData({ ...formData, service_commission_rate: parseFloat(e.target.value) })}
                 className="h-9"
               />
-              <p className="text-xs text-gray-500 mt-1">Commission % from service revenue</p>
+              <p className="text-xs text-muted-foreground mt-1">Commission % from service revenue</p>
             </div>
 
             <div>
@@ -156,13 +156,13 @@ export default function AddBarberDialog({ open, onOpenChange }) {
                 onChange={(e) => setFormData({ ...formData, product_commission_rate: parseFloat(e.target.value) })}
                 className="h-9"
               />
-              <p className="text-xs text-gray-500 mt-1">Commission % from product sales</p>
+              <p className="text-xs text-muted-foreground mt-1">Commission % from product sales</p>
             </div>
           </div>
 
           {/* Payroll Details */}
           <div className="space-y-3">
-            <h3 className="text-sm font-medium text-gray-700">Payroll Details (Optional)</h3>
+            <h3 className="text-sm font-medium text-muted-foreground">Payroll Details (Optional)</h3>
             
             <div>
               <Label htmlFor="legalName" className="text-sm">Full Legal Name</Label>

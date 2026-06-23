@@ -38,11 +38,11 @@ export default function BarberServiceDurations({ barber, services, onSave, onClo
             const isEnabled = availableServices.includes(service.id);
             
             return (
-              <div key={service.id} className={`border rounded-lg p-4 space-y-3 transition-all ${!isEnabled && 'opacity-50 bg-gray-50'}`}>
+              <div key={service.id} className={`border rounded-lg p-4 space-y-3 transition-all ${!isEnabled && 'opacity-50 bg-muted/30'}`}>
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <p className="font-semibold text-sm">{service.name}</p>
-                    <p className="text-xs text-gray-500">Default: {service.duration} min • ${service.price}</p>
+                    <p className="text-xs text-muted-foreground">Default: {service.duration} min • ${service.price}</p>
                   </div>
                   <Switch 
                     checked={isEnabled} 
@@ -53,7 +53,7 @@ export default function BarberServiceDurations({ barber, services, onSave, onClo
                 {isEnabled && (
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <Label className="text-xs text-gray-500">Custom Duration (min)</Label>
+                      <Label className="text-xs text-muted-foreground">Custom Duration (min)</Label>
                       <Input 
                         type="number"
                         placeholder={String(service.duration)}
@@ -62,7 +62,7 @@ export default function BarberServiceDurations({ barber, services, onSave, onClo
                       />
                     </div>
                     <div>
-                      <Label className="text-xs text-gray-500">Custom Price ($)</Label>
+                      <Label className="text-xs text-muted-foreground">Custom Price ($)</Label>
                       <Input 
                         type="number"
                         step="0.01"

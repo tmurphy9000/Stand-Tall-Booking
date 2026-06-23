@@ -453,9 +453,9 @@ function CheckoutContent({
 
         <div className="space-y-4">
           {/* Client & Barber Info */}
-          <div className="bg-gray-50 p-3 rounded-lg space-y-2">
+          <div className="bg-muted/30 p-3 rounded-lg space-y-2">
             <div className="relative">
-              <Label className="text-xs text-gray-500">Client</Label>
+              <Label className="text-xs text-muted-foreground">Client</Label>
               <Input
                 className="h-8 text-sm"
                 value={clientSearch}
@@ -464,33 +464,33 @@ function CheckoutContent({
                 onBlur={() => setTimeout(() => setShowClientDropdown(false), 200)}
               />
               {showClientDropdown && clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase())).length > 0 && (
-                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-40 overflow-auto">
+                <div className="absolute z-50 w-full mt-1 bg-card border border-border rounded-md shadow-lg max-h-40 overflow-auto">
                   {clients.filter(c => c.name.toLowerCase().includes(clientSearch.toLowerCase())).slice(0, 5).map(c => (
                     <button
                       key={c.id}
                       onMouseDown={() => { setClientSearch(c.name); setShowClientDropdown(false); }}
-                      className="w-full px-3 py-2 text-left hover:bg-gray-50 text-sm border-b border-gray-100 last:border-0"
+                      className="w-full px-3 py-2 text-left hover:bg-accent text-sm border-b border-border last:border-0"
                     >
                       <div className="font-medium">{c.name}</div>
-                      <div className="text-xs text-gray-500">{c.phone || c.email}</div>
+                      <div className="text-xs text-muted-foreground">{c.phone || c.email}</div>
                     </button>
                   ))}
                 </div>
               )}
             </div>
-            <p className="text-xs text-gray-600">Barber: {booking.barber_name}</p>
+            <p className="text-xs text-muted-foreground">Barber: {booking.barber_name}</p>
           </div>
 
           {/* Items List */}
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Items</Label>
             {items.map((item) => (
-              <div key={item.id} className="flex items-center justify-between bg-white border border-gray-200 p-2 rounded">
+              <div key={item.id} className="flex items-center justify-between bg-card border border-border p-2 rounded">
                 <div className="flex-1">
                   <p className="text-sm font-medium">{item.name}</p>
                   {item.type === "service" ? (
                     <div className="flex items-center gap-1 mt-0.5">
-                      <span className="text-xs text-gray-400">By:</span>
+                      <span className="text-xs text-muted-foreground">By:</span>
                       <Select
                         value={item.barberId || ""}
                         onValueChange={(val) => {
@@ -498,7 +498,7 @@ function CheckoutContent({
                           setItems(items.map(i => i.id === item.id ? { ...i, barberId: val, barberName: barber?.name || "" } : i));
                         }}
                       >
-                        <SelectTrigger className="h-6 text-xs border border-gray-200 rounded px-1.5 py-0 min-w-[90px]">
+                        <SelectTrigger className="h-6 text-xs border border-border rounded px-1.5 py-0 min-w-[90px]">
                           <SelectValue placeholder="Select barber" />
                         </SelectTrigger>
                         <SelectContent>
@@ -509,7 +509,7 @@ function CheckoutContent({
                       </Select>
                     </div>
                   ) : (
-                    <p className="text-xs text-gray-500">Product{item.tax > 0 ? ` • Tax: ${item.tax}%` : ""}</p>
+                    <p className="text-xs text-muted-foreground">Product{item.tax > 0 ? ` • Tax: ${item.tax}%` : ""}</p>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -580,7 +580,7 @@ function CheckoutContent({
                   <Command>
                     <CommandInput placeholder="Search client..." className="h-8 text-xs" />
                     <CommandList>
-                      <CommandEmpty className="py-3 text-xs text-center text-gray-500">No bookings found.</CommandEmpty>
+                      <CommandEmpty className="py-3 text-xs text-center text-muted-foreground">No bookings found.</CommandEmpty>
                       <CommandGroup>
                         {availableBookings.map(b => (
                           <CommandItem
@@ -593,7 +593,7 @@ function CheckoutContent({
                             className="text-xs"
                           >
                             <span className="font-medium">{b.client_name}</span>
-                            <span className="text-gray-400 ml-1">– {b.service_name}</span>
+                            <span className="text-muted-foreground ml-1">– {b.service_name}</span>
                           </CommandItem>
                         ))}
                       </CommandGroup>
@@ -624,7 +624,7 @@ function CheckoutContent({
                       className={`text-xs px-3 py-1.5 rounded-full border transition-all ${
                         isActive
                           ? "bg-[#8B9A7E] text-white border-[#8B9A7E]"
-                          : "bg-white text-gray-700 border-gray-200 hover:border-[#8B9A7E]"
+                          : "bg-card text-muted-foreground border-border hover:border-[#8B9A7E]"
                       }`}
                     >
                       {d.name} · {d.type === "percentage" ? `${d.value}%` : `$${d.value}`}
@@ -710,7 +710,7 @@ function CheckoutContent({
                 className={`py-2 rounded-lg border text-xs font-medium transition-all ${
                   tipMode === "preset" && tipPct === 0
                     ? "bg-[#8B9A7E] border-[#8B9A7E] text-white"
-                    : "bg-white border-gray-200 text-gray-600 hover:border-[#8B9A7E]/50"
+                    : "bg-card border-border text-muted-foreground hover:border-[#8B9A7E]/50"
                 }`}
               >
                 No Tip
@@ -728,11 +728,11 @@ function CheckoutContent({
                     className={`py-2 rounded-lg border text-xs transition-all ${
                       active
                         ? "bg-[#8B9A7E] border-[#8B9A7E] text-white"
-                        : "bg-white border-gray-200 text-gray-600 hover:border-[#8B9A7E]/50"
+                        : "bg-card border-border text-muted-foreground hover:border-[#8B9A7E]/50"
                     }`}
                   >
                     <div className="font-semibold">{pct}%</div>
-                    <div className={`text-[10px] mt-0.5 ${active ? "text-white/80" : "text-gray-400"}`}>
+                    <div className={`text-[10px] mt-0.5 ${active ? "text-white/80" : "text-muted-foreground"}`}>
                       ${dollars.toFixed(2)}
                     </div>
                   </button>
@@ -746,7 +746,7 @@ function CheckoutContent({
                 className={`py-2 rounded-lg border text-xs font-medium transition-all ${
                   tipMode === "custom"
                     ? "bg-[#8B9A7E]/10 border-[#8B9A7E] text-[#8B9A7E]"
-                    : "bg-white border-gray-200 text-gray-600 hover:border-[#8B9A7E]/50"
+                    : "bg-card border-border text-muted-foreground hover:border-[#8B9A7E]/50"
                 }`}
               >
                 Custom $
@@ -755,7 +755,7 @@ function CheckoutContent({
 
             {tipMode === "custom" && (
               <div className="relative mt-2">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">$</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">$</span>
                 <Input
                   type="number"
                   min="0"
@@ -790,7 +790,7 @@ function CheckoutContent({
           {paymentMethod === "card" && (
             <div className="space-y-2">
               <div className="rounded-lg border border-gray-700 bg-[#0f0f0f] p-4">
-                <Label className="text-xs text-gray-400 mb-3 block">Card Details</Label>
+                <Label className="text-xs text-muted-foreground mb-3 block">Card Details</Label>
                 <PaymentElement
                   onChange={() => setCardError(null)}
                   options={{
@@ -806,7 +806,7 @@ function CheckoutContent({
                 </div>
               )}
               {depositPaid > 0 && (
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Deposit of ${depositPaid.toFixed(2)} already collected — only the remaining balance will be charged.
                 </p>
               )}

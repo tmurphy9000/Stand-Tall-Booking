@@ -120,7 +120,7 @@ export default function StaffSchedule() {
           </CardHeader>
           <CardContent>
             {myRequests.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">No requests yet</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No requests yet</p>
             ) : (
               <div className="space-y-2">
                 {myRequests.map(request => (
@@ -128,16 +128,16 @@ export default function StaffSchedule() {
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <Calendar className="w-4 h-4 text-gray-400" />
+                          <Calendar className="w-4 h-4 text-muted-foreground" />
                           <span className="text-sm font-medium">
                             {format(parseISO(request.start_date), "MMM d")} - {format(parseISO(request.end_date), "MMM d, yyyy")}
                           </span>
                         </div>
                         {request.reason && (
-                          <p className="text-xs text-gray-600 mt-1">{request.reason}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{request.reason}</p>
                         )}
                         {request.reviewed_by && (
-                          <p className="text-xs text-gray-400 mt-2">
+                          <p className="text-xs text-muted-foreground mt-2">
                             Reviewed by {request.reviewed_by} on {format(parseISO(request.reviewed_date), "MMM d, yyyy")}
                           </p>
                         )}
@@ -174,14 +174,14 @@ export default function StaffSchedule() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1">
                     <p className="font-semibold text-sm">{request.barber_name}</p>
-                    <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
+                    <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
                       <Calendar className="w-4 h-4" />
                       <span>
                         {format(parseISO(request.start_date), "MMM d")} - {format(parseISO(request.end_date), "MMM d, yyyy")}
                       </span>
                     </div>
                     {request.reason && (
-                      <p className="text-xs text-gray-600 mt-2">{request.reason}</p>
+                      <p className="text-xs text-muted-foreground mt-2">{request.reason}</p>
                     )}
                   </div>
                   <div className="flex gap-2">
@@ -219,7 +219,7 @@ export default function StaffSchedule() {
           </CardHeader>
           <CardContent>
             {timeOffRequests.filter(r => r.status === "approved").length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">No approved time off</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No approved time off</p>
             ) : (
               <div className="space-y-2">
                 {timeOffRequests
@@ -228,8 +228,8 @@ export default function StaffSchedule() {
                     <div key={request.id} className="p-3 bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-lg">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-semibold text-sm text-gray-900 dark:text-gray-100">{request.barber_name}</p>
-                          <div className="flex items-center gap-2 mt-1 text-sm text-gray-600 dark:text-gray-300">
+                          <p className="font-semibold text-sm text-foreground dark:text-gray-100">{request.barber_name}</p>
+                          <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground dark:text-gray-300">
                             <Calendar className="w-4 h-4" />
                             <span>
                               {format(parseISO(request.start_date), "MMM d")} - {format(parseISO(request.end_date), "MMM d, yyyy")}
@@ -254,7 +254,7 @@ export default function StaffSchedule() {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label className="text-xs text-gray-500">Start Date *</Label>
+              <Label className="text-xs text-muted-foreground">Start Date *</Label>
               <Input
                 type="date"
                 value={formData.start_date}
@@ -262,7 +262,7 @@ export default function StaffSchedule() {
               />
             </div>
             <div>
-              <Label className="text-xs text-gray-500">End Date *</Label>
+              <Label className="text-xs text-muted-foreground">End Date *</Label>
               <Input
                 type="date"
                 value={formData.end_date}
@@ -270,7 +270,7 @@ export default function StaffSchedule() {
               />
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Reason (optional)</Label>
+              <Label className="text-xs text-muted-foreground">Reason (optional)</Label>
               <Textarea
                 value={formData.reason}
                 onChange={e => setFormData({ ...formData, reason: e.target.value })}
@@ -297,7 +297,7 @@ export default function StaffSchedule() {
       {!currentBarber && !canManageTimeOff && (
         <Card>
           <CardContent className="p-8 text-center">
-            <p className="text-gray-600">You need to be linked to a barber profile to manage schedules.</p>
+            <p className="text-muted-foreground">You need to be linked to a barber profile to manage schedules.</p>
           </CardContent>
         </Card>
       )}

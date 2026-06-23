@@ -110,45 +110,45 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Invite New Barber</DialogTitle>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Fill in the basic info, then choose how to collect their payroll details.
           </p>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           {/* Basic Info */}
-          <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Basic Information</p>
+          <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Basic Information</p>
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-gray-500">First Name *</Label>
+                <Label className="text-xs text-muted-foreground">First Name *</Label>
                 <Input value={form.first_name} onChange={e => set("first_name", e.target.value)} placeholder="John" />
               </div>
               <div>
-                <Label className="text-xs text-gray-500">Last Name *</Label>
+                <Label className="text-xs text-muted-foreground">Last Name *</Label>
                 <Input value={form.last_name} onChange={e => set("last_name", e.target.value)} placeholder="Doe" />
               </div>
             </div>
 
             <div>
-              <Label className="text-xs text-gray-500">Phone Number</Label>
+              <Label className="text-xs text-muted-foreground">Phone Number</Label>
               <Input type="tel" value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="(555) 000-0000" />
             </div>
 
             <div>
-              <Label className="text-xs text-gray-500">Email (Login) *</Label>
+              <Label className="text-xs text-muted-foreground">Email (Login) *</Label>
               <Input type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="barber@example.com" />
             </div>
 
             <div>
-              <Label className="text-xs text-gray-500">Temporary Password *</Label>
+              <Label className="text-xs text-muted-foreground">Temporary Password *</Label>
               <Input type="password" value={form.temp_password} onChange={e => set("temp_password", e.target.value)} placeholder="Create a temporary password" />
-              <p className="text-xs text-gray-400 mt-1">They'll be asked to change this on first login</p>
+              <p className="text-xs text-muted-foreground mt-1">They'll be asked to change this on first login</p>
             </div>
 
             <div>
-              <Label className="text-xs text-gray-500">Access Level</Label>
+              <Label className="text-xs text-muted-foreground">Access Level</Label>
               <Select value={form.access_level_id} onValueChange={v => set("access_level_id", v)}>
                 <SelectTrigger><SelectValue placeholder="Select access level" /></SelectTrigger>
                 <SelectContent>
@@ -162,8 +162,8 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
 
           {/* Payroll method choice */}
           <div className="space-y-2">
-            <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Payroll & ID Information</p>
-            <p className="text-xs text-gray-400">How would you like to collect SSN, banking, and license info?</p>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Payroll & ID Information</p>
+            <p className="text-xs text-muted-foreground">How would you like to collect SSN, banking, and license info?</p>
 
             <div className="grid grid-cols-2 gap-3">
               <button
@@ -173,7 +173,7 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
                   "flex flex-col items-center gap-2 p-4 rounded-xl border-2 text-sm font-medium transition-all",
                   payrollEntry === "send"
                     ? "border-[#8B9A7E] bg-[#8B9A7E]/10 text-[#6B7A5E]"
-                    : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
+                    : "border-border bg-card text-muted-foreground hover:border-gray-300"
                 )}
               >
                 <Send className="w-5 h-5" />
@@ -188,7 +188,7 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
                   "flex flex-col items-center gap-2 p-4 rounded-xl border-2 text-sm font-medium transition-all",
                   payrollEntry === "manual"
                     ? "border-[#8B9A7E] bg-[#8B9A7E]/10 text-[#6B7A5E]"
-                    : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
+                    : "border-border bg-card text-muted-foreground hover:border-gray-300"
                 )}
               >
                 <ClipboardEdit className="w-5 h-5" />
@@ -200,26 +200,26 @@ export default function InviteBarberForm({ open, onClose, onSuccess }) {
 
           {/* Manual payroll fields */}
           {payrollEntry === "manual" && (
-            <div className="bg-gray-50 rounded-lg p-4 space-y-3">
-              <p className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Payroll Details</p>
+            <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Payroll Details</p>
               <div>
-                <Label className="text-xs text-gray-500">Driver's License Number</Label>
+                <Label className="text-xs text-muted-foreground">Driver's License Number</Label>
                 <Input value={payroll.drivers_license_number} onChange={e => setP("drivers_license_number", e.target.value)} placeholder="D1234567" />
               </div>
               <div>
-                <Label className="text-xs text-gray-500">Social Security Number</Label>
+                <Label className="text-xs text-muted-foreground">Social Security Number</Label>
                 <Input type="password" value={payroll.ssn} onChange={e => setP("ssn", e.target.value)} placeholder="XXX-XX-XXXX" maxLength={11} />
               </div>
               <div>
-                <Label className="text-xs text-gray-500">Bank Name</Label>
+                <Label className="text-xs text-muted-foreground">Bank Name</Label>
                 <Input value={payroll.bank_name} onChange={e => setP("bank_name", e.target.value)} placeholder="Chase, Wells Fargo..." />
               </div>
               <div>
-                <Label className="text-xs text-gray-500">Account Number</Label>
+                <Label className="text-xs text-muted-foreground">Account Number</Label>
                 <Input type="password" value={payroll.account_number} onChange={e => setP("account_number", e.target.value)} placeholder="Account number" />
               </div>
               <div>
-                <Label className="text-xs text-gray-500">Routing Number</Label>
+                <Label className="text-xs text-muted-foreground">Routing Number</Label>
                 <Input value={payroll.routing_number} onChange={e => setP("routing_number", e.target.value)} placeholder="9-digit routing number" maxLength={9} />
               </div>
             </div>

@@ -59,13 +59,13 @@ export default function HardwareSettings() {
       <h2 className="text-sm font-semibold">Hardware Settings</h2>
 
       {/* Stripe Terminal */}
-      <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
-        <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Stripe Terminal</p>
+      <div className="bg-card rounded-xl border border-border p-4 space-y-4">
+        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Stripe Terminal</p>
 
         <div className="flex items-center justify-between gap-4">
           <div>
             <Label className="text-sm font-medium">Enable Stripe Terminal</Label>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Enable this when you have physical Stripe hardware connected.
             </p>
           </div>
@@ -74,9 +74,9 @@ export default function HardwareSettings() {
 
         {hw.enabled && (
           <>
-            <div className="border-t border-gray-100 pt-4 space-y-4">
+            <div className="border-t border-border pt-4 space-y-4">
               <div>
-                <Label className="text-xs text-gray-500">Reader Model</Label>
+                <Label className="text-xs text-muted-foreground">Reader Model</Label>
                 <Select value={hw.reader_model} onValueChange={(val) => update("reader_model", val)}>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Select your reader model" />
@@ -90,8 +90,8 @@ export default function HardwareSettings() {
               </div>
 
               <div>
-                <Label className="text-xs text-gray-500">Stripe Location ID</Label>
-                <p className="text-xs text-gray-400 mb-1">Found in your Stripe Dashboard → Terminal → Locations</p>
+                <Label className="text-xs text-muted-foreground">Stripe Location ID</Label>
+                <p className="text-xs text-muted-foreground mb-1">Found in your Stripe Dashboard → Terminal → Locations</p>
                 <Input
                   placeholder="tml_loc_XXXXXXXXXXXXXXXX"
                   value={hw.location_id}
@@ -100,8 +100,8 @@ export default function HardwareSettings() {
               </div>
 
               <div>
-                <Label className="text-xs text-gray-500">Reader ID (optional)</Label>
-                <p className="text-xs text-gray-400 mb-1">Assign a specific reader. Leave blank to auto-assign.</p>
+                <Label className="text-xs text-muted-foreground">Reader ID (optional)</Label>
+                <p className="text-xs text-muted-foreground mb-1">Assign a specific reader. Leave blank to auto-assign.</p>
                 <Input
                   placeholder="tmr_XXXXXXXXXXXXXXXX"
                   value={hw.reader_id}
@@ -115,13 +115,13 @@ export default function HardwareSettings() {
 
       {/* Terminal Behavior */}
       {hw.enabled && (
-        <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-4">
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Terminal Behavior</p>
+        <div className="bg-card rounded-xl border border-border p-4 space-y-4">
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Terminal Behavior</p>
 
           <div className="flex items-center justify-between gap-4">
             <div>
               <Label className="text-sm font-medium">Collect Tip on Terminal</Label>
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Show tip selection screen on the customer-facing hardware.
               </p>
             </div>
@@ -134,7 +134,7 @@ export default function HardwareSettings() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <Label className="text-sm font-medium">Auto-Print Receipt</Label>
-              <p className="text-xs text-gray-400 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Automatically print a receipt after each completed transaction.
               </p>
             </div>

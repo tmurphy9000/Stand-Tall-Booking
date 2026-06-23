@@ -326,9 +326,9 @@ function QuickCheckoutContent() {
   return (
     <div className="min-h-screen bg-[#FAFAF8] dark:bg-background p-6">
       <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold text-[#0A0A0A] mb-6">Quick Checkout</h1>
+        <h1 className="text-3xl font-bold text-foreground mb-6">Quick Checkout</h1>
 
-        <div className="bg-white dark:bg-card rounded-xl shadow-sm border border-gray-100 dark:border-border p-6 space-y-4">
+        <div className="bg-card dark:bg-card rounded-xl shadow-sm border border-border dark:border-border p-6 space-y-4">
           {/* Client Name with autocomplete */}
           <div className="relative">
             <Label>Client Name (Optional)</Label>
@@ -340,15 +340,15 @@ function QuickCheckoutContent() {
               placeholder="Enter client name (optional)"
             />
             {showClientDropdown && clientName.length > 0 && clients.filter(c => c.name.toLowerCase().includes(clientName.toLowerCase())).length > 0 && (
-              <div className="absolute z-50 w-full mt-1 bg-white dark:bg-card border border-gray-200 dark:border-border rounded-md shadow-lg max-h-40 overflow-auto">
+              <div className="absolute z-50 w-full mt-1 bg-card dark:bg-card border border-border dark:border-border rounded-md shadow-lg max-h-40 overflow-auto">
                 {clients.filter(c => c.name.toLowerCase().includes(clientName.toLowerCase())).slice(0, 6).map(c => (
                   <button
                     key={c.id}
                     onMouseDown={() => { setClientName(c.name); setShowClientDropdown(false); }}
-                    className="w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-muted border-b border-gray-100 dark:border-border last:border-0"
+                    className="w-full px-3 py-2 text-left hover:bg-accent dark:hover:bg-muted border-b border-border dark:border-border last:border-0"
                   >
                     <div className="font-medium text-sm">{c.name}</div>
-                    <div className="text-xs text-gray-500">{c.phone || c.email}</div>
+                    <div className="text-xs text-muted-foreground">{c.phone || c.email}</div>
                   </button>
                 ))}
               </div>
@@ -359,13 +359,13 @@ function QuickCheckoutContent() {
           <div className="space-y-2">
             <Label className="text-sm font-semibold">Items</Label>
             {items.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-4">No items added yet</p>
+              <p className="text-sm text-muted-foreground text-center py-4">No items added yet</p>
             )}
             {items.map((item) => (
-              <div key={item.id} className="flex items-center gap-2 bg-gray-50 dark:bg-muted border border-gray-200 dark:border-border p-3 rounded">
+              <div key={item.id} className="flex items-center gap-2 bg-muted/30 dark:bg-muted border border-border dark:border-border p-3 rounded">
                 <div className="flex-1">
                   <p className="text-sm font-medium">{item.name}</p>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     {item.type === "service" ? "Service" : "Product"}
                     {item.tax > 0 && ` • Tax: ${item.tax}%`}
                   </p>
@@ -533,7 +533,7 @@ function QuickCheckoutContent() {
             </div>
           )}
           {paymentMethod === "card" && stripeAccountId && (
-            <div className="border border-gray-200 dark:border-border rounded-md p-3">
+            <div className="border border-border dark:border-border rounded-md p-3">
               <Label className="text-xs mb-2 block">Card Details</Label>
               <CardElement
                 options={{

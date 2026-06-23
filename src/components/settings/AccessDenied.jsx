@@ -10,10 +10,10 @@ export default function AccessDenied() {
           <XCircle className="w-8 h-8 text-red-500" />
         </div>
         <h3 className="text-lg font-semibold text-red-600 mb-2">Access Denied</h3>
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           You don't have permission to view this information.
         </p>
-        <p className="text-xs text-gray-400 mt-2">
+        <p className="text-xs text-muted-foreground mt-2">
           Contact an owner or manager for access.
         </p>
       </CardContent>

@@ -175,7 +175,7 @@ export default function TerminalPayment({
 
   if (status === 'loading') {
     return (
-      <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
         <Loader2 className="w-4 h-4 animate-spin" />
         Loading Terminal SDK...
       </div>
@@ -200,8 +200,8 @@ export default function TerminalPayment({
 
   if (status === 'ready') {
     return (
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2.5">
-        <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+      <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2.5">
+        <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
           <Tablet className="w-4 h-4" />
           Card Reader
         </div>
@@ -225,7 +225,7 @@ export default function TerminalPayment({
 
   if (status === 'discovering') {
     return (
-      <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
         <Loader2 className="w-4 h-4 animate-spin" />
         Searching for readers...
       </div>
@@ -234,25 +234,25 @@ export default function TerminalPayment({
 
   if (status === 'select_reader') {
     return (
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-2">
-        <p className="text-xs font-medium text-gray-700">Select a reader:</p>
+      <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-2">
+        <p className="text-xs font-medium text-muted-foreground">Select a reader:</p>
         <div className="space-y-1.5">
           {readers.map((reader) => (
             <button
               key={reader.id}
               onClick={() => connectToReader(reader)}
-              className="w-full flex items-center justify-between p-2.5 rounded-md border border-gray-200 bg-white hover:border-[#8B9A7E] hover:bg-[#8B9A7E]/5 transition-all text-left"
+              className="w-full flex items-center justify-between p-2.5 rounded-md border border-border bg-card hover:border-[#8B9A7E] hover:bg-[#8B9A7E]/5 transition-all text-left"
             >
               <div>
                 <p className="text-sm font-medium">{reader.label || reader.id}</p>
-                <p className="text-xs text-gray-500 capitalize">
+                <p className="text-xs text-muted-foreground capitalize">
                   {reader.device_type?.replace(/_/g, ' ')} ·{' '}
-                  <span className={reader.status === 'online' ? 'text-green-600' : 'text-gray-400'}>
+                  <span className={reader.status === 'online' ? 'text-green-600' : 'text-muted-foreground'}>
                     {reader.status}
                   </span>
                 </p>
               </div>
-              <Tablet className="w-4 h-4 text-gray-400" />
+              <Tablet className="w-4 h-4 text-muted-foreground" />
             </button>
           ))}
         </div>
@@ -270,7 +270,7 @@ export default function TerminalPayment({
 
   if (status === 'connecting') {
     return (
-      <div className="flex items-center gap-2 text-sm text-gray-500 py-2">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
         <Loader2 className="w-4 h-4 animate-spin" />
         Connecting to reader...
       </div>
@@ -314,7 +314,7 @@ export default function TerminalPayment({
           <Loader2 className="w-4 h-4 animate-spin text-[#8B9A7E]" />
           Waiting for card...
         </div>
-        <p className="text-xs text-gray-500">Ask the client to tap, swipe, or insert their card on the reader.</p>
+        <p className="text-xs text-muted-foreground">Ask the client to tap, swipe, or insert their card on the reader.</p>
         <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={cancelCollection}>
           Cancel
         </Button>
@@ -324,12 +324,12 @@ export default function TerminalPayment({
 
   if (status === 'processing') {
     return (
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-1.5">
+      <div className="rounded-lg border border-border bg-muted/30 p-3 space-y-1.5">
         <div className="flex items-center gap-2 text-sm font-medium">
           <Loader2 className="w-4 h-4 animate-spin" />
           Processing...
         </div>
-        <p className="text-xs text-gray-500">Do not remove the card.</p>
+        <p className="text-xs text-muted-foreground">Do not remove the card.</p>
       </div>
     );
   }

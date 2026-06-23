@@ -87,7 +87,7 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
     confirmed: "bg-green-100 border-green-500 text-green-800",
     checked_in: "bg-yellow-100 border-yellow-500 text-yellow-800",
     late: "bg-amber-100 border-amber-500 text-amber-800",
-    completed: "bg-gray-200 border-gray-400 text-gray-600",
+    completed: "bg-gray-200 border-gray-400 text-muted-foreground",
     cancelled: "bg-red-50 border-red-300 text-red-400 line-through",
     no_show: "bg-orange-50 border-orange-300 text-orange-500",
   };
@@ -156,7 +156,7 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
       {showHandles && (
         <div
           onMouseDown={(e) => handleResizeStart(e, 'top')}
-          className="absolute -top-1 left-1 w-4 h-4 bg-white dark:bg-card border border-gray-400 dark:border-border rounded-full cursor-ns-resize z-20 shadow-sm hover:scale-110 transition-transform"
+          className="absolute -top-1 left-1 w-4 h-4 bg-card dark:bg-card border border-gray-400 dark:border-border rounded-full cursor-ns-resize z-20 shadow-sm hover:scale-110 transition-transform"
         />
       )}
       
@@ -190,7 +190,7 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
       {showHandles && (
         <div
           onMouseDown={(e) => handleResizeStart(e, 'bottom')}
-          className="absolute -bottom-1 right-1 w-4 h-4 bg-white dark:bg-card border border-gray-400 dark:border-border rounded-full cursor-ns-resize z-20 shadow-sm hover:scale-110 transition-transform"
+          className="absolute -bottom-1 right-1 w-4 h-4 bg-card dark:bg-card border border-gray-400 dark:border-border rounded-full cursor-ns-resize z-20 shadow-sm hover:scale-110 transition-transform"
         />
       )}
     </div>
@@ -316,8 +316,8 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
       onTouchEnd={handleTouchEnd}
     >
       {/* Column width slider bar */}
-      <div className="flex items-center gap-2 px-3 py-1.5 bg-[#FAFAF8] dark:bg-background border-b border-gray-100 dark:border-border">
-        <span className="text-[9px] text-gray-400 flex-shrink-0">↔</span>
+      <div className="flex items-center gap-2 px-3 py-1.5 bg-[#FAFAF8] dark:bg-background border-b border-border dark:border-border">
+        <span className="text-[9px] text-muted-foreground flex-shrink-0">↔</span>
         <input
           type="range"
           min={0.3}
@@ -328,12 +328,12 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
           className="flex-1 h-1 accent-[#8B9A7E] cursor-pointer"
           style={{ accentColor: '#8B9A7E', touchAction: 'none' }}
         />
-        <span className="text-[9px] text-gray-400 flex-shrink-0">↔</span>
+        <span className="text-[9px] text-muted-foreground flex-shrink-0">↔</span>
       </div>
     <div ref={gridRef} className="overflow-auto flex-1" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="inline-block min-w-full relative">
         {/* Barber header columns */}
-        <div className="sticky top-0 z-20 bg-[#FAFAF8] dark:bg-background flex border-b border-gray-100 dark:border-border">
+        <div className="sticky top-0 z-20 bg-[#FAFAF8] dark:bg-background flex border-b border-border dark:border-border">
           <div className="w-14 flex-shrink-0" />
           {barbers.map((barber) => {
             const barberAppointmentCount = bookings.filter(
@@ -344,7 +344,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
             
             const isOnTimeOff = barbersOnTimeOff.has(barber.id);
             return (
-              <div key={barber.id} className="px-1 py-1 text-center border-l border-gray-100 dark:border-border/30" style={{ width: `${COLUMN_WIDTH}px`, minWidth: `${COLUMN_WIDTH}px` }}>
+              <div key={barber.id} className="px-1 py-1 text-center border-l border-border dark:border-border/30" style={{ width: `${COLUMN_WIDTH}px`, minWidth: `${COLUMN_WIDTH}px` }}>
                 <div className="flex flex-col items-center gap-0.5">
                   {barber.photo_url ? (
                     <img src={barber.photo_url} alt={barber.name} className="w-5 h-5 rounded-full object-cover ring-1 ring-[#8B9A7E]/30" />
@@ -353,7 +353,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
                       {barber.name?.charAt(0)}
                     </div>
                   )}
-                  <span className="text-[9px] font-medium text-gray-700 dark:text-gray-300 truncate max-w-full">{barber.name.split(' ')[0]}</span>
+                  <span className="text-[9px] font-medium text-muted-foreground dark:text-gray-300 truncate max-w-full">{barber.name.split(' ')[0]}</span>
                   <span className="text-[8px] font-bold text-[#8B9A7E] bg-[#8B9A7E]/10 px-1.5 py-0.5 rounded-full whitespace-nowrap">
                     {barberAppointmentCount} appts
                   </span>
@@ -391,7 +391,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
               <div key={slot.time} className="pr-2 text-right" style={{ height: `${slotHeight}px` }}>
                 <span className={cn(
                   "text-[10px] leading-none relative -top-1.5",
-                  slot.isHour ? "text-gray-600 dark:text-gray-300 font-bold" : "text-gray-400 dark:text-gray-500"
+                  slot.isHour ? "text-muted-foreground dark:text-gray-300 font-bold" : "text-muted-foreground dark:text-muted-foreground"
                 )}>
                   {slot.label}
                 </span>
@@ -410,11 +410,11 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
                   <div
                     key={`${barber.id}-${slot.time}`}
                     className={cn(
-                      "calendar-slot border-l border-b border-gray-100/60 dark:border-border/30 relative",
+                      "calendar-slot border-l border-b border-border/60 dark:border-border/30 relative",
                       barberOnTimeOff && "bg-orange-50/70 dark:bg-orange-900/20",
                       !barberOnTimeOff && !bookable && "bg-gray-200/80 dark:bg-muted/60",
                       bookable && "hover:bg-[#8B9A7E]/5 cursor-pointer",
-                      slot.minute === 0 && "border-t border-gray-200/50 dark:border-border/40",
+                      slot.minute === 0 && "border-t border-border/50 dark:border-border/40",
                       isDragOver && bookable && "bg-[#8B9A7E]/10"
                     )}
                     style={{ height: `${slotHeight}px` }}

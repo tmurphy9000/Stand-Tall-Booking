@@ -65,7 +65,7 @@ export default function BarberAssistant({ open, onClose }) {
             </div>
             <div>
               <DialogTitle className="text-lg">AI Assistant</DialogTitle>
-              <p className="text-xs text-gray-500">Service recommendations, notes, and scheduling help</p>
+              <p className="text-xs text-muted-foreground">Service recommendations, notes, and scheduling help</p>
             </div>
           </div>
         </DialogHeader>
@@ -75,8 +75,8 @@ export default function BarberAssistant({ open, onClose }) {
             <div className="flex items-center justify-center text-center h-full">
               <div>
                 <Sparkles className="w-12 h-12 mx-auto mb-4 text-[#8B9A7E]/40" />
-                <p className="text-sm font-medium text-gray-600 mb-2">How can I help?</p>
-                <p className="text-xs text-gray-400">
+                <p className="text-sm font-medium text-muted-foreground mb-2">How can I help?</p>
+                <p className="text-xs text-muted-foreground">
                   Ask about scheduling, client notes, service recommendations, or shop business advice.
                 </p>
               </div>
@@ -89,7 +89,7 @@ export default function BarberAssistant({ open, onClose }) {
                 className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap ${
                   m.role === "user"
                     ? "bg-[#8B9A7E] text-white"
-                    : "bg-gray-100 text-gray-800"
+                    : "bg-muted text-gray-800"
                 }`}
               >
                 {m.content}
@@ -99,7 +99,7 @@ export default function BarberAssistant({ open, onClose }) {
 
           {loading && (
             <div className="flex justify-start">
-              <div className="bg-gray-100 text-gray-500 rounded-2xl px-4 py-2 text-sm flex items-center gap-2">
+              <div className="bg-muted text-muted-foreground rounded-2xl px-4 py-2 text-sm flex items-center gap-2">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 Thinking...
               </div>
@@ -121,7 +121,7 @@ export default function BarberAssistant({ open, onClose }) {
           </Button>
         </div>
 
-        <p className="px-6 pb-4 text-xs text-gray-400 text-center">
+        <p className="px-6 pb-4 text-xs text-muted-foreground text-center">
           AI responses may not always be accurate. This assistant is for scheduling and operational help only — not business, legal, or financial advice.
         </p>
       </DialogContent>

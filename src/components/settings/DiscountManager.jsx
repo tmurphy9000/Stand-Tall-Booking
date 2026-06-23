@@ -69,7 +69,7 @@ export default function DiscountManager() {
       </div>
 
       {discounts.length === 0 && (
-        <div className="text-center py-10 text-gray-400 text-sm border border-dashed rounded-lg">
+        <div className="text-center py-10 text-muted-foreground text-sm border border-dashed rounded-lg">
           <Tag className="w-6 h-6 mx-auto mb-2 opacity-40" />
           No discounts yet. Add one to use at checkout.
         </div>
@@ -77,12 +77,12 @@ export default function DiscountManager() {
 
       <div className="space-y-2">
         {discounts.map((d) => (
-          <div key={d.id} className="flex items-center justify-between bg-white dark:bg-card border border-gray-100 dark:border-border rounded-lg px-4 py-3">
+          <div key={d.id} className="flex items-center justify-between bg-card dark:bg-card border border-border dark:border-border rounded-lg px-4 py-3">
             <div className="flex items-center gap-3">
               <Tag className="w-4 h-4 text-[#8B9A7E]" />
               <div>
                 <p className="text-sm font-medium">{d.name}</p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   {d.type === "percentage" ? `${d.value}% off` : `$${d.value} off`}
                 </p>
               </div>
@@ -110,7 +110,7 @@ export default function DiscountManager() {
           </DialogHeader>
           <div className="space-y-3 py-1">
             <div>
-              <Label className="text-xs text-gray-500">Label</Label>
+              <Label className="text-xs text-muted-foreground">Label</Label>
               <Input
                 placeholder="e.g. Senior, Military, Employee"
                 value={form.name}
@@ -119,7 +119,7 @@ export default function DiscountManager() {
               />
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Type</Label>
+              <Label className="text-xs text-muted-foreground">Type</Label>
               <Select value={form.type} onValueChange={(val) => setForm({ ...form, type: val })}>
                 <SelectTrigger className="h-8 text-sm">
                   <SelectValue />
@@ -131,7 +131,7 @@ export default function DiscountManager() {
               </Select>
             </div>
             <div>
-              <Label className="text-xs text-gray-500">{form.type === "percentage" ? "Percentage" : "Dollar Amount"}</Label>
+              <Label className="text-xs text-muted-foreground">{form.type === "percentage" ? "Percentage" : "Dollar Amount"}</Label>
               <Input
                 type="number"
                 placeholder={form.type === "percentage" ? "e.g. 10" : "e.g. 5.00"}

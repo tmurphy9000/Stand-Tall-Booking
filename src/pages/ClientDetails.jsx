@@ -73,7 +73,7 @@ export default function ClientDetails() {
             <ArrowLeft className="w-4 h-4 mr-2" /> Back to Clients
           </Button>
         </Link>
-        <p className="text-gray-500 mt-4">Client not found.</p>
+        <p className="text-muted-foreground mt-4">Client not found.</p>
       </div>
     );
   }
@@ -94,14 +94,14 @@ export default function ClientDetails() {
           {client.photo_url ? (
             <img src={client.photo_url} alt={client.name} className="w-16 h-16 rounded-full object-cover" />
           ) : (
-            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
-              <User className="w-8 h-8 text-gray-400" />
+            <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center">
+              <User className="w-8 h-8 text-muted-foreground" />
             </div>
           )}
           <div>
             <h1 className="text-2xl font-bold">{client.name}</h1>
             {canManageClients && (
-              <div className="flex items-center gap-3 text-sm text-gray-500 mt-1">
+              <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
                 {client.email && (
                   <span className="flex items-center gap-1">
                     <Mail className="w-3.5 h-3.5" />{client.email}
@@ -124,25 +124,25 @@ export default function ClientDetails() {
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold">{client.total_visits || 0}</p>
-              <p className="text-xs text-gray-500">Total Visits</p>
+              <p className="text-xs text-muted-foreground">Total Visits</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold">${(client.total_spent || 0).toFixed(0)}</p>
-              <p className="text-xs text-gray-500">Total Spent</p>
+              <p className="text-xs text-muted-foreground">Total Spent</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-orange-500">{client.no_show_count || 0}</p>
-              <p className="text-xs text-gray-500">No Shows</p>
+              <p className="text-xs text-muted-foreground">No Shows</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-4 text-center">
               <p className="text-2xl font-bold text-amber-500">{client.late_count || 0}</p>
-              <p className="text-xs text-gray-500">Late</p>
+              <p className="text-xs text-muted-foreground">Late</p>
             </CardContent>
           </Card>
         </div>
@@ -155,7 +155,7 @@ export default function ClientDetails() {
                 <ShieldAlert className="w-4 h-4 text-orange-500" />
                 <div>
                   <p className="text-sm font-medium">Deposit Required</p>
-                  <p className="text-xs text-gray-500">Always collect a deposit from this client before booking</p>
+                  <p className="text-xs text-muted-foreground">Always collect a deposit from this client before booking</p>
                 </div>
               </div>
               <Switch
@@ -175,13 +175,13 @@ export default function ClientDetails() {
                 <MessageSquare className="w-4 h-4 text-[#8B9A7E] mt-0.5 flex-shrink-0" />
                 <div className="min-w-0">
                   <p className="text-sm font-medium">SMS Reminders</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     {client.sms_opt_in
                       ? "Client has opted in to SMS appointment reminders"
                       : "Client has not opted in to SMS appointment reminders"}
                   </p>
                   {client.sms_opt_in_updated_by && (
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       Last updated by <span className="font-medium">{client.sms_opt_in_updated_by}</span>
                       {client.sms_opt_in_updated_at && (
                         <> on {new Date(client.sms_opt_in_updated_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} at {new Date(client.sms_opt_in_updated_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}</>
@@ -232,8 +232,8 @@ export default function ClientDetails() {
         {client.staff_notes && (
           <Card className="mb-6">
             <CardContent className="p-4">
-              <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-2">Staff Notes</p>
-              <p className="text-sm text-gray-700">{client.staff_notes}</p>
+              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2">Staff Notes</p>
+              <p className="text-sm text-muted-foreground">{client.staff_notes}</p>
             </CardContent>
           </Card>
         )}
@@ -243,14 +243,14 @@ export default function ClientDetails() {
           <h2 className="text-sm font-semibold mb-3">Booking History</h2>
           <div className="space-y-2">
             {clientBookings.length === 0 ? (
-              <p className="text-sm text-gray-400">No bookings found.</p>
+              <p className="text-sm text-muted-foreground">No bookings found.</p>
             ) : (
               clientBookings.map(b => (
                 <Card key={b.id}>
                   <CardContent className="p-3 flex items-center justify-between">
                     <div>
                       <p className="text-sm font-medium">{b.service_name}</p>
-                      <p className="text-xs text-gray-500">{b.barber_name} • {b.date} {b.start_time}</p>
+                      <p className="text-xs text-muted-foreground">{b.barber_name} • {b.date} {b.start_time}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-semibold">${(b.final_price || b.price || 0).toFixed(2)}</p>
@@ -258,7 +258,7 @@ export default function ClientDetails() {
                         b.status === "completed" ? "bg-green-100 text-green-700" :
                         b.status === "cancelled" ? "bg-red-100 text-red-700" :
                         b.status === "no_show" ? "bg-orange-100 text-orange-700" :
-                        "bg-gray-100 text-gray-600"
+                        "bg-muted text-muted-foreground"
                       }`}>{b.status}</span>
                     </div>
                   </CardContent>

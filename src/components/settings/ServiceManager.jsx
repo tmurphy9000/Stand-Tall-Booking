@@ -51,10 +51,10 @@ export default function ServiceManager({ services, onCreate, onUpdate, onDelete 
 
       <div className="space-y-2">
         {services.map(s => (
-          <div key={s.id} className="bg-gray-50 dark:bg-muted/30 rounded-lg px-3 py-2 flex items-center justify-between">
+          <div key={s.id} className="bg-muted/30 dark:bg-muted/30 rounded-lg px-3 py-2 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium">{s.name}</p>
-              <p className="text-[10px] text-gray-400">{s.duration}min • ${s.price}</p>
+              <p className="text-[10px] text-muted-foreground">{s.duration}min • ${s.price}</p>
             </div>
             <div className="flex gap-1">
               <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => openEdit(s)}>
@@ -75,12 +75,12 @@ export default function ServiceManager({ services, onCreate, onUpdate, onDelete 
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <Label className="text-xs text-gray-500">Name</Label>
+              <Label className="text-xs text-muted-foreground">Name</Label>
               <Input value={form.name} onChange={e => set("name", e.target.value)} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-gray-500">Duration</Label>
+                <Label className="text-xs text-muted-foreground">Duration</Label>
                 <Select value={String(form.duration)} onValueChange={v => set("duration", parseInt(v))}>
                   <SelectTrigger className="h-9"><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -89,12 +89,12 @@ export default function ServiceManager({ services, onCreate, onUpdate, onDelete 
                 </Select>
               </div>
               <div>
-                <Label className="text-xs text-gray-500">Price ($)</Label>
+                <Label className="text-xs text-muted-foreground">Price ($)</Label>
                 <Input type="number" value={form.price} onChange={e => set("price", e.target.value === "" ? "" : parseFloat(e.target.value))} />
               </div>
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Category</Label>
+              <Label className="text-xs text-muted-foreground">Category</Label>
               <Input value={form.category} onChange={e => set("category", e.target.value)} placeholder="e.g. Haircut, Beard" />
             </div>
           </div>

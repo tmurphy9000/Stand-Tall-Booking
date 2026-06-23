@@ -30,7 +30,7 @@ export default function PlanGateModal({ open, onClose, feature, planName, limit 
           </div>
         </DialogHeader>
 
-        <p className="text-sm text-gray-600 leading-relaxed">
+        <p className="text-sm text-muted-foreground leading-relaxed">
           You've reached the {featureLabel} limit for your{' '}
           <span className="font-semibold text-gray-800">{planName}</span> plan
           ({limit} {featureLabelPlural}). Upgrade your plan to add more{' '}

@@ -30,13 +30,13 @@ export default function PermissionsManager() {
   const getPermissionIcon = (level) => {
     if (level === "owner") return <Crown className="w-4 h-4 text-yellow-600" />;
     if (level === "manager") return <Shield className="w-4 h-4 text-blue-600" />;
-    return <User className="w-4 h-4 text-gray-600" />;
+    return <User className="w-4 h-4 text-muted-foreground" />;
   };
 
   const getPermissionColor = (level) => {
     if (level === "owner") return "bg-yellow-100 text-yellow-800";
     if (level === "manager") return "bg-blue-100 text-blue-800";
-    return "bg-gray-100 text-gray-800";
+    return "bg-muted text-gray-800";
   };
 
   if (!hasFullAccess) {
@@ -52,13 +52,13 @@ export default function PermissionsManager() {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="text-sm text-gray-600 mb-4">
+        <div className="text-sm text-muted-foreground mb-4">
           <p className="mb-2"><strong>Manager:</strong> Access to reports, settings, and full client information</p>
           <p><strong>Service Provider:</strong> Limited access - can see client names, past services, and notes, but NOT contact information</p>
         </div>
 
         {barbers.map(barber => (
-          <div key={barber.id} className="flex flex-col gap-3 p-4 border rounded-lg bg-white">
+          <div key={barber.id} className="flex flex-col gap-3 p-4 border rounded-lg bg-card">
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2">
@@ -68,7 +68,7 @@ export default function PermissionsManager() {
                     {barber.permission_level.replace('_', ' ')}
                   </Badge>
                 </div>
-                <p className="text-xs text-gray-500">{barber.email}</p>
+                <p className="text-xs text-muted-foreground">{barber.email}</p>
               </div>
             </div>
 

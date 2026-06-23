@@ -79,11 +79,11 @@ export default function CallOffManager() {
       <Card>
         <CardHeader>
           <CardTitle className="text-base">Staff Call-Off Notifications</CardTitle>
-          <p className="text-xs text-gray-500">Send courtesy notifications to clients when staff calls off</p>
+          <p className="text-xs text-muted-foreground">Send courtesy notifications to clients when staff calls off</p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label className="text-xs text-gray-500 mb-2 block">Select Staff Member</Label>
+            <Label className="text-xs text-muted-foreground mb-2 block">Select Staff Member</Label>
             <Select value={selectedBarber} onValueChange={setSelectedBarber}>
               <SelectTrigger>
                 <SelectValue placeholder="Choose staff member..." />
@@ -99,7 +99,7 @@ export default function CallOffManager() {
           </div>
 
           <div>
-            <Label className="text-xs text-gray-500 mb-2 block">Select Date</Label>
+            <Label className="text-xs text-muted-foreground mb-2 block">Select Date</Label>
             <Popover>
               <PopoverTrigger asChild>
                 <Button variant="outline" className="w-full justify-start text-left font-normal">
@@ -121,7 +121,7 @@ export default function CallOffManager() {
             <>
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <Label className="text-xs text-gray-500">Select Appointments to Notify</Label>
+                  <Label className="text-xs text-muted-foreground">Select Appointments to Notify</Label>
                   <div className="flex gap-2">
                     <Button size="sm" variant="ghost" onClick={selectAll} className="h-9 px-3 text-xs">
                       Select All
@@ -133,14 +133,14 @@ export default function CallOffManager() {
                 </div>
                 <div className="border rounded-lg p-3 space-y-2 max-h-64 overflow-y-auto">
                   {bookings.map(booking => (
-                    <div key={booking.id} className="flex items-center gap-2 p-2 hover:bg-gray-50 dark:hover:bg-muted/30 rounded">
+                    <div key={booking.id} className="flex items-center gap-2 p-2 hover:bg-accent dark:hover:bg-muted/30 rounded">
                       <Checkbox
                         checked={selectedBookings.includes(booking.id)}
                         onCheckedChange={() => toggleBooking(booking.id)}
                       />
                       <div className="flex-1">
                         <p className="text-sm font-medium">{booking.client_name}</p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground">
                           {booking.start_time} • {booking.service_name}
                           {booking.client_email && ` • ${booking.client_email}`}
                         </p>
@@ -151,7 +151,7 @@ export default function CallOffManager() {
               </div>
 
               <div>
-                <Label className="text-xs text-gray-500 mb-2 block">Message to Clients</Label>
+                <Label className="text-xs text-muted-foreground mb-2 block">Message to Clients</Label>
                 <Textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
@@ -159,7 +159,7 @@ export default function CallOffManager() {
                   rows={8}
                   className="text-sm"
                 />
-                <p className="text-xs text-gray-400 mt-1">This message will be sent via email to selected clients</p>
+                <p className="text-xs text-muted-foreground mt-1">This message will be sent via email to selected clients</p>
               </div>
 
               <Button
@@ -183,9 +183,9 @@ export default function CallOffManager() {
           )}
 
           {selectedBarber && bookings.length === 0 && (
-            <Card className="bg-gray-50 dark:bg-muted/30">
+            <Card className="bg-muted/30 dark:bg-muted/30">
               <CardContent className="p-4 text-center">
-                <p className="text-sm text-gray-500">No scheduled appointments found for {selectedBarberName} on {format(selectedDate, "MMM d, yyyy")}</p>
+                <p className="text-sm text-muted-foreground">No scheduled appointments found for {selectedBarberName} on {format(selectedDate, "MMM d, yyyy")}</p>
               </CardContent>
             </Card>
           )}

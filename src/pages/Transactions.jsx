@@ -50,9 +50,9 @@ function PaymentMethodBadge({ method }) {
     cash:   { label: "Cash",   color: "bg-green-50 text-green-700" },
     card:   { label: "Card",   color: "bg-blue-50 text-blue-700" },
     reader: { label: "Reader", color: "bg-indigo-50 text-indigo-700" },
-    other:  { label: "Other",  color: "bg-gray-100 text-gray-600" },
+    other:  { label: "Other",  color: "bg-muted text-muted-foreground" },
   };
-  const cfg = map[method] ?? { label: method, color: "bg-gray-100 text-gray-600" };
+  const cfg = map[method] ?? { label: method, color: "bg-muted text-muted-foreground" };
   return (
     <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${cfg.color}`}>
       {cfg.label}
@@ -64,10 +64,10 @@ function StatusBadge({ status }) {
   const map = {
     completed: "bg-green-50 text-green-700",
     refunded:  "bg-red-50 text-red-600",
-    cancelled: "bg-gray-100 text-gray-500",
+    cancelled: "bg-muted text-muted-foreground",
   };
   return (
-    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium capitalize ${map[status] ?? "bg-gray-100 text-gray-500"}`}>
+    <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium capitalize ${map[status] ?? "bg-muted text-muted-foreground"}`}>
       {status}
     </span>
   );
@@ -114,24 +114,24 @@ function RefundModal({ booking, onClose, onRefunded }) {
       <DialogContent className="max-w-sm">
         <DialogHeader><DialogTitle>Refund Checkout</DialogTitle></DialogHeader>
         <div className="space-y-4 py-2">
-          <div className="bg-gray-50 rounded-lg p-3 text-sm space-y-1">
+          <div className="bg-muted/30 rounded-lg p-3 text-sm space-y-1">
             <div className="flex justify-between">
-              <span className="text-gray-500">Client</span>
+              <span className="text-muted-foreground">Client</span>
               <span className="font-medium">{booking.client_name || "Walk-in"}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Service</span>
+              <span className="text-muted-foreground">Service</span>
               <span>{booking.service_name}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">Original total</span>
+              <span className="text-muted-foreground">Original total</span>
               <span className="font-semibold">{fmt(maxAmount)}</span>
             </div>
           </div>
           <div>
-            <Label className="text-xs text-gray-500">Refund amount</Label>
+            <Label className="text-xs text-muted-foreground">Refund amount</Label>
             <div className="relative mt-1">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">$</span>
               <Input type="number" step="0.01" min="0.01" max={maxAmount}
                 value={amountStr} onChange={e => setAmountStr(e.target.value)} className="pl-6 h-9" />
             </div>
@@ -142,7 +142,7 @@ function RefundModal({ booking, onClose, onRefunded }) {
             )}
           </div>
           <div>
-            <Label className="text-xs text-gray-500">Reason (optional)</Label>
+            <Label className="text-xs text-muted-foreground">Reason (optional)</Label>
             <Input value={reason} onChange={e => setReason(e.target.value)}
               placeholder="e.g. Client request" className="h-9 mt-1" />
           </div>
@@ -285,9 +285,9 @@ export default function TransactionsPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center space-y-2">
-          <Lock className="w-8 h-8 text-gray-400 mx-auto" />
-          <p className="font-medium text-gray-700">Access Denied</p>
-          <p className="text-sm text-gray-500">Contact your owner or manager.</p>
+          <Lock className="w-8 h-8 text-muted-foreground mx-auto" />
+          <p className="font-medium text-muted-foreground">Access Denied</p>
+          <p className="text-sm text-muted-foreground">Contact your owner or manager.</p>
         </div>
       </div>
     );
@@ -508,11 +508,11 @@ export default function TransactionsPage() {
           <div className="flex items-center gap-1.5">
             <Calendar className="w-4 h-4 text-[#8B9A7E]" />
             <div>
-              <Label className="text-[10px] text-gray-500 block">From</Label>
+              <Label className="text-[10px] text-muted-foreground block">From</Label>
               <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="h-8 w-36 text-xs" />
             </div>
             <div>
-              <Label className="text-[10px] text-gray-500 block">To</Label>
+              <Label className="text-[10px] text-muted-foreground block">To</Label>
               <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="h-8 w-36 text-xs" />
             </div>
           </div>
@@ -532,31 +532,31 @@ export default function TransactionsPage() {
         <div className="bg-[#0A0A0A] rounded-xl p-4 text-white">
           <div className="flex items-center gap-2 mb-1">
             <Wallet className="w-4 h-4 text-[#C9A94E]" />
-            <span className="text-[10px] text-gray-400 uppercase tracking-wider">Cash on Hand</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Cash on Hand</span>
           </div>
           <p className="text-2xl font-bold text-[#C9A94E]">{fmt(cashOnHand)}</p>
-          <p className="text-[10px] text-gray-500 mt-0.5">All-time net</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">All-time net</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="bg-card rounded-xl border border-border p-4">
           <div className="flex items-center gap-2 mb-1">
             <Banknote className="w-4 h-4 text-green-600" />
-            <span className="text-[10px] text-gray-500 uppercase tracking-wider">Cash</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Cash</span>
           </div>
           <p className="text-2xl font-bold text-green-700">{fmt(cashRevenue)}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">{cashBookings.length} transaction{cashBookings.length !== 1 ? "s" : ""}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">{cashBookings.length} transaction{cashBookings.length !== 1 ? "s" : ""}</p>
         </div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="bg-card rounded-xl border border-border p-4">
           <div className="flex items-center gap-2 mb-1">
             <CreditCard className="w-4 h-4 text-blue-600" />
-            <span className="text-[10px] text-gray-500 uppercase tracking-wider">Card</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Card</span>
           </div>
           <p className="text-2xl font-bold text-blue-700">{fmt(cardRevenue)}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">{cardBookings.length} transaction{cardBookings.length !== 1 ? "s" : ""}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">{cardBookings.length} transaction{cardBookings.length !== 1 ? "s" : ""}</p>
         </div>
         <div className="bg-gradient-to-br from-[#8B9A7E]/10 to-[#B0BFA4]/10 rounded-xl border border-[#8B9A7E]/20 p-4">
-          <span className="text-[10px] text-gray-500 uppercase tracking-wider block mb-1">Total Revenue</span>
-          <p className="text-2xl font-bold text-[#0A0A0A]">{fmt(totalRevenue)}</p>
-          <p className="text-[10px] text-gray-400 mt-0.5">{bookings.length} checkout{bookings.length !== 1 ? "s" : ""}</p>
+          <span className="text-[10px] text-muted-foreground uppercase tracking-wider block mb-1">Total Revenue</span>
+          <p className="text-2xl font-bold text-foreground">{fmt(totalRevenue)}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">{bookings.length} checkout{bookings.length !== 1 ? "s" : ""}</p>
         </div>
       </div>
 
@@ -598,7 +598,7 @@ export default function TransactionsPage() {
         <CardHeader className="pb-2 pt-4 px-4">
           <CardTitle className="text-sm font-medium flex items-center gap-2 flex-wrap">
             Transactions
-            <span className="text-[11px] text-gray-400 font-normal">{dateLabel}</span>
+            <span className="text-[11px] text-muted-foreground font-normal">{dateLabel}</span>
             {refundsOnly && (
               <span className="text-[11px] font-medium text-red-500 bg-red-50 px-2 py-0.5 rounded-full">
                 {displayBookings.length} refund{displayBookings.length !== 1 ? "s" : ""} totaling -{fmt(displayTotals.total)}
@@ -614,14 +614,14 @@ export default function TransactionsPage() {
                 {displayBookings.length} cash refund{displayBookings.length !== 1 ? "s" : ""} totaling -{fmt(displayTotals.total)}
               </span>
             )}
-            <span className="ml-auto text-[11px] text-gray-400 font-normal">
+            <span className="ml-auto text-[11px] text-muted-foreground font-normal">
               {displayBookings.length} result{displayBookings.length !== 1 ? "s" : ""}
             </span>
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {displayBookings.length === 0 ? (
-            <p className="text-center text-gray-400 text-sm py-10">
+            <p className="text-center text-muted-foreground text-sm py-10">
               {refundsOnly && cashOnly
                 ? "No cash refunds in this period."
                 : refundsOnly
@@ -634,7 +634,7 @@ export default function TransactionsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-xs min-w-[860px]">
                 <thead>
-                  <tr className="border-b border-gray-100 text-[9px] text-gray-400 uppercase tracking-wider bg-gray-50/60">
+                  <tr className="border-b border-border text-[9px] text-muted-foreground uppercase tracking-wider bg-muted/30/60">
                     <th className="text-left px-2 py-1.5 font-semibold whitespace-nowrap">ID</th>
                     <th className="text-left px-2 py-1.5 font-semibold whitespace-nowrap">Date / Time</th>
                     <th className="text-left px-2 py-1.5 font-semibold">Client</th>
@@ -647,7 +647,7 @@ export default function TransactionsPage() {
                     <th className="text-right px-1.5 py-1.5 font-semibold whitespace-nowrap">Tax</th>
                     <th className="text-right px-1.5 py-1.5 font-semibold whitespace-nowrap">Tip</th>
                     <th className="text-right px-1.5 py-1.5 font-semibold whitespace-nowrap">Disc</th>
-                    <th className="text-right px-1.5 py-1.5 font-semibold whitespace-nowrap text-[#0A0A0A]">Total</th>
+                    <th className="text-right px-1.5 py-1.5 font-semibold whitespace-nowrap text-foreground">Total</th>
                     <th className="text-left px-2 py-1.5 font-semibold whitespace-nowrap">Status</th>
                     {hasFullAccess && <th className="px-1.5 py-1.5" />}
                   </tr>
@@ -655,31 +655,31 @@ export default function TransactionsPage() {
                 <tbody>
                   {displayBookings.map(b => (
                     <tr key={b.id} className="border-b border-gray-50 hover:bg-[#8B9A7E]/5 transition-colors">
-                      <td className="px-2 py-1.5 font-mono text-[9px] text-gray-400 whitespace-nowrap">{txId(b)}</td>
-                      <td className="px-2 py-1.5 text-gray-500 whitespace-nowrap">
+                      <td className="px-2 py-1.5 font-mono text-[9px] text-muted-foreground whitespace-nowrap">{txId(b)}</td>
+                      <td className="px-2 py-1.5 text-muted-foreground whitespace-nowrap">
                         <div className="text-[10px]">{b.date}</div>
-                        <div className="text-[9px] text-gray-400">{b.start_time ?? "—"}</div>
+                        <div className="text-[9px] text-muted-foreground">{b.start_time ?? "—"}</div>
                       </td>
                       <td className="px-2 py-1.5 font-medium max-w-[90px]">
                         <div className="truncate">{b.client_name || "Walk-in"}</div>
                       </td>
-                      <td className="px-2 py-1.5 text-gray-500 hidden sm:table-cell max-w-[110px]">
+                      <td className="px-2 py-1.5 text-muted-foreground hidden sm:table-cell max-w-[110px]">
                         <div className="truncate">{b.service_name ?? "—"}</div>
                       </td>
-                      <td className="px-2 py-1.5 text-gray-500 hidden sm:table-cell max-w-[90px]">
+                      <td className="px-2 py-1.5 text-muted-foreground hidden sm:table-cell max-w-[90px]">
                         <div className="truncate">{productDisplay(b) ?? <span className="text-gray-300">—</span>}</div>
                       </td>
-                      <td className="px-2 py-1.5 text-gray-500 hidden md:table-cell max-w-[80px]">
+                      <td className="px-2 py-1.5 text-muted-foreground hidden md:table-cell max-w-[80px]">
                         <div className="truncate">{b.barber_name ?? "—"}</div>
                       </td>
                       <td className="px-2 py-1.5 whitespace-nowrap"><PaymentMethodBadge method={b.payment_method} /></td>
                       <td className="px-1.5 py-1.5 text-right whitespace-nowrap hidden md:table-cell">
                         {(b.price ?? 0) > 0 ? fmt(b.price) : <span className="text-gray-300">—</span>}
                       </td>
-                      <td className="px-1.5 py-1.5 text-right whitespace-nowrap hidden md:table-cell text-gray-500">
+                      <td className="px-1.5 py-1.5 text-right whitespace-nowrap hidden md:table-cell text-muted-foreground">
                         {(b.product_revenue ?? 0) > 0 ? fmt(b.product_revenue) : <span className="text-gray-300">—</span>}
                       </td>
-                      <td className="px-1.5 py-1.5 text-right whitespace-nowrap text-gray-500">
+                      <td className="px-1.5 py-1.5 text-right whitespace-nowrap text-muted-foreground">
                         {(b.tax_amount ?? 0) > 0 ? fmt(b.tax_amount) : <span className="text-gray-300">—</span>}
                       </td>
                       <td className="px-1.5 py-1.5 text-right whitespace-nowrap text-blue-600">
@@ -710,15 +710,15 @@ export default function TransactionsPage() {
                 </tbody>
                 <tfoot>
                   <tr className="border-t-2 border-[#8B9A7E]/30 bg-[#8B9A7E]/5 font-semibold text-[10px]">
-                    <td className="px-2 py-1.5 text-gray-600" colSpan={7}>
+                    <td className="px-2 py-1.5 text-muted-foreground" colSpan={7}>
                       Total — {displayBookings.length} transaction{displayBookings.length !== 1 ? "s" : ""}
                     </td>
                     <td className="px-1.5 py-1.5 text-right whitespace-nowrap hidden md:table-cell">{displayTotals.price > 0 ? fmt(displayTotals.price) : "—"}</td>
-                    <td className="px-1.5 py-1.5 text-right whitespace-nowrap hidden md:table-cell text-gray-500">{displayTotals.productRevenue > 0 ? fmt(displayTotals.productRevenue) : "—"}</td>
-                    <td className="px-1.5 py-1.5 text-right whitespace-nowrap text-gray-600">{displayTotals.tax > 0 ? fmt(displayTotals.tax) : "—"}</td>
+                    <td className="px-1.5 py-1.5 text-right whitespace-nowrap hidden md:table-cell text-muted-foreground">{displayTotals.productRevenue > 0 ? fmt(displayTotals.productRevenue) : "—"}</td>
+                    <td className="px-1.5 py-1.5 text-right whitespace-nowrap text-muted-foreground">{displayTotals.tax > 0 ? fmt(displayTotals.tax) : "—"}</td>
                     <td className="px-1.5 py-1.5 text-right whitespace-nowrap text-blue-700">{displayTotals.tip > 0 ? fmt(displayTotals.tip) : "—"}</td>
                     <td className="px-1.5 py-1.5 text-right whitespace-nowrap text-red-600">{displayTotals.discount > 0 ? <span>-{fmt(displayTotals.discount)}</span> : "—"}</td>
-                    <td className="px-1.5 py-1.5 text-right whitespace-nowrap text-[#0A0A0A]">{fmt(displayTotals.total)}</td>
+                    <td className="px-1.5 py-1.5 text-right whitespace-nowrap text-foreground">{fmt(displayTotals.total)}</td>
                     <td className="px-1.5 py-1.5" />
                     {hasFullAccess && <td />}
                   </tr>
@@ -734,8 +734,8 @@ export default function TransactionsPage() {
         <CardHeader className="pb-2 pt-4 px-4">
           <CardTitle className="text-sm font-medium flex items-center gap-2 flex-wrap">
             Cash Drawer Log
-            <span className="text-[11px] text-gray-400 font-normal">{dateLabel}</span>
-            <span className="ml-auto text-[11px] text-gray-400 font-normal">
+            <span className="text-[11px] text-muted-foreground font-normal">{dateLabel}</span>
+            <span className="ml-auto text-[11px] text-muted-foreground font-normal">
               {filteredCashTransactions.length} entr{filteredCashTransactions.length !== 1 ? "ies" : "y"}
             </span>
             <Button variant="outline" size="sm" onClick={exportCashLogCSV}
@@ -746,7 +746,7 @@ export default function TransactionsPage() {
         </CardHeader>
         <CardContent className="p-0">
           {filteredCashTransactions.length === 0 ? (
-            <p className="text-center text-gray-400 text-sm py-8">No cash drawer activity in this period.</p>
+            <p className="text-center text-muted-foreground text-sm py-8">No cash drawer activity in this period.</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-xs table-fixed">
@@ -759,7 +759,7 @@ export default function TransactionsPage() {
                   <col className="w-32" />
                 </colgroup>
                 <thead>
-                  <tr className="border-b border-gray-100 text-[9px] text-gray-400 uppercase tracking-wider bg-gray-50/60">
+                  <tr className="border-b border-border text-[9px] text-muted-foreground uppercase tracking-wider bg-muted/30/60">
                     <th className="text-left px-3 py-2 font-semibold">Date / Time</th>
                     <th className="text-left px-3 py-2 font-semibold">Employee</th>
                     <th className="text-left px-3 py-2 font-semibold">Type</th>
@@ -774,9 +774,9 @@ export default function TransactionsPage() {
                     const balance = cashRunningBalances.get(tx.id) ?? 0;
                     return (
                       <tr key={tx.id} className="border-b border-gray-50 hover:bg-[#8B9A7E]/5 transition-colors">
-                        <td className="px-3 py-2.5 text-gray-500">
+                        <td className="px-3 py-2.5 text-muted-foreground">
                           <div className="text-[10px]">{tx.date}</div>
-                          <div className="text-[9px] text-gray-400">{tx.time ?? "—"}</div>
+                          <div className="text-[9px] text-muted-foreground">{tx.time ?? "—"}</div>
                         </td>
                         <td className="px-3 py-2.5 font-medium truncate">{tx.barber_name || "—"}</td>
                         <td className="px-3 py-2.5">
@@ -789,10 +789,10 @@ export default function TransactionsPage() {
                         <td className={`px-3 py-2.5 text-right font-semibold ${isInflow ? "text-green-700" : "text-amber-700"}`}>
                           {isInflow ? "+" : "−"}{fmt(tx.amount)}
                         </td>
-                        <td className="px-3 py-2.5 text-gray-400 text-[10px]">
+                        <td className="px-3 py-2.5 text-muted-foreground text-[10px]">
                           <div className="truncate">{tx.note || <span className="text-gray-300">—</span>}</div>
                         </td>
-                        <td className="px-3 py-2.5 text-right font-mono text-[10px] text-gray-600">{fmt(balance)}</td>
+                        <td className="px-3 py-2.5 text-right font-mono text-[10px] text-muted-foreground">{fmt(balance)}</td>
                       </tr>
                     );
                   })}

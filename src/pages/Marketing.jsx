@@ -581,7 +581,7 @@ function CampaignEditor({ campaign, shop, promoCodes, templates, onBack, onSent 
           <div className="flex-1 overflow-auto p-3">
             <iframe
               srcDoc={previewHtml}
-              className="w-full min-h-[500px] h-full rounded-lg border border-border bg-white"
+              className="w-full min-h-[500px] h-full rounded-lg border border-border bg-card"
               title="Email preview"
               sandbox="allow-same-origin"
             />

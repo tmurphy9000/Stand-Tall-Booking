@@ -53,13 +53,13 @@ export default function AdminPasswordManager({ settings }) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <p className="text-sm text-gray-600">
+        <p className="text-sm text-muted-foreground">
           Set and manage the two admin passwords for your barbershop. These passwords can be used for secure access.
         </p>
 
         <div className="space-y-3">
           <div>
-            <Label className="text-xs text-gray-500">Admin Password 1</Label>
+            <Label className="text-xs text-muted-foreground">Admin Password 1</Label>
             <div className="relative">
               <Input
                 type={showPasswords ? "text" : "password"}
@@ -80,7 +80,7 @@ export default function AdminPasswordManager({ settings }) {
           </div>
 
           <div>
-            <Label className="text-xs text-gray-500">Admin Password 2</Label>
+            <Label className="text-xs text-muted-foreground">Admin Password 2</Label>
             <div className="relative">
               <Input
                 type={showPasswords ? "text" : "password"}

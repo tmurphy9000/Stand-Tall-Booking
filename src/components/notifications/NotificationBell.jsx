@@ -86,7 +86,7 @@ export default function NotificationBell({ userEmail, userType = "staff", navSty
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         {navStyle ? (
-          <button className="flex flex-col items-center gap-1 py-2 px-2 transition-all w-full text-[#FAFAF8]/60 hover:text-[#FAFAF8]/90 hover:bg-white/10 rounded-lg">
+          <button className="flex flex-col items-center gap-1 py-2 px-2 transition-all w-full text-[#FAFAF8]/60 hover:text-[#FAFAF8]/90 hover:bg-card/10 rounded-lg">
             <span className="relative">
               <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
@@ -141,12 +141,12 @@ export default function NotificationBell({ userEmail, userType = "staff", navSty
         </div>
         <div className="max-h-[400px] overflow-y-auto">
           {notifications.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-8">No notifications</p>
+            <p className="text-sm text-muted-foreground text-center py-8">No notifications</p>
           ) : (
             notifications.map(notification => (
               <div
                 key={notification.id}
-                className={`p-3 border-b hover:bg-gray-50 cursor-pointer ${
+                className={`p-3 border-b hover:bg-accent cursor-pointer ${
                   !notification.is_read ? "bg-blue-50/30" : ""
                 }`}
                 onClick={() => !notification.is_read && markAsRead.mutate(notification.id)}
@@ -154,10 +154,10 @@ export default function NotificationBell({ userEmail, userType = "staff", navSty
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{notification.title}</p>
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                       {notification.message}
                     </p>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                       {formatDistanceToNow(new Date(notification.created_date), { addSuffix: true })}
                     </p>
                   </div>

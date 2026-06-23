@@ -82,15 +82,15 @@ export default function BarberLogin() {
               />
             </div>
 
-            <h1 className="text-xl font-bold text-center text-[#0A0A0A] mb-1">Reset Password</h1>
-            <p className="text-center text-sm text-gray-500 mb-6">
+            <h1 className="text-xl font-bold text-center text-foreground mb-1">Reset Password</h1>
+            <p className="text-center text-sm text-muted-foreground mb-6">
               Enter your email and we'll send you a reset link.
             </p>
 
             {forgotSent ? (
               <div className="flex flex-col items-center gap-3 py-4">
                 <CheckCircle2 className="w-12 h-12 text-[#8B9A7E]" />
-                <p className="text-sm font-medium text-gray-700 text-center">
+                <p className="text-sm font-medium text-muted-foreground text-center">
                   Reset email sent! Check your inbox and follow the link to set a new password.
                 </p>
                 <button
@@ -110,7 +110,7 @@ export default function BarberLogin() {
                 )}
 
                 <div>
-                  <Label className="text-sm text-gray-700 flex items-center gap-2">
+                  <Label className="text-sm text-muted-foreground flex items-center gap-2">
                     <Mail className="w-4 h-4" /> Email Address
                   </Label>
                   <Input
@@ -139,7 +139,7 @@ export default function BarberLogin() {
                 <button
                   type="button"
                   onClick={() => { setShowForgot(false); setForgotError(""); }}
-                  className="w-full flex items-center justify-center gap-1 text-sm text-gray-500 hover:text-gray-700 mt-1"
+                  className="w-full flex items-center justify-center gap-1 text-sm text-muted-foreground hover:text-muted-foreground mt-1"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" /> Back to Sign In
                 </button>
@@ -163,10 +163,10 @@ export default function BarberLogin() {
             />
           </div>
 
-          <h1 className="text-2xl font-bold text-center text-[#0A0A0A] mb-1">
+          <h1 className="text-2xl font-bold text-center text-foreground mb-1">
             Welcome Back
           </h1>
-          <p className="text-center text-sm text-gray-500 mb-6">
+          <p className="text-center text-sm text-muted-foreground mb-6">
             Sign in to your Stand Tall account
           </p>
 
@@ -179,7 +179,7 @@ export default function BarberLogin() {
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <Label className="text-sm text-gray-700 flex items-center gap-2">
+              <Label className="text-sm text-muted-foreground flex items-center gap-2">
                 <Mail className="w-4 h-4" /> Email Address
               </Label>
               <Input
@@ -195,7 +195,7 @@ export default function BarberLogin() {
 
             <div>
               <div className="flex items-center justify-between mb-1">
-                <Label className="text-sm text-gray-700 flex items-center gap-2">
+                <Label className="text-sm text-muted-foreground flex items-center gap-2">
                   <Lock className="w-4 h-4" /> Password
                 </Label>
                 <button
@@ -218,7 +218,7 @@ export default function BarberLogin() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-muted-foreground"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -238,7 +238,7 @@ export default function BarberLogin() {
             </Button>
           </form>
 
-          <p className="text-center text-xs text-gray-400 mt-5">
+          <p className="text-center text-xs text-muted-foreground mt-5">
             Need help? Contact your manager
           </p>
         </CardContent>

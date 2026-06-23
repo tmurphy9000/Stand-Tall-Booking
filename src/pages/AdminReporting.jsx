@@ -289,9 +289,9 @@ export default function AdminReportingPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center space-y-2">
-          <Lock className="w-8 h-8 text-gray-400 mx-auto" />
-          <p className="font-medium text-gray-700">Access Denied</p>
-          <p className="text-sm text-gray-500">Contact your owner or manager.</p>
+          <Lock className="w-8 h-8 text-muted-foreground mx-auto" />
+          <p className="font-medium text-muted-foreground">Access Denied</p>
+          <p className="text-sm text-muted-foreground">Contact your owner or manager.</p>
         </div>
       </div>
     );
@@ -340,14 +340,14 @@ export default function AdminReportingPage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
               { label: "Revenue", value: `$${totalRevenue.toFixed(0)}`, icon: DollarSign, color: "text-[#B0BFA4]" },
-              { label: "Bookings", value: totalBookings, icon: TrendingUp, color: "text-[#0A0A0A]" },
+              { label: "Bookings", value: totalBookings, icon: TrendingUp, color: "text-foreground" },
               { label: "Clients", value: uniqueClients, icon: Users, color: "text-blue-600" },
               { label: "Retention", value: `${retentionRate}%`, icon: Repeat, color: "text-green-600" },
             ].map((kpi) => (
-              <div key={kpi.label} className="bg-white rounded-xl border border-gray-100 p-3">
+              <div key={kpi.label} className="bg-card rounded-xl border border-border p-3">
                 <div className="flex items-center gap-2">
                   <kpi.icon className={`w-4 h-4 ${kpi.color}`} />
-                  <span className="text-[10px] text-gray-400 uppercase tracking-wider">{kpi.label}</span>
+                  <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{kpi.label}</span>
                 </div>
                 <p className={`text-xl font-bold mt-1 ${kpi.color}`}>{kpi.value}</p>
               </div>

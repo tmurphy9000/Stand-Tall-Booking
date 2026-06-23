@@ -33,7 +33,7 @@ export default function KioskSettings() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-32">
-        <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+        <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -83,11 +83,11 @@ export default function KioskSettings() {
   return (
     <div className="space-y-5 max-w-lg">
       <div className="flex items-center gap-2">
-        <Tablet className="w-4 h-4 text-gray-500" />
+        <Tablet className="w-4 h-4 text-muted-foreground" />
         <h3 className="text-sm font-semibold">Check-In Kiosk</h3>
       </div>
 
-      <p className="text-xs text-gray-500 leading-relaxed">
+      <p className="text-xs text-muted-foreground leading-relaxed">
         Place a tablet or display at your front desk so clients can check in when they arrive — no staff intervention needed.
         The kiosk shows today's appointments and lets each client tap their name.
       </p>
@@ -100,12 +100,12 @@ export default function KioskSettings() {
         <div className="space-y-4">
           {/* URL display */}
           <div className="space-y-1.5">
-            <Label className="text-xs text-gray-500">Kiosk URL</Label>
+            <Label className="text-xs text-muted-foreground">Kiosk URL</Label>
             <div className="flex gap-2">
               <Input
                 value={kioskUrl}
                 readOnly
-                className="font-mono text-xs text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-muted/30"
+                className="font-mono text-xs text-muted-foreground dark:text-gray-300 bg-muted/30 dark:bg-muted/30"
               />
               <Button
                 size="sm"
@@ -140,7 +140,7 @@ export default function KioskSettings() {
           {!showWarning ? (
             <button
               onClick={() => setShowWarning(true)}
-              className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1"
+              className="text-xs text-muted-foreground hover:text-muted-foreground flex items-center gap-1"
             >
               <RefreshCw className="w-3 h-3" />
               Regenerate link
@@ -176,7 +176,7 @@ export default function KioskSettings() {
           )}
 
           {/* Usage note */}
-          <p className="text-[10px] text-gray-400 leading-relaxed border-t border-gray-100 dark:border-border pt-3">
+          <p className="text-[10px] text-muted-foreground leading-relaxed border-t border-border dark:border-border pt-3">
             Open this URL on any tablet or touchscreen browser and leave it running. No login required — access is controlled by the unique token in the URL.
           </p>
         </div>

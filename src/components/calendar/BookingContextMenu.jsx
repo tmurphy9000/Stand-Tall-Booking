@@ -116,7 +116,7 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
           <DialogHeader>
             <DialogTitle>Cancel Booking</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-gray-500">Cancel {booking.client_name}'s appointment?</p>
+          <p className="text-sm text-muted-foreground">Cancel {booking.client_name}'s appointment?</p>
           <Textarea
             value={cancelReason}
             onChange={e => setCancelReason(e.target.value)}
@@ -157,7 +157,7 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
             <DialogTitle className="text-base font-semibold">Delete Blocked Time</DialogTitle>
           </DialogHeader>
           <div className="py-2 space-y-1">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-muted-foreground">
               {booking?.barber_name} — {booking?.start_time}{booking?.end_time ? ` to ${booking.end_time}` : ""} on{" "}
               {booking?.date ? format(new Date(booking.date + "T12:00:00"), "MMM d, yyyy") : ""}
             </p>

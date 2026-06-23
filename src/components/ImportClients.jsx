@@ -91,7 +91,7 @@ export default function ImportClients() {
       )}
 
       {step === "upload" && (
-        <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-12 cursor-pointer hover:bg-gray-50 transition">
+        <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-xl p-12 cursor-pointer hover:bg-accent transition">
           <input
             type="file"
             className="hidden"
@@ -100,10 +100,10 @@ export default function ImportClients() {
           />
           <div className="text-4xl mb-3">📁</div>
           <p className="font-medium text-gray-800">Drop your client list here</p>
-          <p className="text-sm text-gray-500 mt-1">PDF, CSV, Excel, or image — any format</p>
+          <p className="text-sm text-muted-foreground mt-1">PDF, CSV, Excel, or image — any format</p>
           <div className="flex gap-2 mt-4">
             {["PDF", "CSV", "Excel", "Image"].map((t) => (
-              <span key={t} className="text-xs px-2 py-1 bg-gray-100 rounded-md text-gray-600">{t}</span>
+              <span key={t} className="text-xs px-2 py-1 bg-muted rounded-md text-muted-foreground">{t}</span>
             ))}
           </div>
         </label>
@@ -113,42 +113,42 @@ export default function ImportClients() {
         <div className="text-center py-16">
           <div className="text-4xl mb-4 animate-spin">⚙️</div>
           <p className="font-medium text-gray-800">AI is reading your file...</p>
-          <p className="text-sm text-gray-500 mt-1">This may take 15–30 seconds</p>
+          <p className="text-sm text-muted-foreground mt-1">This may take 15–30 seconds</p>
         </div>
       )}
 
       {step === "preview" && (
         <>
           <div className="grid grid-cols-3 gap-3 mb-6">
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-xs text-gray-500 mb-1">Clients found</p>
+            <div className="bg-muted/30 rounded-lg p-4">
+              <p className="text-xs text-muted-foreground mb-1">Clients found</p>
               <p className="text-2xl font-semibold">{clients.length.toLocaleString()}</p>
             </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-xs text-gray-500 mb-1">With email</p>
+            <div className="bg-muted/30 rounded-lg p-4">
+              <p className="text-xs text-muted-foreground mb-1">With email</p>
               <p className="text-2xl font-semibold">{clients.filter((c) => c.email).length.toLocaleString()}</p>
             </div>
-            <div className="bg-gray-50 rounded-lg p-4">
-              <p className="text-xs text-gray-500 mb-1">With phone</p>
+            <div className="bg-muted/30 rounded-lg p-4">
+              <p className="text-xs text-muted-foreground mb-1">With phone</p>
               <p className="text-2xl font-semibold">{clients.filter((c) => c.phone).length.toLocaleString()}</p>
             </div>
           </div>
 
           <div className="border rounded-xl overflow-hidden mb-6">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b">
+              <thead className="bg-muted/30 border-b">
                 <tr>
-                  <th className="text-left p-3 font-medium text-gray-600">Name</th>
-                  <th className="text-left p-3 font-medium text-gray-600">Email</th>
-                  <th className="text-left p-3 font-medium text-gray-600">Phone</th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">Name</th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">Email</th>
+                  <th className="text-left p-3 font-medium text-muted-foreground">Phone</th>
                 </tr>
               </thead>
               <tbody>
                 {clients.slice(0, 8).map((c, i) => (
-                  <tr key={i} className="border-b last:border-0 hover:bg-gray-50">
+                  <tr key={i} className="border-b last:border-0 hover:bg-accent">
                     <td className="p-3">{c.name || "—"}</td>
-                    <td className="p-3 text-gray-500">{c.email || "—"}</td>
-                    <td className="p-3 text-gray-500">{c.phone || "—"}</td>
+                    <td className="p-3 text-muted-foreground">{c.email || "—"}</td>
+                    <td className="p-3 text-muted-foreground">{c.phone || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -163,7 +163,7 @@ export default function ImportClients() {
             >
               {loading ? "Importing..." : `Import all ${clients.length.toLocaleString()} clients`}
             </button>
-            <button onClick={reset} className="px-4 py-2.5 border rounded-lg hover:bg-gray-50">
+            <button onClick={reset} className="px-4 py-2.5 border rounded-lg hover:bg-accent">
               Start over
             </button>
           </div>
@@ -174,8 +174,8 @@ export default function ImportClients() {
         <div className="text-center py-16">
           <div className="text-5xl mb-4">✅</div>
           <p className="text-xl font-semibold">{importedCount.toLocaleString()} clients imported</p>
-          <p className="text-gray-500 mt-1 mb-6">All clients are now in Stand Tall Booking</p>
-          <button onClick={reset} className="px-6 py-2.5 border rounded-lg hover:bg-gray-50">
+          <p className="text-muted-foreground mt-1 mb-6">All clients are now in Stand Tall Booking</p>
+          <button onClick={reset} className="px-6 py-2.5 border rounded-lg hover:bg-accent">
             Import another file
           </button>
         </div>

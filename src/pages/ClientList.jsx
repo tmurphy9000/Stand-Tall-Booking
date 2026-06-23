@@ -108,7 +108,7 @@ export default function ClientList() {
             </Link>
             <div>
               <h1 className="text-2xl font-bold mb-2">Clients</h1>
-              <p className="text-gray-600 text-sm">Manage and view all clients</p>
+              <p className="text-muted-foreground text-sm">Manage and view all clients</p>
             </div>
           </div>
 
@@ -136,7 +136,7 @@ export default function ClientList() {
 
         <div className="mb-6 flex gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder={canManageClients ? "Search clients by name, email, or phone..." : "Search clients by name..."}
               value={search}
@@ -158,14 +158,14 @@ export default function ClientList() {
                         {client.photo_url ? (
                           <img src={client.photo_url} alt={client.name} className="w-12 h-12 rounded-full object-cover" />
                         ) : (
-                          <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-muted flex items-center justify-center">
-                            <User className="w-6 h-6 text-gray-400" />
+                          <div className="w-12 h-12 rounded-full bg-muted dark:bg-muted flex items-center justify-center">
+                            <User className="w-6 h-6 text-muted-foreground" />
                           </div>
                         )}
                         <div>
                           <p className="font-semibold">{client.name}</p>
                           {canManageClients && (
-                            <div className="flex items-center gap-3 text-xs text-gray-500">
+                            <div className="flex items-center gap-3 text-xs text-muted-foreground">
                               {client.email && (
                                 <span className="flex items-center gap-1">
                                   <Mail className="w-3 h-3" />
@@ -192,11 +192,11 @@ export default function ClientList() {
                         )}
                         <div className="text-center">
                           <p className="font-bold text-lg">{client.total_visits || 0}</p>
-                          <p className="text-xs text-gray-500">Visits</p>
+                          <p className="text-xs text-muted-foreground">Visits</p>
                         </div>
                         <div className="text-center">
                           <p className="font-bold text-lg">${(client.total_spent || 0).toFixed(0)}</p>
-                          <p className="text-xs text-gray-500">Spent</p>
+                          <p className="text-xs text-muted-foreground">Spent</p>
                         </div>
                         {rating && (
                           <div className="flex items-center gap-1 text-yellow-600">
@@ -215,21 +215,21 @@ export default function ClientList() {
 
         {isLoading && (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           </div>
         )}
 
         {!isLoading && clients.length === 0 && (
           <Card>
             <CardContent className="p-12 text-center">
-              <p className="text-gray-500">No clients found</p>
+              <p className="text-muted-foreground">No clients found</p>
             </CardContent>
           </Card>
         )}
 
         {search.length === 0 && (
           <div ref={loadMoreRef} className="flex items-center justify-center py-4">
-            {isFetchingNextPage && <Loader2 className="w-5 h-5 animate-spin text-gray-400" />}
+            {isFetchingNextPage && <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />}
           </div>
         )}
       </div>

@@ -8,7 +8,7 @@ export default function ColorLegend() {
     { label: "Unconfirmed", color: "bg-purple-100 border-purple-500", text: "text-purple-800" },
     { label: "Confirmed", color: "bg-green-100 border-green-500", text: "text-green-800" },
     { label: "Arrived", color: "bg-yellow-100 border-yellow-500", text: "text-yellow-800" },
-    { label: "Completed", color: "bg-gray-200 border-gray-400", text: "text-gray-600" },
+    { label: "Completed", color: "bg-gray-200 border-gray-400", text: "text-muted-foreground" },
     { label: "No-Show", color: "bg-orange-50 border-orange-300", text: "text-orange-500" },
     { label: "Cancelled", color: "bg-red-50 border-red-300", text: "text-red-400" },
   ];
@@ -33,7 +33,7 @@ export default function ColorLegend() {
                   {status.label.slice(0, 4)}
                 </span>
               </div>
-              <span className="text-xs text-gray-700">{status.label}</span>
+              <span className="text-xs text-muted-foreground">{status.label}</span>
             </div>
           ))}
         </div>

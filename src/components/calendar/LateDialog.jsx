@@ -15,7 +15,7 @@ export default function LateDialog({ open, booking, onClose, onConfirm }) {
             Mark as Late
           </DialogTitle>
         </DialogHeader>
-        <p className="text-sm text-gray-600 py-2">
+        <p className="text-sm text-muted-foreground py-2">
           Mark <strong>{booking.client_name}</strong>'s appointment as late? This will be recorded on their client account.
         </p>
         <DialogFooter>

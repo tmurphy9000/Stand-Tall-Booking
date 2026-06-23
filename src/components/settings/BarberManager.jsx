@@ -129,7 +129,7 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
 
       <div className="space-y-2">
         {barbers.map(b => (
-          <div key={b.id} className="bg-gray-50 dark:bg-muted/30 rounded-xl px-3 py-3 flex items-center gap-3">
+          <div key={b.id} className="bg-muted/30 dark:bg-muted/30 rounded-xl px-3 py-3 flex items-center gap-3">
             {b.photo_url ? (
               <img src={b.photo_url} alt={b.name} className="w-12 h-12 rounded-full object-cover ring-2 ring-[#B0BFA4]/30 flex-shrink-0" />
             ) : (
@@ -146,7 +146,7 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
                   <span className="text-[10px] px-2 py-0.5 bg-red-100 text-red-700 rounded-full font-medium">Terminated</span>
                 )}
               </div>
-              <p className="text-[10px] text-gray-400 mb-2">Services: {b.service_commission_rate || 50}% • Products: {b.product_commission_rate || 10}%</p>
+              <p className="text-[10px] text-muted-foreground mb-2">Services: {b.service_commission_rate || 50}% • Products: {b.product_commission_rate || 10}%</p>
               <div className="flex items-center gap-1.5">
                 <TwoTapLabel label="Hours" tooltipPosition="above" maxWidth={640}>
                   <Button aria-label="Hours" variant="outline" size="sm" className="h-9 w-8 sm:w-auto px-0 sm:px-3 sm:gap-1.5 text-xs" onClick={() => { setShowHours(b); setDraftHours(initHours(b.hours)); setDraftBlocked(b.bookings_blocked || false); }}>
@@ -185,7 +185,7 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
                 checked={b.online_bookable !== false}
                 onCheckedChange={v => onUpdate(b.id, { online_bookable: v })}
               />
-              <span className="text-[9px] text-gray-400">Online</span>
+              <span className="text-[9px] text-muted-foreground">Online</span>
             </div>
           </div>
         ))}
@@ -202,51 +202,51 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
               {form.photo_url ? (
                 <img src={form.photo_url} alt="" className="w-16 h-16 rounded-full object-cover ring-2 ring-[#B0BFA4]/30 flex-shrink-0" />
               ) : (
-                <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-muted flex items-center justify-center flex-shrink-0">
+                <div className="w-16 h-16 rounded-full bg-muted dark:bg-muted flex items-center justify-center flex-shrink-0">
                   {form.name ? (
-                    <span className="text-xl font-bold text-gray-400">{form.name.charAt(0).toUpperCase()}</span>
+                    <span className="text-xl font-bold text-muted-foreground">{form.name.charAt(0).toUpperCase()}</span>
                   ) : (
-                    <Camera className="w-5 h-5 text-gray-400" />
+                    <Camera className="w-5 h-5 text-muted-foreground" />
                   )}
                 </div>
               )}
               <div className="flex flex-col gap-1">
                 <label htmlFor="barber-photo-upload" className="cursor-pointer">
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 dark:border-border text-xs font-medium hover:bg-gray-50 dark:hover:bg-muted/30 transition-colors">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border dark:border-border text-xs font-medium hover:bg-accent dark:hover:bg-muted/30 transition-colors">
                     {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
                     {uploading ? "Uploading…" : "Upload Photo"}
                   </div>
                 </label>
                 <input id="barber-photo-upload" type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={handlePhoto} disabled={uploading} />
-                <p className="text-[10px] text-gray-400">PNG, JPG or WebP · max 5 MB</p>
+                <p className="text-[10px] text-muted-foreground">PNG, JPG or WebP · max 5 MB</p>
               </div>
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Name *</Label>
+              <Label className="text-xs text-muted-foreground">Name *</Label>
               <Input value={form.name} onChange={e => set("name", e.target.value)} />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-gray-500">Email</Label>
+                <Label className="text-xs text-muted-foreground">Email</Label>
                 <Input value={form.email} onChange={e => set("email", e.target.value)} />
               </div>
               <div>
-                <Label className="text-xs text-gray-500">Phone</Label>
+                <Label className="text-xs text-muted-foreground">Phone</Label>
                 <Input value={form.phone} onChange={e => set("phone", e.target.value)} />
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <Label className="text-xs text-gray-500">Service Commission %</Label>
+                <Label className="text-xs text-muted-foreground">Service Commission %</Label>
                 <Input type="number" value={form.service_commission_rate} onChange={e => set("service_commission_rate", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)} />
               </div>
               <div>
-                <Label className="text-xs text-gray-500">Product Commission %</Label>
+                <Label className="text-xs text-muted-foreground">Product Commission %</Label>
                 <Input type="number" value={form.product_commission_rate} onChange={e => set("product_commission_rate", e.target.value === "" ? "" : parseFloat(e.target.value) || 0)} />
               </div>
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Access Level</Label>
+              <Label className="text-xs text-muted-foreground">Access Level</Label>
               <Select
                 value={form.access_level_id || ""}
                 onValueChange={v => {
@@ -265,10 +265,10 @@ export default function BarberManager({ barbers, services = [], onCreate, onUpda
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-muted/30 rounded-lg border dark:border-border">
+            <div className="flex items-center justify-between p-3 bg-muted/30 dark:bg-muted/30 rounded-lg border dark:border-border">
               <div>
                 <Label className="text-sm font-medium">Employment Status</Label>
-                <p className="text-xs text-gray-500">{form.is_active !== false ? "Active" : "Terminated"}</p>
+                <p className="text-xs text-muted-foreground">{form.is_active !== false ? "Active" : "Terminated"}</p>
               </div>
               <Switch checked={form.is_active !== false} onCheckedChange={v => set("is_active", v)} />
             </div>

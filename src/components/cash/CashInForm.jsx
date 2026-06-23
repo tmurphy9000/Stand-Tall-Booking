@@ -41,7 +41,7 @@ export default function CashInForm({ open, onClose, onSave, barbers, saving }) {
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div>
-            <Label className="text-xs text-gray-500">Amount ($) *</Label>
+            <Label className="text-xs text-muted-foreground">Amount ($) *</Label>
             <Input
               type="number"
               min="0"
@@ -54,7 +54,7 @@ export default function CashInForm({ open, onClose, onSave, barbers, saving }) {
             />
           </div>
           <div>
-            <Label className="text-xs text-gray-500">Barber</Label>
+            <Label className="text-xs text-muted-foreground">Barber</Label>
             <Select value={form.barber_id} onValueChange={handleBarberChange}>
               <SelectTrigger><SelectValue placeholder="Select barber (optional)" /></SelectTrigger>
               <SelectContent>
@@ -65,7 +65,7 @@ export default function CashInForm({ open, onClose, onSave, barbers, saving }) {
             </Select>
           </div>
           <div>
-            <Label className="text-xs text-gray-500">Note / Reason</Label>
+            <Label className="text-xs text-muted-foreground">Note / Reason</Label>
             <Textarea
               value={form.note}
               onChange={e => set("note", e.target.value)}
@@ -73,7 +73,7 @@ export default function CashInForm({ open, onClose, onSave, barbers, saving }) {
               rows={2}
             />
           </div>
-          <div className="bg-gray-50 rounded-lg p-3 text-xs text-gray-500 space-y-1">
+          <div className="bg-muted/30 rounded-lg p-3 text-xs text-muted-foreground space-y-1">
             <p>Date: {format(new Date(), "PPP")}</p>
             <p>Time: {format(new Date(), "h:mm a")}</p>
           </div>

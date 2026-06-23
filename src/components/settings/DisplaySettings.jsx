@@ -64,8 +64,8 @@ export default function DisplaySettings() {
       <h2 className="text-sm font-semibold">Display Settings</h2>
 
       {/* Appearance */}
-      <div className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border p-4 space-y-3">
-        <p className="text-xs text-gray-500 dark:text-muted-foreground font-medium uppercase tracking-wider">Appearance</p>
+      <div className="bg-card dark:bg-card rounded-xl border border-border dark:border-border p-4 space-y-3">
+        <p className="text-xs text-muted-foreground dark:text-muted-foreground font-medium uppercase tracking-wider">Appearance</p>
         <div className="flex items-center gap-2">
           <button
             onClick={() => setTheme("light")}
@@ -73,7 +73,7 @@ export default function DisplaySettings() {
               "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-all",
               theme === "light"
                 ? "bg-[#8B9A7E] text-white border-[#8B9A7E]"
-                : "bg-transparent text-gray-600 dark:text-gray-400 border-gray-200 dark:border-border hover:border-[#8B9A7E]/50"
+                : "bg-transparent text-muted-foreground dark:text-muted-foreground border-border dark:border-border hover:border-[#8B9A7E]/50"
             )}
           >
             <Sun className="w-4 h-4" />
@@ -85,23 +85,23 @@ export default function DisplaySettings() {
               "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg border text-sm font-medium transition-all",
               theme === "dark"
                 ? "bg-[#8B9A7E] text-white border-[#8B9A7E]"
-                : "bg-transparent text-gray-600 dark:text-gray-400 border-gray-200 dark:border-border hover:border-[#8B9A7E]/50"
+                : "bg-transparent text-muted-foreground dark:text-muted-foreground border-border dark:border-border hover:border-[#8B9A7E]/50"
             )}
           >
             <Moon className="w-4 h-4" />
             Dark
           </button>
         </div>
-        <p className="text-xs text-gray-400 dark:text-muted-foreground">Your preference is saved per account and persists across reloads.</p>
+        <p className="text-xs text-muted-foreground dark:text-muted-foreground">Your preference is saved per account and persists across reloads.</p>
       </div>
 
       {/* Calendar */}
-      <div className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border p-4 space-y-4">
-        <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Calendar</p>
+      <div className="bg-card dark:bg-card rounded-xl border border-border dark:border-border p-4 space-y-4">
+        <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Calendar</p>
         <div className="flex items-center justify-between gap-4">
           <div>
             <Label className="text-sm font-medium">Show only barbers working today</Label>
-            <p className="text-xs text-gray-400 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               When enabled, only barbers scheduled for the selected day appear on the calendar. When disabled, all active barbers are shown.
             </p>
           </div>
@@ -110,10 +110,10 @@ export default function DisplaySettings() {
       </div>
 
       {/* Tip Preferences */}
-      <div className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border p-4 space-y-4">
+      <div className="bg-card dark:bg-card rounded-xl border border-border dark:border-border p-4 space-y-4">
         <div>
-          <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Tip Preferences</p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Tip Preferences</p>
+          <p className="text-xs text-muted-foreground mt-1">
             Select exactly 3 tip options to display to customers on the payment terminal. "No Tip" and "Custom" are always available.
           </p>
         </div>
@@ -134,8 +134,8 @@ export default function DisplaySettings() {
                     isSelected
                       ? "bg-[#8B9A7E] text-white border-[#8B9A7E]"
                       : isDisabled
-                      ? "bg-white text-gray-300 border-gray-200 cursor-not-allowed"
-                      : "bg-white text-gray-700 border-gray-300 hover:border-[#8B9A7E] cursor-pointer"
+                      ? "bg-card text-gray-300 border-border cursor-not-allowed"
+                      : "bg-card text-muted-foreground border-gray-300 hover:border-[#8B9A7E] cursor-pointer"
                   )}
                 >
                   {opt.label}
@@ -151,7 +151,7 @@ export default function DisplaySettings() {
                 <button
                   key={val}
                   disabled
-                  className="px-4 py-2 rounded-full border text-sm font-medium bg-gray-100 text-gray-400 border-gray-200 cursor-default"
+                  className="px-4 py-2 rounded-full border text-sm font-medium bg-muted text-muted-foreground border-border cursor-default"
                 >
                   {opt.label} <span className="text-xs">(always shown)</span>
                 </button>
@@ -160,7 +160,7 @@ export default function DisplaySettings() {
           </div>
         </div>
 
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-muted-foreground">
           {selectedTips.length}/3 percentage tips selected
         </p>
       </div>

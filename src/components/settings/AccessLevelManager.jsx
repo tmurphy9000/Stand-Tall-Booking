@@ -125,7 +125,7 @@ function PermValueToggle({ perm_key, value, onChange, disabled }) {
             "px-2.5 py-1 rounded-full text-[11px] font-semibold transition-all border",
             value === opt
               ? "bg-[#8B9A7E] text-white border-[#8B9A7E]"
-              : "bg-white dark:bg-card text-gray-500 dark:text-gray-400 border-gray-200 dark:border-border hover:border-gray-300",
+              : "bg-card dark:bg-card text-muted-foreground dark:text-muted-foreground border-border dark:border-border hover:border-gray-300",
             disabled && "opacity-50 cursor-not-allowed"
           )}
         >
@@ -319,10 +319,10 @@ export default function AccessLevelManager() {
         </div>
 
         {/* Name / Description */}
-        <div className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border p-4 space-y-3">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Details</p>
+        <div className="bg-card dark:bg-card rounded-xl border border-border dark:border-border p-4 space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Details</p>
           <div>
-            <Label className="text-xs text-gray-500">Name *</Label>
+            <Label className="text-xs text-muted-foreground">Name *</Label>
             <Input
               value={draftName}
               onChange={e => setDraftName(e.target.value)}
@@ -331,7 +331,7 @@ export default function AccessLevelManager() {
             />
           </div>
           <div>
-            <Label className="text-xs text-gray-500">Description</Label>
+            <Label className="text-xs text-muted-foreground">Description</Label>
             <Input
               value={draftDescription}
               onChange={e => setDraftDescription(e.target.value)}
@@ -343,7 +343,7 @@ export default function AccessLevelManager() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium">Active</p>
-                <p className="text-xs text-gray-500">Inactive levels can't be assigned to new barbers</p>
+                <p className="text-xs text-muted-foreground">Inactive levels can't be assigned to new barbers</p>
               </div>
               <Switch
                 checked={draftActive}
@@ -356,47 +356,47 @@ export default function AccessLevelManager() {
 
         {/* Assigned employees */}
         {!isNew && (
-          <div className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border p-4 space-y-2">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+          <div className="bg-card dark:bg-card rounded-xl border border-border dark:border-border p-4 space-y-2">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
               <Users className="w-3.5 h-3.5" />
               Assigned Employees ({countForLevel(editingId)})
             </p>
             <div className="flex flex-wrap gap-2">
               {barbers.filter(b => b.access_level_id === editingId).length === 0 ? (
-                <p className="text-sm text-gray-400">No employees assigned</p>
+                <p className="text-sm text-muted-foreground">No employees assigned</p>
               ) : (
                 barbers
                   .filter(b => b.access_level_id === editingId)
                   .map(b => (
-                    <span key={b.id} className="px-2.5 py-1 bg-gray-100 dark:bg-muted rounded-full text-xs font-medium text-gray-700 dark:text-gray-300">
+                    <span key={b.id} className="px-2.5 py-1 bg-muted dark:bg-muted rounded-full text-xs font-medium text-muted-foreground dark:text-gray-300">
                       {b.name}
                     </span>
                   ))
               )}
             </div>
-            <p className="text-[10px] text-gray-400">To reassign, go to Barbers and change the Access Level there.</p>
+            <p className="text-[10px] text-muted-foreground">To reassign, go to Barbers and change the Access Level there.</p>
           </div>
         )}
 
         {/* Permission Matrix */}
-        <div className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border overflow-hidden">
-          <div className="px-4 py-3 border-b border-gray-100 dark:border-border">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Permissions</p>
+        <div className="bg-card dark:bg-card rounded-xl border border-border dark:border-border overflow-hidden">
+          <div className="px-4 py-3 border-b border-border dark:border-border">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Permissions</p>
           </div>
           {loadingPerms && !isNew ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+              <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
             </div>
           ) : (
             <div className="divide-y divide-gray-100 dark:divide-border">
               {PERMISSION_SECTIONS.map(section => (
                 <div key={section.label}>
-                  <div className="px-4 py-2 bg-gray-50 dark:bg-muted/30">
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">{section.label}</p>
+                  <div className="px-4 py-2 bg-muted/30 dark:bg-muted/30">
+                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">{section.label}</p>
                   </div>
                   {section.keys.map(({ key, label }) => (
                     <div key={key} className="flex items-center justify-between px-4 py-2.5">
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{label}</span>
+                      <span className="text-sm text-muted-foreground dark:text-gray-300">{label}</span>
                       <PermValueToggle
                         perm_key={key}
                         value={resolvedPerms[key] ?? "none"}
@@ -448,7 +448,7 @@ export default function AccessLevelManager() {
             <Shield className="w-4 h-4 text-[#8B9A7E]" />
             Access Levels
           </h2>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Control what each barber can see and do. Assign levels in the Barbers tab.
           </p>
         </div>
@@ -464,21 +464,21 @@ export default function AccessLevelManager() {
 
       {levelsLoading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+          <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
         </div>
       ) : (
         <div className="space-y-2">
           {levels.map(level => (
             <div
               key={level.id}
-              className="bg-white dark:bg-card rounded-xl border border-gray-200 dark:border-border p-4"
+              className="bg-card dark:bg-card rounded-xl border border-border dark:border-border p-4"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-gray-800 dark:text-gray-100">{level.name}</p>
                     {level.is_default && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 dark:bg-muted text-gray-500 dark:text-gray-400 font-semibold">
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted dark:bg-muted text-muted-foreground dark:text-muted-foreground font-semibold">
                         Default
                       </span>
                     )}
@@ -489,9 +489,9 @@ export default function AccessLevelManager() {
                     )}
                   </div>
                   {level.description && (
-                    <p className="text-xs text-gray-500 mt-0.5 truncate">{level.description}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5 truncate">{level.description}</p>
                   )}
-                  <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                     <Users className="w-3 h-3" />
                     {countForLevel(level.id)} employee{countForLevel(level.id) !== 1 ? "s" : ""}
                   </p>

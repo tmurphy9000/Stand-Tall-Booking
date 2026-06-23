@@ -38,11 +38,11 @@ export default function ShopHoursEditor({ hours = {}, onChange }) {
       {DAYS.map(day => {
         const dayHrs = hours[day] || { start: "08:00", end: "20:00", closed: false };
         return (
-          <div key={day} className="bg-gray-50 dark:bg-muted/30 rounded-lg px-3 py-2 space-y-2">
+          <div key={day} className="bg-muted/30 dark:bg-muted/30 rounded-lg px-3 py-2 space-y-2">
             <div className="flex items-center gap-3">
-              <span className="w-12 text-xs font-medium capitalize text-gray-700 dark:text-gray-200">{day.slice(0, 3)}</span>
+              <span className="w-12 text-xs font-medium capitalize text-muted-foreground dark:text-gray-200">{day.slice(0, 3)}</span>
               <Switch checked={!dayHrs.closed} onCheckedChange={v => updateDay(day, "closed", !v)} />
-              {dayHrs.closed && <span className="text-xs text-gray-400">Closed</span>}
+              {dayHrs.closed && <span className="text-xs text-muted-foreground">Closed</span>}
             </div>
             {!dayHrs.closed && (
               <div className="flex items-center gap-2">
@@ -52,7 +52,7 @@ export default function ShopHoursEditor({ hours = {}, onChange }) {
                     {TIMES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <span className="text-xs text-gray-400">to</span>
+                <span className="text-xs text-muted-foreground">to</span>
                 <Select value={dayHrs.end || "20:00"} onValueChange={v => updateDay(day, "end", v)}>
                   <SelectTrigger className="flex-1 h-7 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>

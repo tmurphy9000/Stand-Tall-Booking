@@ -9,7 +9,7 @@ export default function TermsAndConditions() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left text-white/60 hover:text-white hover:bg-white/10 w-full"
+        className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left text-white/60 hover:text-white hover:bg-card/10 w-full"
       >
         <FileText className="w-4 h-4 flex-shrink-0" />
         STB Terms & Conditions
@@ -20,7 +20,7 @@ export default function TermsAndConditions() {
           <DialogHeader>
             <DialogTitle>STB Terms & Conditions</DialogTitle>
           </DialogHeader>
-          <div className="text-sm text-gray-600 space-y-3 mt-2">
+          <div className="text-sm text-muted-foreground space-y-3 mt-2">
             <p>Legal disclaimer content will be added here.</p>
           </div>
         </DialogContent>

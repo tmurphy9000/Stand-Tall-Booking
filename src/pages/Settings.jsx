@@ -168,7 +168,7 @@ export default function SettingsPage() {
         <button
           onClick={() => setMobileExpanded(v => !v)}
           className={cn(
-            "flex items-center rounded-xl mb-1 text-white/40 hover:text-white/60 hover:bg-white/10 transition-colors flex-shrink-0",
+            "flex items-center rounded-xl mb-1 text-white/40 hover:text-white/60 hover:bg-card/10 transition-colors flex-shrink-0",
             mobileExpanded ? "gap-2 px-2 py-2 w-full" : "h-9 w-11 mx-auto justify-center"
           )}
         >
@@ -185,7 +185,7 @@ export default function SettingsPage() {
                 mobileExpanded ? "gap-2.5 px-2 py-2.5 w-full" : "h-11 w-11 mx-auto justify-center",
                 activeTab === value
                   ? "bg-[#8B9A7E] text-white"
-                  : "text-white/50 hover:text-white hover:bg-white/10"
+                  : "text-white/50 hover:text-white hover:bg-card/10"
               )}
             >
               <Icon className="w-[18px] h-[18px] flex-shrink-0" />
@@ -202,7 +202,7 @@ export default function SettingsPage() {
                 className={cn(
                   "flex items-center rounded-xl transition-colors flex-shrink-0",
                   mobileExpanded ? "gap-2.5 px-2 py-2.5 w-full" : "h-11 w-11 mx-auto justify-center",
-                  "text-white/50 hover:text-white hover:bg-white/10"
+                  "text-white/50 hover:text-white hover:bg-card/10"
                 )}
               >
                 <Mail className="w-[18px] h-[18px] flex-shrink-0" />
@@ -217,7 +217,7 @@ export default function SettingsPage() {
                 className={cn(
                   "flex items-center rounded-xl transition-colors",
                   mobileExpanded ? "gap-2.5 px-2 py-2.5 w-full" : "h-11 w-11 mx-auto justify-center",
-                  "text-white/30 hover:text-white/60 hover:bg-white/10"
+                  "text-white/30 hover:text-white/60 hover:bg-card/10"
                 )}
               >
                 <Lock className="w-[18px] h-[18px] flex-shrink-0" />
@@ -239,7 +239,7 @@ export default function SettingsPage() {
               "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left",
               activeTab === value
                 ? "bg-[#8B9A7E] text-white"
-                : "text-white/60 hover:text-white hover:bg-white/10"
+                : "text-white/60 hover:text-white hover:bg-card/10"
             )}
           >
             <Icon className="w-4 h-4 flex-shrink-0" />
@@ -252,7 +252,7 @@ export default function SettingsPage() {
           {hasFullAccess && (
             <button
               onClick={inviteBarberClick}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left text-white/60 hover:text-white hover:bg-white/10 w-full"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left text-white/60 hover:text-white hover:bg-card/10 w-full"
             >
               <Mail className="w-4 h-4 flex-shrink-0" />
               Invite Barber
@@ -261,7 +261,7 @@ export default function SettingsPage() {
           {isSuperAdmin && (
             <Link
               to={createPageUrl("AdminDashboard")}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left text-white/30 hover:text-white/60 hover:bg-white/10 w-full"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-left text-white/30 hover:text-white/60 hover:bg-card/10 w-full"
             >
               <Lock className="w-4 h-4 flex-shrink-0" />
               Admin
@@ -334,24 +334,24 @@ export default function SettingsPage() {
               </Button>
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Product / Merch Tax Rate %</Label>
+              <Label className="text-xs text-muted-foreground">Product / Merch Tax Rate %</Label>
               <Input
                 type="number"
                 step="0.01"
                 value={draftProductTax ?? (settings.default_tax_rate ?? 0)}
                 onChange={e => { const v = parseFloat(e.target.value); setDraftProductTax(isNaN(v) ? 0 : v); }}
               />
-              <p className="text-[10px] text-gray-400 mt-1">Applied to retail products sold at checkout</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Applied to retail products sold at checkout</p>
             </div>
             <div>
-              <Label className="text-xs text-gray-500">Service Tax Rate %</Label>
+              <Label className="text-xs text-muted-foreground">Service Tax Rate %</Label>
               <Input
                 type="number"
                 step="0.01"
                 value={draftServiceTax ?? (settings.default_service_tax_rate ?? 0)}
                 onChange={e => { const v = parseFloat(e.target.value); setDraftServiceTax(isNaN(v) ? 0 : v); }}
               />
-              <p className="text-[10px] text-gray-400 mt-1">Applied to services at checkout (usually 0%)</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Applied to services at checkout (usually 0%)</p>
             </div>
           </div>
         )}

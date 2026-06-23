@@ -65,7 +65,7 @@ export default function BarberHoursEditor({ hours = {}, onChange, bookingsBlocke
       {DAYS.map(day => {
         const dayHours = hours[day] || { start: "09:00", end: "18:00", off: false };
         return (
-          <div key={day} className="bg-gray-50 rounded-lg px-3 py-2 space-y-2">
+          <div key={day} className="bg-muted/30 rounded-lg px-3 py-2 space-y-2">
             <div className="flex items-center gap-3">
               <div className="w-20">
                 <span className="text-xs font-medium capitalize">{day.slice(0, 3)}</span>
@@ -74,7 +74,7 @@ export default function BarberHoursEditor({ hours = {}, onChange, bookingsBlocke
                 checked={dayHours.off !== true}
                 onCheckedChange={(isOn) => updateDay(day, "off", !isOn)}
               />
-              {dayHours.off && <span className="text-xs text-gray-400">Off</span>}
+              {dayHours.off && <span className="text-xs text-muted-foreground">Off</span>}
             </div>
             {!dayHours.off && (
               <div className="flex items-center gap-2">
@@ -84,7 +84,7 @@ export default function BarberHoursEditor({ hours = {}, onChange, bookingsBlocke
                     {TIMES.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
-                <span className="text-xs text-gray-400">to</span>
+                <span className="text-xs text-muted-foreground">to</span>
                 <Select value={dayHours.end || "18:00"} onValueChange={v => updateDay(day, "end", v)}>
                   <SelectTrigger className="flex-1 h-7 text-xs"><SelectValue /></SelectTrigger>
                   <SelectContent>

@@ -7,7 +7,7 @@ const COLORS = ["#C9A94E", "#0A0A0A", "#64748B", "#A07D2B", "#E8D9A0", "#475569"
 
 export function RevenueChart({ data }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4">
+    <div className="bg-card rounded-xl border border-border p-4">
       <h3 className="text-sm font-semibold mb-4">Revenue Trend</h3>
       <ResponsiveContainer width="100%" height={200}>
         <LineChart data={data}>
@@ -27,7 +27,7 @@ export function RevenueChart({ data }) {
 
 export function ServiceBreakdownChart({ data }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4">
+    <div className="bg-card rounded-xl border border-border p-4">
       <h3 className="text-sm font-semibold mb-4">Service Breakdown</h3>
       <ResponsiveContainer width="100%" height={200}>
         <PieChart>
@@ -43,7 +43,7 @@ export function ServiceBreakdownChart({ data }) {
         {data.map((d, i) => (
           <div key={d.name} className="flex items-center gap-1">
             <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
-            <span className="text-[10px] text-gray-500">{d.name}</span>
+            <span className="text-[10px] text-muted-foreground">{d.name}</span>
           </div>
         ))}
       </div>
@@ -53,7 +53,7 @@ export function ServiceBreakdownChart({ data }) {
 
 export function BarberPerformanceChart({ data }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4">
+    <div className="bg-card rounded-xl border border-border p-4">
       <h3 className="text-sm font-semibold mb-4">Barber Performance</h3>
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data}>
@@ -71,7 +71,7 @@ export function BarberPerformanceChart({ data }) {
 
 export function RetentionChart({ data }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4">
+    <div className="bg-card rounded-xl border border-border p-4">
       <h3 className="text-sm font-semibold mb-4">Client Retention</h3>
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data}>
@@ -88,7 +88,7 @@ export function RetentionChart({ data }) {
 
 export function StaffPerformanceChart({ data }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4">
+    <div className="bg-card rounded-xl border border-border p-4">
       <h3 className="text-sm font-semibold mb-4">Staff Performance</h3>
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={data} layout="vertical">
@@ -106,7 +106,7 @@ export function StaffPerformanceChart({ data }) {
 
 export function ClientLifetimeValueChart({ data }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4">
+    <div className="bg-card rounded-xl border border-border p-4">
       <h3 className="text-sm font-semibold mb-4">Top Clients by Lifetime Value</h3>
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={data} layout="vertical">
@@ -126,7 +126,7 @@ export function ClientLifetimeValueChart({ data }) {
 
 export function ServicePopularityChart({ data }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4">
+    <div className="bg-card rounded-xl border border-border p-4">
       <h3 className="text-sm font-semibold mb-4">Most Popular Services</h3>
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={data}>
@@ -145,15 +145,15 @@ export function VisitTypeChart({ data }) {
   const VISIT_COLORS = { NR: "#8B9A7E", NNR: "#B0BFA4", RR: "#C9A94E", RNR: "#F59E0B" };
   const labels = { NR: "New Request", NNR: "New Non-Request", RR: "Return Request", RNR: "Return Non-Request" };
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4">
+    <div className="bg-card rounded-xl border border-border p-4">
       <h3 className="text-sm font-semibold mb-1">Appointment Visit Types</h3>
-      <p className="text-[10px] text-gray-400 mb-4">NR = New Request · NNR = New Non-Request · RR = Return Request · RNR = Return Non-Request</p>
+      <p className="text-[10px] text-muted-foreground mb-4">NR = New Request · NNR = New Non-Request · RR = Return Request · RNR = Return Non-Request</p>
       <div className="space-y-3">
         {data.map(barber => (
           <div key={barber.name}>
             <div className="flex items-center justify-between mb-1">
               <span className="text-xs font-medium">{barber.name}</span>
-              <span className="text-[10px] text-gray-400">{barber.total} appts</span>
+              <span className="text-[10px] text-muted-foreground">{barber.total} appts</span>
             </div>
             <div className="flex h-5 rounded-full overflow-hidden gap-0.5">
               {["NR","NNR","RR","RNR"].map(type => {
@@ -173,7 +173,7 @@ export function VisitTypeChart({ data }) {
               {["NR","NNR","RR","RNR"].map(type => {
                 const pct = barber.total > 0 ? Math.round((barber[type] / barber.total) * 100) : 0;
                 return (
-                  <span key={type} className="text-[9px] text-gray-500 flex items-center gap-0.5">
+                  <span key={type} className="text-[9px] text-muted-foreground flex items-center gap-0.5">
                     <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: VISIT_COLORS[type] }} />
                     {type}: {barber[type]} ({pct}%)
                   </span>
@@ -189,7 +189,7 @@ export function VisitTypeChart({ data }) {
 
 export function NoShowRatesChart({ data }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 p-4">
+    <div className="bg-card rounded-xl border border-border p-4">
       <h3 className="text-sm font-semibold mb-4">No-Show & Cancellation Rates</h3>
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={data}>

@@ -48,22 +48,22 @@ export default function PolicySettings() {
   return (
     <div className="max-w-2xl space-y-8">
       <div>
-        <h2 className="text-lg font-semibold text-gray-900">Policies</h2>
-        <p className="text-sm text-gray-500 mt-1">
+        <h2 className="text-lg font-semibold text-foreground">Policies</h2>
+        <p className="text-sm text-muted-foreground mt-1">
           Set your cancellation and no-show policies. These can be displayed to clients during booking.
         </p>
       </div>
 
       {/* Cancellation Policy */}
-      <div className="border border-gray-200 rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 bg-gray-50 border-b border-gray-200">
+      <div className="border border-border rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 bg-muted/30 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
               <CalendarX className="w-4 h-4 text-orange-500" />
             </div>
             <div>
               <p className="font-semibold text-sm text-gray-800">Cancellation Policy</p>
-              <p className="text-xs text-gray-400">Enforce a notice window for cancellations</p>
+              <p className="text-xs text-muted-foreground">Enforce a notice window for cancellations</p>
             </div>
           </div>
           <Switch
@@ -75,7 +75,7 @@ export default function PolicySettings() {
         {settings.cancellation_enabled && (
           <div className="px-5 py-5 space-y-4">
             <div>
-              <Label className="text-xs text-gray-500 mb-1.5 block">Cancellation Window</Label>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Cancellation Window</Label>
               <Select
                 value={String(settings.cancellation_hours)}
                 onValueChange={v => set("cancellation_hours", parseInt(v))}
@@ -91,12 +91,12 @@ export default function PolicySettings() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-gray-400 mt-1.5">
+              <p className="text-xs text-muted-foreground mt-1.5">
                 Clients must cancel at least this far in advance.
               </p>
             </div>
             <div>
-              <Label className="text-xs text-gray-500 mb-1.5 block">Policy Text</Label>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Policy Text</Label>
               <Textarea
                 value={settings.cancellation_policy_text}
                 onChange={e => set("cancellation_policy_text", e.target.value)}
@@ -110,15 +110,15 @@ export default function PolicySettings() {
       </div>
 
       {/* No-Show Policy */}
-      <div className="border border-gray-200 rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 bg-gray-50 border-b border-gray-200">
+      <div className="border border-border rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 bg-muted/30 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center">
               <UserX className="w-4 h-4 text-red-500" />
             </div>
             <div>
               <p className="font-semibold text-sm text-gray-800">No-Show Policy</p>
-              <p className="text-xs text-gray-400">Define consequences for missed appointments</p>
+              <p className="text-xs text-muted-foreground">Define consequences for missed appointments</p>
             </div>
           </div>
           <Switch
@@ -130,7 +130,7 @@ export default function PolicySettings() {
         {settings.noshow_enabled && (
           <div className="px-5 py-5 space-y-4">
             <div>
-              <Label className="text-xs text-gray-500 mb-1.5 block">Policy Text</Label>
+              <Label className="text-xs text-muted-foreground mb-1.5 block">Policy Text</Label>
               <Textarea
                 value={settings.noshow_policy_text}
                 onChange={e => set("noshow_policy_text", e.target.value)}

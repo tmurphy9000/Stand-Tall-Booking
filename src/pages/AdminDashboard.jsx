@@ -32,7 +32,7 @@ const DATE_RANGES = [
 ];
 
 const PLAN_BADGE_STYLES = {
-  Free: "bg-gray-100 text-gray-700 border-gray-200",
+  Free: "bg-muted text-muted-foreground border-border",
   Starter: "bg-blue-50 text-blue-700 border-blue-200",
   Pro: "bg-[#8B9A7E]/10 text-[#6B7A5E] border-[#8B9A7E]/30",
 };
@@ -44,7 +44,7 @@ function PlanBadge({ plan }) {
 function StatusBadge({ status }) {
   const styles = {
     active: "bg-green-50 text-green-700 border-green-200",
-    inactive: "bg-gray-100 text-gray-600 border-gray-200",
+    inactive: "bg-muted text-muted-foreground border-border",
     cancelled: "bg-red-50 text-red-700 border-red-200",
   };
   return <Badge variant="outline" className={styles[status] || ""}>{status}</Badge>;
@@ -127,7 +127,7 @@ function AllSignupsTab() {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <span className="text-sm text-gray-500">Signed up:</span>
+        <span className="text-sm text-muted-foreground">Signed up:</span>
         <Select value={range} onValueChange={setRange}>
           <SelectTrigger className="w-44">
             <SelectValue />
@@ -164,7 +164,7 @@ function AllSignupsTab() {
               ))}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-gray-400 py-8">
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
                     No signups in this range
                   </TableCell>
                 </TableRow>
@@ -194,7 +194,7 @@ function AccountActionsTab() {
   return (
     <div className="space-y-4 max-w-xl">
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
         <Input
           placeholder="Search for a shop by name..."
           value={search}
@@ -206,7 +206,7 @@ function AccountActionsTab() {
       {search.trim() && !selected && (
         <div className="grid gap-2">
           {results.length === 0 && (
-            <p className="text-sm text-gray-400">No shops found.</p>
+            <p className="text-sm text-muted-foreground">No shops found.</p>
           )}
           {results.map(account => (
             <Card
@@ -217,7 +217,7 @@ function AccountActionsTab() {
               <CardContent className="p-3 flex items-center justify-between">
                 <div>
                   <p className="font-medium text-sm">{account.shop_name}</p>
-                  <p className="text-xs text-gray-500">{account.owner_name}</p>
+                  <p className="text-xs text-muted-foreground">{account.owner_name}</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <PlanBadge plan={account.plan} />
@@ -235,7 +235,7 @@ function AccountActionsTab() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="font-semibold">{selected.shop_name}</p>
-                <p className="text-xs text-gray-500">{selected.owner_name}</p>
+                <p className="text-xs text-muted-foreground">{selected.owner_name}</p>
               </div>
               <div className="flex items-center gap-2">
                 <PlanBadge plan={selected.plan} />
@@ -272,8 +272,8 @@ export default function AdminDashboard() {
       <div className="flex items-center justify-center h-[70vh]">
         <div className="text-center">
           <ShieldAlert className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-          <h1 className="text-lg font-semibold text-gray-700 mb-1">Access Denied</h1>
-          <p className="text-sm text-gray-400">You don't have permission to view this page.</p>
+          <h1 className="text-lg font-semibold text-muted-foreground mb-1">Access Denied</h1>
+          <p className="text-sm text-muted-foreground">You don't have permission to view this page.</p>
         </div>
       </div>
     );
@@ -290,7 +290,7 @@ export default function AdminDashboard() {
           </Link>
           <div>
             <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-            <p className="text-gray-600 text-sm">Internal team tools for managing shop accounts</p>
+            <p className="text-muted-foreground text-sm">Internal team tools for managing shop accounts</p>
           </div>
         </div>
 

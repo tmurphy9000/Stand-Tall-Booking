@@ -95,17 +95,17 @@ export default function PastPayrollReports({ open, onClose }) {
           {/* Custom range */}
           <div className="flex gap-3">
             <div className="flex-1">
-              <Label className="text-xs text-gray-500">Start Date</Label>
+              <Label className="text-xs text-muted-foreground">Start Date</Label>
               <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
             </div>
             <div className="flex-1">
-              <Label className="text-xs text-gray-500">End Date</Label>
+              <Label className="text-xs text-muted-foreground">End Date</Label>
               <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
             </div>
           </div>
 
           {/* Period label */}
-          <div className="bg-[#8B9A7E]/10 rounded-lg p-3 text-sm text-gray-600">
+          <div className="bg-[#8B9A7E]/10 rounded-lg p-3 text-sm text-muted-foreground">
             <span className="font-semibold">{format(new Date(startDate), "MMM d, yyyy")}</span> – <span className="font-semibold">{format(new Date(endDate), "MMM d, yyyy")}</span>
           </div>
 
@@ -119,23 +119,23 @@ export default function PastPayrollReports({ open, onClose }) {
               <div className="grid grid-cols-2 gap-3">
                 <Card className="border-[#8B9A7E] border-2">
                   <CardContent className="p-3">
-                    <p className="text-xs text-gray-500">Total Payroll</p>
+                    <p className="text-xs text-muted-foreground">Total Payroll</p>
                     <p className="text-2xl font-bold text-[#8B9A7E]">${grandTotal.toFixed(2)}</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardContent className="p-3">
-                    <p className="text-xs text-gray-500">Gross Revenue</p>
-                    <p className="text-2xl font-bold text-[#0A0A0A]">${grossRevenue.toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground">Gross Revenue</p>
+                    <p className="text-2xl font-bold text-foreground">${grossRevenue.toFixed(2)}</p>
                   </CardContent>
                 </Card>
               </div>
 
               {/* Per-barber breakdown */}
               <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-gray-700">Breakdown by Barber</h3>
+                <h3 className="text-sm font-semibold text-muted-foreground">Breakdown by Barber</h3>
                 {payrollData.map(barber => (
-                  <Card key={barber.id} className="border-gray-200">
+                  <Card key={barber.id} className="border-border">
                     <CardContent className="p-3">
                       <button
                         className="w-full flex items-center justify-between"
@@ -143,54 +143,54 @@ export default function PastPayrollReports({ open, onClose }) {
                       >
                         <div className="text-left">
                           <p className="font-semibold text-sm">{barber.name}</p>
-                          <p className="text-xs text-gray-400">{barber.bookings.length} services · ${barber.serviceRevenue.toFixed(2)} revenue</p>
+                          <p className="text-xs text-muted-foreground">{barber.bookings.length} services · ${barber.serviceRevenue.toFixed(2)} revenue</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-lg font-bold text-[#8B9A7E]">${barber.totalEarnings.toFixed(2)}</span>
-                          {expandedBarber === barber.id ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                          {expandedBarber === barber.id ? <ChevronUp className="w-4 h-4 text-muted-foreground" /> : <ChevronDown className="w-4 h-4 text-muted-foreground" />}
                         </div>
                       </button>
 
                       {expandedBarber === barber.id && (
                         <div className="mt-3 space-y-2 text-xs border-t pt-3">
                           <div className="grid grid-cols-3 gap-2">
-                            <div className="bg-gray-50 rounded p-2">
-                              <p className="text-gray-500">Service Revenue</p>
+                            <div className="bg-muted/30 rounded p-2">
+                              <p className="text-muted-foreground">Service Revenue</p>
                               <p className="font-semibold mt-1">${barber.serviceRevenue.toFixed(2)}</p>
                             </div>
                             <div className="bg-[#8B9A7E]/10 rounded p-2">
-                              <p className="text-gray-500">Svc Commission</p>
+                              <p className="text-muted-foreground">Svc Commission</p>
                               <p className="font-semibold text-[#8B9A7E] mt-1">${barber.serviceCommission.toFixed(2)}</p>
-                              <p className="text-[10px] text-gray-400">{barber.serviceCommissionRate}%</p>
+                              <p className="text-[10px] text-muted-foreground">{barber.serviceCommissionRate}%</p>
                             </div>
-                            <div className="bg-gray-50 rounded p-2">
-                              <p className="text-gray-500">Shop Keeps (Svc)</p>
+                            <div className="bg-muted/30 rounded p-2">
+                              <p className="text-muted-foreground">Shop Keeps (Svc)</p>
                               <p className="font-semibold mt-1">${(barber.serviceRevenue - barber.serviceCommission).toFixed(2)}</p>
-                              <p className="text-[10px] text-gray-400">{100 - barber.serviceCommissionRate}%</p>
+                              <p className="text-[10px] text-muted-foreground">{100 - barber.serviceCommissionRate}%</p>
                             </div>
                           </div>
                           <div className="grid grid-cols-3 gap-2">
-                            <div className="bg-gray-50 rounded p-2">
-                              <p className="text-gray-500">Product Revenue</p>
+                            <div className="bg-muted/30 rounded p-2">
+                              <p className="text-muted-foreground">Product Revenue</p>
                               <p className="font-semibold mt-1">${barber.productRevenue.toFixed(2)}</p>
                             </div>
                             <div className="bg-purple-50 rounded p-2">
-                              <p className="text-gray-500">Prod Commission</p>
+                              <p className="text-muted-foreground">Prod Commission</p>
                               <p className="font-semibold text-purple-600 mt-1">${barber.productCommission.toFixed(2)}</p>
-                              <p className="text-[10px] text-gray-400">{barber.productCommissionRate}%</p>
+                              <p className="text-[10px] text-muted-foreground">{barber.productCommissionRate}%</p>
                             </div>
                             <div className="bg-blue-50 rounded p-2">
-                              <p className="text-gray-500">Tips</p>
+                              <p className="text-muted-foreground">Tips</p>
                               <p className="font-semibold text-blue-600 mt-1">${barber.tips.toFixed(2)}</p>
                             </div>
                           </div>
 
                           {barber.bookings.length > 0 && (
                             <div className="mt-1">
-                              <p className="text-gray-500 mb-1 font-medium">Services</p>
+                              <p className="text-muted-foreground mb-1 font-medium">Services</p>
                               <div className="space-y-1 max-h-40 overflow-y-auto">
                                 {barber.bookings.map(b => (
-                                  <div key={b.id} className="flex justify-between bg-white border rounded px-2 py-1">
+                                  <div key={b.id} className="flex justify-between bg-card border rounded px-2 py-1">
                                     <span>{b.date} — {b.service_name}</span>
                                     <div className="flex gap-2 items-center">
                                       <span className="font-medium">${(b.price ?? 0).toFixed(2)}</span>
@@ -209,7 +209,7 @@ export default function PastPayrollReports({ open, onClose }) {
                 ))}
 
                 {payrollData.length === 0 && (
-                  <p className="text-center text-gray-400 text-sm py-8">No completed bookings in this period.</p>
+                  <p className="text-center text-muted-foreground text-sm py-8">No completed bookings in this period.</p>
                 )}
               </div>
             </>

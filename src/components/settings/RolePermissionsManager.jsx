@@ -86,7 +86,7 @@ export default function RolePermissionsManager() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-muted-foreground">
             Configure what each role can access and do in the app.
           </p>
 
@@ -101,7 +101,7 @@ export default function RolePermissionsManager() {
 
             return (
               <div key={role} className="border rounded-lg p-4">
-                <h3 className="font-semibold text-[#0A0A0A] mb-4 capitalize">
+                <h3 className="font-semibold text-foreground mb-4 capitalize">
                   {role.replace("_", " ")} Permissions
                 </h3>
 
@@ -115,7 +115,7 @@ export default function RolePermissionsManager() {
                         <Label className="font-medium cursor-pointer">
                           {perm.label}
                         </Label>
-                        <p className="text-xs text-gray-500">{perm.description}</p>
+                        <p className="text-xs text-muted-foreground">{perm.description}</p>
                       </div>
                       <Switch
                         checked={rolePerms[perm.key] || false}

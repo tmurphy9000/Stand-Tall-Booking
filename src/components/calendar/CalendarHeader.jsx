@@ -28,7 +28,7 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
 
   return (
-    <div className="sticky top-0 z-30 bg-[#FAFAF8] dark:bg-background border-b border-gray-100 dark:border-border">
+    <div className="sticky top-0 z-30 bg-[#FAFAF8] dark:bg-background border-b border-border dark:border-border">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={goPrev} className="h-8 w-8 p-0">
@@ -44,13 +44,13 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
 
         <Popover open={calOpen} onOpenChange={setCalOpen}>
           <PopoverTrigger asChild>
-            <button className="flex items-center gap-1 text-xs font-semibold text-[#0A0A0A] dark:text-gray-100 hover:text-[#8B9A7E] transition-colors">
+            <button className="flex items-center gap-1 text-xs font-semibold text-foreground dark:text-gray-100 hover:text-[#8B9A7E] transition-colors">
               <CalendarIcon className="w-3.5 h-3.5" />
               {viewMode === "day"
                 ? format(currentDate, "EEEE, MMM d")
                 : `${format(weekStart, "MMM d")} - ${format(addDays(weekStart, 6), "MMM d, yyyy")}`
               }
-              <span className="hidden md:inline text-gray-400 dark:text-gray-500 font-normal"> • {format(now, "h:mm a")}</span>
+              <span className="hidden md:inline text-muted-foreground dark:text-muted-foreground font-normal"> • {format(now, "h:mm a")}</span>
             </button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0 z-50" align="center">
@@ -92,7 +92,7 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
                 "px-3 py-1 rounded-full text-[11px] font-semibold transition-all",
                 mobileCalView === "mine"
                   ? "bg-[#0A0A0A] text-[#8B9A7E]"
-                  : "text-gray-500 hover:text-gray-700"
+                  : "text-muted-foreground hover:text-muted-foreground"
               )}
             >
               My Schedule
@@ -103,7 +103,7 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
                 "px-3 py-1 rounded-full text-[11px] font-semibold transition-all",
                 mobileCalView === "all"
                   ? "bg-[#0A0A0A] text-[#8B9A7E]"
-                  : "text-gray-500 hover:text-gray-700"
+                  : "text-muted-foreground hover:text-muted-foreground"
               )}
             >
               All Barbers
@@ -123,7 +123,7 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
                   "px-3 py-1 rounded-full text-xs font-medium transition-all",
                   viewMode === mode
                     ? "bg-[#0A0A0A] text-white"
-                    : "text-gray-500 hover:bg-gray-100"
+                    : "text-muted-foreground hover:bg-accent"
                 )}
               >
                 {mode.charAt(0).toUpperCase() + mode.slice(1)}
@@ -155,7 +155,7 @@ export default function CalendarHeader({ currentDate, setCurrentDate, viewMode, 
               >
                 <ChevronLeft className="w-3 h-3" />
               </Button>
-              <span className="text-[10px] text-gray-400">
+              <span className="text-[10px] text-muted-foreground">
                 {barberGroupIndex + 1}/{totalBarberGroups}
               </span>
               <Button

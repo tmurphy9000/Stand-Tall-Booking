@@ -88,7 +88,7 @@ export default function QuickBookingModal({ open, onClose, onSave, barbers, serv
         <DialogHeader>
           <DialogTitle className="text-base font-semibold">Outside Bookable Hours</DialogTitle>
         </DialogHeader>
-        <p className="text-sm text-gray-600 py-2">
+        <p className="text-sm text-muted-foreground py-2">
           This appointment is outside of bookable hours. Do you want to continue?
         </p>
         <DialogFooter>
@@ -149,11 +149,11 @@ export default function QuickBookingModal({ open, onClose, onSave, barbers, serv
                 </PopoverTrigger>
                 <PopoverContent side="right" align="start" avoidCollisions className="w-72 text-sm">
                   <p className="font-semibold text-gray-800 mb-1.5">What is a Call-in?</p>
-                  <p className="text-gray-600 leading-snug">
+                  <p className="text-muted-foreground leading-snug">
                     A client called ahead to say they're on their way, but you didn't have time to collect their details. Blocks off time on the calendar without requiring a name, phone number, or other info upfront.
                   </p>
-                  <p className="text-gray-400 text-xs mt-2 leading-snug">
-                    Different from a <span className="font-medium text-gray-500">Walk-in</span> (client is physically present) or a regular <span className="font-medium text-gray-500">Appointment</span> (full info collected upfront).
+                  <p className="text-muted-foreground text-xs mt-2 leading-snug">
+                    Different from a <span className="font-medium text-muted-foreground">Walk-in</span> (client is physically present) or a regular <span className="font-medium text-muted-foreground">Appointment</span> (full info collected upfront).
                   </p>
                 </PopoverContent>
               </Popover>
@@ -181,12 +181,12 @@ export default function QuickBookingModal({ open, onClose, onSave, barbers, serv
                 <Button
                   key={service.id}
                   onClick={() => handleServiceSelect(service)}
-                  className="w-full h-auto py-4 bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 justify-between"
+                  className="w-full h-auto py-4 bg-card hover:bg-accent text-foreground border border-border justify-between"
                   variant="outline"
                 >
                   <div className="flex flex-col items-start">
                     <span className="font-semibold">{service.name}</span>
-                    <span className="text-xs text-gray-500">
+                    <span className="text-xs text-muted-foreground">
                       {displayDuration} min
                       {(customDuration || customPrice !== undefined) && <span className="text-[#8B9A7E] ml-1">(custom)</span>}
                     </span>
