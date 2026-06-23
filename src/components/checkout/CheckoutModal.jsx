@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Plus, DollarSign, CreditCard, Tablet, ChevronsUpDown } from "lucide-react";
+import { X, Plus, DollarSign, CreditCard, Tablet, ChevronsUpDown, TicketPercent, Check } from "lucide-react";
 import { entities } from "@/api/entities";
 import { functions } from "@/api/functions";
 import { useQuery } from "@tanstack/react-query";
@@ -25,6 +26,7 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
   const [tip, setTip] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [additionalBookings, setAdditionalBookings] = useState([]);
+  const [appliedPromo, setAppliedPromo] = useState(null);
 
   const { data: services = [] } = useQuery({
     queryKey: ["services"],
@@ -78,6 +80,7 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
       setDiscount({ type: "none", value: 0 });
       setTip("");
       setPaymentMethod("cash");
+      setAppliedPromo(null);
     }
   }, [booking]);
 
@@ -141,12 +144,18 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
     return sum;
   }, 0);
   
-  const discountAmount = discount.type === "percentage" 
+  const discountAmount = discount.type === "percentage"
     ? subtotal * (parseFloat(discount.value) / 100)
     : discount.type === "fixed" ? parseFloat(discount.value) || 0 : 0;
-  
+
+  const promoDiscountAmount = appliedPromo
+    ? appliedPromo.type === "percent"
+      ? subtotal * (appliedPromo.value / 100)
+      : Math.min(appliedPromo.value, subtotal)
+    : 0;
+
   const depositPaid = (booking?.deposit_amount_paid || 0) / 100;
-  const total = subtotal + taxAmount - discountAmount + (parseFloat(tip) || 0) - depositPaid;
+  const total = subtotal + taxAmount - discountAmount - promoDiscountAmount + (parseFloat(tip) || 0) - depositPaid;
 
   const handleCheckout = async (paymentIntentId = null) => {
     try {
@@ -163,8 +172,9 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
         product_revenue: productRevenue,
         product_names: productNames,
         tax_amount: taxAmount,
-        discount_amount: discountAmount,
+        discount_amount: discountAmount + promoDiscountAmount,
         payment_method: paymentMethod,
+        ...(appliedPromo ? { promo_code_id: appliedPromo.id } : {}),
         ...(paymentIntentId ? { stripe_payment_intent_id: paymentIntentId } : {}),
       });
 
@@ -252,6 +262,9 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
           subtotal={subtotal}
           taxAmount={taxAmount}
           discountAmount={discountAmount}
+          promoDiscountAmount={promoDiscountAmount}
+          appliedPromo={appliedPromo}
+          setAppliedPromo={setAppliedPromo}
           depositPaid={depositPaid}
           total={total}
           services={services}
@@ -271,6 +284,7 @@ function CheckoutContent({
   discount, setDiscount, tip, setTip, paymentMethod, setPaymentMethod,
   additionalBookings, setAdditionalBookings, addProduct, addService,
   addBookingToTransaction, removeItem, subtotal, taxAmount, discountAmount,
+  promoDiscountAmount, appliedPromo, setAppliedPromo,
   depositPaid, total, services, products, barbers, bookings, presetDiscounts = [], clients = []
 }) {
   const stripe = useStripe();
@@ -279,6 +293,35 @@ function CheckoutContent({
   const [cardError, setCardError] = useState(null);
   const [tipMode, setTipMode] = useState("preset"); // "preset" | "custom"
   const [tipPct, setTipPct] = useState(null); // null = nothing selected
+  const [promoInput, setPromoInput] = useState("");
+  const [promoError, setPromoError] = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
+  const { shopId } = useShop();
+
+  const applyPromoCode = useCallback(async () => {
+    const code = promoInput.trim().toUpperCase();
+    if (!code) return;
+    setPromoLoading(true);
+    setPromoError("");
+    try {
+      const { data, error } = await supabase
+        .from("promo_codes")
+        .select("*")
+        .eq("code", code)
+        .eq("shop_id", shopId)
+        .eq("active", true)
+        .single();
+      if (error || !data) { setPromoError("Invalid or inactive code."); return; }
+      if (data.expires_at && new Date(data.expires_at) < new Date()) { setPromoError("This code has expired."); return; }
+      if (data.max_uses != null && data.use_count >= data.max_uses) { setPromoError("This code has reached its maximum uses."); return; }
+      setAppliedPromo(data);
+      setPromoError("");
+    } catch {
+      setPromoError("Could not validate code. Please try again.");
+    } finally {
+      setPromoLoading(false);
+    }
+  }, [promoInput, shopId, setAppliedPromo]);
 
   // Keep Elements amount in sync with the checkout total (Stripe ignores options prop after mount)
   useEffect(() => {
@@ -593,6 +636,42 @@ function CheckoutContent({
             </div>
           )}
 
+          {/* Promo Code */}
+          <div>
+            <Label className="text-xs">Promo Code</Label>
+            {appliedPromo ? (
+              <div className="flex items-center gap-2 mt-1 p-2 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                <Check className="w-4 h-4 text-green-600 shrink-0" />
+                <span className="text-sm font-mono font-semibold text-green-700 dark:text-green-400">{appliedPromo.code}</span>
+                <span className="text-sm text-green-600 dark:text-green-500">
+                  — {appliedPromo.type === "percent" ? `${appliedPromo.value}%` : `$${Number(appliedPromo.value).toFixed(2)}`} off
+                </span>
+                <button className="ml-auto text-green-500 hover:text-green-700" onClick={() => { setAppliedPromo(null); setPromoInput(""); }}>
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2 mt-1">
+                <Input
+                  value={promoInput}
+                  onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(""); }}
+                  onKeyDown={e => e.key === "Enter" && applyPromoCode()}
+                  placeholder="Enter code"
+                  className="h-8 text-xs font-mono uppercase"
+                />
+                <button
+                  onClick={applyPromoCode}
+                  disabled={promoLoading || !promoInput.trim()}
+                  className="h-8 px-3 rounded-md border border-input bg-background hover:bg-accent text-xs flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <TicketPercent className="w-3 h-3" />
+                  {promoLoading ? "..." : "Apply"}
+                </button>
+              </div>
+            )}
+            {promoError && <p className="text-xs text-red-500 mt-1">{promoError}</p>}
+          </div>
+
           {/* Discount */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
@@ -764,6 +843,12 @@ function CheckoutContent({
               <div className="flex justify-between text-sm text-red-600">
                 <span>Discount:</span>
                 <span>-${discountAmount.toFixed(2)}</span>
+              </div>
+            )}
+            {promoDiscountAmount > 0 && (
+              <div className="flex justify-between text-sm text-green-600">
+                <span>Promo ({appliedPromo.code}):</span>
+                <span>-${promoDiscountAmount.toFixed(2)}</span>
               </div>
             )}
             {parseFloat(tip) > 0 && (

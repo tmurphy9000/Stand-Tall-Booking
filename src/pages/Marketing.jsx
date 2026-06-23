@@ -734,6 +734,273 @@ function HistoryTab({ campaigns, campaignStats }) {
   );
 }
 
+// ── Promo Codes tab ───────────────────────────────────────────────────────────
+
+const EMPTY_FORM = { code: "", type: "percent", value: "", max_uses: "", expires_at: "" };
+
+function validatePromoForm(f) {
+  if (!f.code.trim()) return "Code is required.";
+  if (!/^[A-Z0-9_-]+$/.test(f.code.trim())) return "Code may only contain letters, numbers, hyphens, and underscores.";
+  if (!f.value || isNaN(Number(f.value)) || Number(f.value) <= 0) return "Value must be a positive number.";
+  if (f.type === "percent" && Number(f.value) > 100) return "Percentage discount cannot exceed 100%.";
+  if (f.max_uses !== "" && (isNaN(Number(f.max_uses)) || Number(f.max_uses) < 1)) return "Max uses must be a positive integer.";
+  return null;
+}
+
+function PromoCodesTab({ promoCodes, shopId, onRefresh }) {
+  const [showForm, setShowForm]       = useState(false);
+  const [editingId, setEditingId]     = useState(null);
+  const [form, setForm]               = useState(EMPTY_FORM);
+  const [formError, setFormError]     = useState("");
+  const [saving, setSaving]           = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null); // code id
+
+  function openCreate() {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setFormError("");
+    setShowForm(true);
+  }
+
+  function openEdit(pc) {
+    setEditingId(pc.id);
+    setForm({
+      code:       pc.code,
+      type:       pc.type,
+      value:      String(pc.value),
+      max_uses:   pc.max_uses != null ? String(pc.max_uses) : "",
+      expires_at: pc.expires_at ? pc.expires_at.slice(0, 10) : "",
+    });
+    setFormError("");
+    setShowForm(true);
+  }
+
+  function cancelForm() {
+    setShowForm(false);
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setFormError("");
+  }
+
+  function setF(k, v) { setForm(f => ({ ...f, [k]: v })); }
+
+  async function saveCode() {
+    const err = validatePromoForm(form);
+    if (err) { setFormError(err); return; }
+    setSaving(true);
+    try {
+      const payload = {
+        code:       form.code.trim().toUpperCase(),
+        type:       form.type,
+        value:      Number(form.value),
+        max_uses:   form.max_uses !== "" ? Number(form.max_uses) : null,
+        expires_at: form.expires_at || null,
+        shop_id:    shopId,
+      };
+      if (editingId) {
+        const { error } = await supabase.from("promo_codes").update(payload).eq("id", editingId);
+        if (error) throw error;
+        toast.success("Code updated");
+      } else {
+        const { error } = await supabase.from("promo_codes").insert(payload);
+        if (error) throw error;
+        toast.success("Code created");
+      }
+      cancelForm();
+      onRefresh();
+    } catch (err) {
+      setFormError(err?.message ?? "Failed to save");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function toggleActive(pc) {
+    const { error } = await supabase.from("promo_codes").update({ active: !pc.active }).eq("id", pc.id);
+    if (error) toast.error("Failed to update");
+    else onRefresh();
+  }
+
+  async function deleteCode(id) {
+    const { error } = await supabase.from("promo_codes").delete().eq("id", id);
+    if (error) toast.error("Failed to delete: " + error.message);
+    else { toast.success("Code deleted"); onRefresh(); }
+    setConfirmDelete(null);
+  }
+
+  function fmtValue(pc) {
+    return pc.type === "percent" ? `${pc.value}% off` : `$${Number(pc.value).toFixed(2)} off`;
+  }
+
+  function fmtUses(pc) {
+    if (pc.max_uses == null) return `${pc.use_count} uses`;
+    return `${pc.use_count} / ${pc.max_uses} uses`;
+  }
+
+  function fmtExpiry(pc) {
+    if (!pc.expires_at) return null;
+    const d = new Date(pc.expires_at);
+    const expired = d < new Date();
+    return { label: `Expires ${format(d, "MMM d, yyyy")}`, expired };
+  }
+
+  return (
+    <div className="p-6 max-w-3xl space-y-6">
+
+      {/* ── Form ── */}
+      {showForm && (
+        <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+          <h3 className="font-semibold">{editingId ? "Edit Code" : "Create Code"}</h3>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="col-span-2 space-y-1.5">
+              <Label className="text-sm">Code</Label>
+              <Input
+                value={form.code}
+                onChange={e => setF("code", e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ""))}
+                placeholder="SUMMER20"
+                className="font-mono uppercase h-9"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-sm">Type</Label>
+              <Select value={form.type} onValueChange={v => setF("type", v)}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="percent">Percentage (%)</SelectItem>
+                  <SelectItem value="fixed">Fixed Amount ($)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-sm">{form.type === "percent" ? "Discount %" : "Discount $"}</Label>
+              <Input
+                type="number"
+                value={form.value}
+                onChange={e => setF("value", e.target.value)}
+                placeholder={form.type === "percent" ? "20" : "10.00"}
+                min="0.01"
+                max={form.type === "percent" ? "100" : undefined}
+                step={form.type === "percent" ? "1" : "0.01"}
+                className="h-9 text-sm"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-sm">Max uses <span className="text-muted-foreground">(optional)</span></Label>
+              <Input
+                type="number"
+                value={form.max_uses}
+                onChange={e => setF("max_uses", e.target.value)}
+                placeholder="Unlimited"
+                min="1"
+                className="h-9 text-sm"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-sm">Expires <span className="text-muted-foreground">(optional)</span></Label>
+              <Input
+                type="date"
+                value={form.expires_at}
+                onChange={e => setF("expires_at", e.target.value)}
+                className="h-9 text-sm"
+              />
+            </div>
+          </div>
+
+          {formError && <p className="text-sm text-destructive">{formError}</p>}
+
+          <div className="flex gap-2 pt-1">
+            <Button onClick={saveCode} disabled={saving} className="bg-[#8B9A7E] hover:bg-[#7a8970] text-white">
+              {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : null}
+              {editingId ? "Save changes" : "Create code"}
+            </Button>
+            <Button variant="outline" onClick={cancelForm} disabled={saving}>Cancel</Button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Header ── */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-semibold">Promo Codes</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">Codes created here (or via campaigns) appear in one unified list.</p>
+        </div>
+        {!showForm && (
+          <Button onClick={openCreate} size="sm" className="bg-[#8B9A7E] hover:bg-[#7a8970] text-white">
+            <Plus className="w-3.5 h-3.5 mr-1" /> Create Code
+          </Button>
+        )}
+      </div>
+
+      {/* ── List ── */}
+      {promoCodes.length === 0 && !showForm ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <TicketPercent className="w-8 h-8 mx-auto mb-3 opacity-40" />
+          <p className="text-sm">No promo codes yet. Create one to get started.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {promoCodes.map(pc => {
+            const expiry = fmtExpiry(pc);
+            return (
+              <div
+                key={pc.id}
+                className={`flex items-center gap-4 p-4 rounded-xl border bg-card transition-opacity ${!pc.active ? "opacity-60" : ""}`}
+              >
+                {/* Code + type */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono font-bold text-base tracking-wide">{pc.code}</span>
+                    <Badge variant="outline" className="text-xs">{fmtValue(pc)}</Badge>
+                    {expiry && (
+                      <span className={`text-xs ${expiry.expired ? "text-destructive" : "text-muted-foreground"}`}>
+                        {expiry.label}{expiry.expired ? " (expired)" : ""}
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">{fmtUses(pc)}</p>
+                </div>
+
+                {/* Active toggle */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <span className="text-xs text-muted-foreground">{pc.active ? "Active" : "Off"}</span>
+                  <Switch
+                    checked={!!pc.active}
+                    onCheckedChange={() => toggleActive(pc)}
+                    className="data-[state=checked]:bg-[#8B9A7E]"
+                  />
+                </div>
+
+                {/* Edit */}
+                <Button variant="ghost" size="sm" className="h-8 px-2 shrink-0" onClick={() => openEdit(pc)}>
+                  <FileText className="w-3.5 h-3.5" />
+                </Button>
+
+                {/* Delete / confirm */}
+                {confirmDelete === pc.id ? (
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-xs text-muted-foreground">Delete?</span>
+                    <Button size="sm" variant="destructive" className="h-7 px-2 text-xs" onClick={() => deleteCode(pc.id)}>Yes</Button>
+                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs" onClick={() => setConfirmDelete(null)}>No</Button>
+                  </div>
+                ) : (
+                  <Button variant="ghost" size="sm" className="h-8 px-2 shrink-0 text-muted-foreground hover:text-destructive" onClick={() => setConfirmDelete(pc.id)}>
+                    <X className="w-3.5 h-3.5" />
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Marketing Settings tab ────────────────────────────────────────────────────
 
 const DEFAULT_MS = {
@@ -1144,11 +1411,10 @@ export default function Marketing() {
             )}
 
             {activeTab === "promo-codes" && (
-              <EmptyTab
-                icon={Tag}
-                title="Promo Codes"
-                description="Create fixed or percentage discount codes. Apply at checkout or let clients enter them on the booking page."
-                phase="Phase 5"
+              <PromoCodesTab
+                promoCodes={promoCodes}
+                shopId={shop?.id}
+                onRefresh={loadData}
               />
             )}
 

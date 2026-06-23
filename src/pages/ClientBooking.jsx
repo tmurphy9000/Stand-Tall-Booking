@@ -1588,9 +1588,44 @@ function downloadIcs({ title, startStr, endStr, location, details, uid }) {
 
 // ─── Confirm Step ─────────────────────────────────────────────────────────────
 
-function ConfirmStep({ barber, service, date, time, clientName, clientPhone, clientEmail, onConfirm, onBack, submitting, cancelPolicyEnabled, cancelPolicyText, guest = null }) {
+function ConfirmStep({ barber, service, date, time, clientName, clientPhone, clientEmail, shopId, onConfirm, onBack, submitting, cancelPolicyEnabled, cancelPolicyText, guest = null }) {
   const [policyAgreed, setPolicyAgreed] = useState(false);
   const [smsOptIn, setSmsOptIn] = useState(false);
+  const [promoInput, setPromoInput]     = useState("");
+  const [appliedPromo, setAppliedPromo] = useState(null);
+  const [promoError, setPromoError]     = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
+
+  async function applyPromoCode() {
+    const code = promoInput.trim().toUpperCase();
+    if (!code || !shopId) return;
+    setPromoLoading(true);
+    setPromoError("");
+    try {
+      const { data, error } = await supabase
+        .from("promo_codes")
+        .select("id, code, type, value, max_uses, use_count, expires_at, active")
+        .eq("code", code)
+        .eq("shop_id", shopId)
+        .eq("active", true)
+        .single();
+      if (error || !data) { setPromoError("Invalid or inactive code."); return; }
+      if (data.expires_at && new Date(data.expires_at) < new Date()) { setPromoError("This code has expired."); return; }
+      if (data.max_uses != null && data.use_count >= data.max_uses) { setPromoError("This code has reached its maximum uses."); return; }
+      setAppliedPromo(data);
+      setPromoError("");
+    } catch {
+      setPromoError("Could not validate code. Please try again.");
+    } finally {
+      setPromoLoading(false);
+    }
+  }
+
+  const promoDiscount = appliedPromo
+    ? appliedPromo.type === "percent"
+      ? ((service?.price ?? 0) * appliedPromo.value / 100)
+      : Math.min(appliedPromo.value, service?.price ?? 0)
+    : 0;
   const duration = barber?.service_durations?.[service?.id] ?? service?.duration ?? 30;
   const endTimeHHMM = format(addMinutes(parse(time, "HH:mm", new Date()), duration), "HH:mm");
   const endTime = format(parse(endTimeHHMM, "HH:mm", new Date()), "h:mm a");
@@ -1642,6 +1677,48 @@ function ConfirmStep({ barber, service, date, time, clientName, clientPhone, cli
           </>
         )}
 
+        {/* Promo Code */}
+        <div className="rounded-xl border mb-4 p-4" style={{ borderColor: "#2a2a2a", background: "#111" }}>
+          <p className="text-white/40 text-xs uppercase tracking-widest font-semibold mb-3">Promo Code <span className="normal-case">(optional)</span></p>
+          {appliedPromo ? (
+            <div className="flex items-center gap-2">
+              <span className="text-[#8B9A7E] font-mono font-bold">{appliedPromo.code}</span>
+              <span className="text-white/60 text-sm">
+                — {appliedPromo.type === "percent" ? `${appliedPromo.value}%` : `$${Number(appliedPromo.value).toFixed(2)}`} off at checkout
+                {promoDiscount > 0 && <> (saves ${promoDiscount.toFixed(2)})</>}
+              </span>
+              <button
+                onClick={() => { setAppliedPromo(null); setPromoInput(""); }}
+                className="ml-auto text-white/30 hover:text-white/60"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={promoInput}
+                  onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(""); }}
+                  onKeyDown={e => e.key === "Enter" && applyPromoCode()}
+                  placeholder="Enter promo code"
+                  className="flex-1 px-3 py-2 rounded-lg text-sm font-mono uppercase text-white bg-white/5 border border-white/10 placeholder-white/20 focus:outline-none focus:border-[#8B9A7E]"
+                />
+                <button
+                  onClick={applyPromoCode}
+                  disabled={promoLoading || !promoInput.trim()}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-all disabled:opacity-40"
+                  style={{ background: "#1f2a1f", color: "#8B9A7E", border: "1px solid #2a3a2a" }}
+                >
+                  {promoLoading ? "…" : "Apply"}
+                </button>
+              </div>
+              {promoError && <p className="text-red-400 text-xs mt-2">{promoError}</p>}
+            </>
+          )}
+        </div>
+
         {showPolicy && (
           <div className="rounded-xl border mb-4" style={{ borderColor: "#2a2a1a", background: "#141408" }}>
             <p className="text-[11px] font-bold uppercase tracking-widest px-4 pt-4 pb-2" style={{ color: "#c8a94e" }}>Cancellation Policy</p>
@@ -1676,7 +1753,7 @@ function ConfirmStep({ barber, service, date, time, clientName, clientPhone, cli
         </label>
 
         <button
-          onClick={() => onConfirm(smsOptIn)}
+          onClick={() => onConfirm(smsOptIn, appliedPromo?.id ?? null)}
           disabled={confirmDisabled}
           className="w-full py-4 rounded-xl font-semibold text-white text-base transition-all flex items-center justify-center gap-2"
           style={{
@@ -1903,7 +1980,8 @@ export default function ClientBooking() {
   const [clientPhone, setClientPhone] = useState("");
   const [clientEmail, setClientEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const smsOptInRef = useRef(false);
+  const smsOptInRef    = useRef(false);
+  const promoCodeIdRef = useRef(null);
 
   const [hasGuest, setHasGuest] = useState(false);
   const [guestName, setGuestName] = useState("");
@@ -1988,8 +2066,9 @@ export default function ClientBooking() {
     return allServices.filter((s) => ids.includes(s.id));
   }, [selectedBarber, allServices]);
 
-  const handlePreConfirm = async (smsOptIn = false) => {
-    smsOptInRef.current = smsOptIn;
+  const handlePreConfirm = async (smsOptIn = false, promoCodeId = null) => {
+    smsOptInRef.current    = smsOptIn;
+    promoCodeIdRef.current = promoCodeId;
     const needsDeposit = async () => {
       console.log("[ClientBooking] needsDeposit check — depositConfig:", depositConfig, "| shopStripeAccountId:", shopStripeAccountId, "| depositStripePromise:", !!depositStripePromise);
       if (!shopStripeAccountId || !depositStripePromise) {
@@ -2019,11 +2098,11 @@ export default function ClientBooking() {
       setDepositAmountCents(Math.round(svcPrice * depositConfig.percentage));
       setDepositPending(true);
     } else {
-      handleConfirm(null, null, smsOptIn);
+      handleConfirm(null, null, smsOptIn, promoCodeId);
     }
   };
 
-  const handleConfirm = async (depositPaymentIntentId = null, depositAmountPaid = null, smsOptIn = false) => {
+  const handleConfirm = async (depositPaymentIntentId = null, depositAmountPaid = null, smsOptIn = false, promoCodeId = null) => {
     setSubmitting(true);
     try {
       // Find or create client
@@ -2078,6 +2157,7 @@ export default function ClientBooking() {
         final_price: selectedService.price ?? 0,
         status: "scheduled",
         visit_type: "online",
+        ...(promoCodeId ? { promo_code_id: promoCodeId } : {}),
         ...(depositPaymentIntentId && { deposit_payment_intent_id: depositPaymentIntentId }),
         ...(depositAmountPaid !== null && { deposit_amount_paid: depositAmountPaid }),
       });
@@ -2338,6 +2418,7 @@ export default function ClientBooking() {
             clientName={clientName}
             clientPhone={clientPhone}
             clientEmail={clientEmail}
+            shopId={shopId}
             onConfirm={handlePreConfirm}
             onBack={() => setStep(6)}
             submitting={submitting}
@@ -2358,7 +2439,7 @@ export default function ClientBooking() {
             onBack={() => setDepositPending(false)}
             onSuccess={(paymentIntentId, totalCents) => {
               setDepositPending(false);
-              handleConfirm(paymentIntentId, totalCents, smsOptInRef.current);
+              handleConfirm(paymentIntentId, totalCents, smsOptInRef.current, promoCodeIdRef.current);
             }}
           />
         )}

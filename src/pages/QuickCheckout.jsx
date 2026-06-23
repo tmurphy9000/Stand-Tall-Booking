@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { X, Plus, DollarSign, CreditCard, Tablet } from "lucide-react";
+import { X, Plus, DollarSign, CreditCard, Tablet, TicketPercent, Check } from "lucide-react";
 import { entities } from "@/api/entities";
 import { functions } from "@/api/functions";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
@@ -33,6 +34,10 @@ function QuickCheckoutContent() {
   const [tip, setTip] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [processing, setProcessing] = useState(false);
+  const [promoInput, setPromoInput]   = useState("");
+  const [appliedPromo, setAppliedPromo] = useState(null);
+  const [promoError, setPromoError]   = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
 
   const navigate = useNavigate();
   const stripe = useStripe();
@@ -118,12 +123,43 @@ function QuickCheckoutContent() {
     }
     return sum;
   }, 0);
-  
-  const discountAmount = discount.type === "percentage" 
+
+  const discountAmount = discount.type === "percentage"
     ? subtotal * (discount.value / 100)
     : discount.type === "fixed" ? discount.value : 0;
-  
-  const total = subtotal + taxAmount - discountAmount + (tip || 0);
+
+  const promoDiscountAmount = appliedPromo
+    ? appliedPromo.type === "percent"
+      ? subtotal * (appliedPromo.value / 100)
+      : Math.min(appliedPromo.value, subtotal)
+    : 0;
+
+  const total = subtotal + taxAmount - discountAmount - promoDiscountAmount + (tip || 0);
+
+  async function applyPromoCode() {
+    const code = promoInput.trim().toUpperCase();
+    if (!code) return;
+    setPromoLoading(true);
+    setPromoError("");
+    try {
+      const { data, error } = await supabase
+        .from("promo_codes")
+        .select("*")
+        .eq("code", code)
+        .eq("shop_id", shopId)
+        .eq("active", true)
+        .single();
+      if (error || !data) { setPromoError("Invalid or inactive code."); return; }
+      if (data.expires_at && new Date(data.expires_at) < new Date()) { setPromoError("This code has expired."); return; }
+      if (data.max_uses != null && data.use_count >= data.max_uses) { setPromoError("This code has reached its maximum uses."); return; }
+      setAppliedPromo(data);
+      setPromoError("");
+    } catch {
+      setPromoError("Could not validate code. Please try again.");
+    } finally {
+      setPromoLoading(false);
+    }
+  }
 
   const handleCheckout = async () => {
     if (items.length === 0) {
@@ -253,8 +289,9 @@ function QuickCheckoutContent() {
         final_price: total,
         tip: tip || 0,
         tax_amount: taxAmount,
-        discount_amount: discountAmount,
+        discount_amount: discountAmount + promoDiscountAmount,
         payment_method: paymentMethod,
+        ...(appliedPromo ? { promo_code_id: appliedPromo.id } : {}),
         ...(paymentIntentId ? { stripe_payment_intent_id: paymentIntentId } : {}),
       });
 
@@ -273,6 +310,9 @@ function QuickCheckoutContent() {
         setDiscount({ type: "none", value: 0 });
         setTip(0);
         setPaymentMethod("cash");
+        setPromoInput("");
+        setAppliedPromo(null);
+        setPromoError("");
         setProcessing(false);
         navigate("/Calendar");
       }, 1200);
@@ -421,6 +461,42 @@ function QuickCheckoutContent() {
             )}
           </div>
 
+          {/* Promo Code */}
+          <div>
+            <Label className="text-xs">Promo Code</Label>
+            {appliedPromo ? (
+              <div className="flex items-center gap-2 mt-1 p-2 rounded-md bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800">
+                <Check className="w-4 h-4 text-green-600 shrink-0" />
+                <span className="text-sm font-mono font-semibold text-green-700 dark:text-green-400">{appliedPromo.code}</span>
+                <span className="text-sm text-green-600 dark:text-green-500">
+                  — {appliedPromo.type === "percent" ? `${appliedPromo.value}%` : `$${Number(appliedPromo.value).toFixed(2)}`} off
+                </span>
+                <button className="ml-auto text-green-500 hover:text-green-700" onClick={() => { setAppliedPromo(null); setPromoInput(""); }}>
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2 mt-1">
+                <Input
+                  value={promoInput}
+                  onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(""); }}
+                  onKeyDown={e => e.key === "Enter" && applyPromoCode()}
+                  placeholder="Enter code"
+                  className="h-9 text-sm font-mono uppercase"
+                />
+                <button
+                  onClick={applyPromoCode}
+                  disabled={promoLoading || !promoInput.trim()}
+                  className="h-9 px-3 rounded-md border border-input bg-background hover:bg-accent text-sm flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <TicketPercent className="w-3.5 h-3.5" />
+                  {promoLoading ? "..." : "Apply"}
+                </button>
+              </div>
+            )}
+            {promoError && <p className="text-xs text-destructive mt-1">{promoError}</p>}
+          </div>
+
           {/* Tip */}
           <div>
             <Label className="text-xs">Tip</Label>
@@ -502,6 +578,12 @@ function QuickCheckoutContent() {
               <div className="flex justify-between text-sm text-red-600">
                 <span>Discount:</span>
                 <span>-${discountAmount.toFixed(2)}</span>
+              </div>
+            )}
+            {promoDiscountAmount > 0 && (
+              <div className="flex justify-between text-sm text-green-600">
+                <span>Promo ({appliedPromo.code}):</span>
+                <span>-${promoDiscountAmount.toFixed(2)}</span>
               </div>
             )}
             {tip > 0 && (
