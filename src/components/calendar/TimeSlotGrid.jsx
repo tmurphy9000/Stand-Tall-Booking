@@ -148,7 +148,9 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
       onTouchMove={handleBlockTouchMove}
       className={cn(
         "booking-card absolute left-0.5 right-0.5 rounded-md border-l-[3px] px-1 py-0.5 overflow-hidden z-10",
-        statusColors[booking.status] || statusColors.scheduled
+        booking.client_name === "BLOCKED TIME"
+          ? "bg-slate-200 border-slate-500 text-slate-600 dark:bg-slate-800 dark:border-slate-500 dark:text-slate-400"
+          : (statusColors[booking.status] || statusColors.scheduled)
       )}
       style={{ top: 0, height }}
     >

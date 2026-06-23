@@ -6,6 +6,7 @@ import { format, addDays, startOfWeek } from "date-fns";
 import CalendarHeader from "../components/calendar/CalendarHeader";
 import TimeSlotGrid from "../components/calendar/TimeSlotGrid";
 import BookingFormModal from "../components/calendar/BookingFormModal";
+import BlockTimeModal from "../components/calendar/BlockTimeModal";
 import QuickBookingModal from "../components/calendar/QuickBookingModal";
 import BookingContextMenu from "../components/calendar/BookingContextMenu";
 import { Loader2, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
@@ -28,6 +29,8 @@ export default function CalendarPage() {
   const [zoomLevel, setZoomLevel] = useState(1);
   const [showBookingForm, setShowBookingForm] = useState(false);
   const [showQuickBooking, setShowQuickBooking] = useState(false);
+  const [showBlockModal, setShowBlockModal] = useState(false);
+  const [blockPrefill, setBlockPrefill] = useState(null);
   const [bookingPrefill, setBookingPrefill] = useState(null);
   const [contextMenu, setContextMenu] = useState({ booking: null, position: { x: 0, y: 0 } });
   const [slotMenu, setSlotMenu] = useState({ barber: null, time: null, date: null, position: { x: 0, y: 0 } });
@@ -142,6 +145,14 @@ export default function CalendarPage() {
       console.error("[handleCreateBookings] failed:", err);
       toast.error("Failed to create booking: " + (err.message || "Unknown error"));
     }
+  };
+
+  const handleCreateBlock = async (data) => {
+    const items = Array.isArray(data) ? data : [data];
+    for (const item of items) {
+      await entities.Booking.create(item);
+    }
+    queryClient.invalidateQueries({ queryKey: ["bookings"] });
   };
 
   const updateBooking = useMutation({
@@ -433,6 +444,14 @@ export default function CalendarPage() {
         bookings={bookings}
       />
 
+      <BlockTimeModal
+        open={showBlockModal}
+        onClose={() => setShowBlockModal(false)}
+        onSave={handleCreateBlock}
+        barbers={activeBarbers}
+        prefill={blockPrefill}
+      />
+
       <BookingContextMenu
         booking={contextMenu.booking}
         position={contextMenu.position}
@@ -486,14 +505,8 @@ export default function CalendarPage() {
             </button>
             <button
               onClick={() => {
-                setBookingPrefill({
-                  barber_id: slotMenu.barber.id,
-                  start_time: slotMenu.time,
-                  date: slotMenu.date,
-                  client_name: "BLOCKED TIME",
-                  service_name: "Blocked"
-                });
-                setShowBookingForm(true);
+                setBlockPrefill({ barber_id: slotMenu.barber.id, start_time: slotMenu.time, date: slotMenu.date });
+                setShowBlockModal(true);
                 setSlotMenu({ barber: null, time: null, date: null, position: { x: 0, y: 0 } });
               }}
               className="w-full text-left px-3 py-2 text-xs hover:bg-accent dark:hover:bg-muted rounded flex items-center gap-2"
