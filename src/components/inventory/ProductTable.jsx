@@ -6,10 +6,10 @@ import { Pencil, Trash2, AlertTriangle, Plus, Minus } from "lucide-react";
 
 export default function ProductTable({ products, onEdit, onDelete, onAdjustInventory }) {
   return (
-    <div className="overflow-x-auto bg-white rounded-xl border border-gray-100">
+    <div className="overflow-x-auto bg-card rounded-xl border border-border">
       <Table>
         <TableHeader>
-          <TableRow className="bg-gray-50/50">
+          <TableRow className="bg-muted/50">
             <TableHead className="text-xs">Product</TableHead>
             <TableHead className="text-xs">SKU</TableHead>
             <TableHead className="text-xs text-right">Cost</TableHead>
@@ -29,16 +29,16 @@ export default function ProductTable({ products, onEdit, onDelete, onAdjustInven
                 <TableCell>
                   <div>
                     <p className="text-sm font-medium">{p.name}</p>
-                    {p.category && <p className="text-[10px] text-gray-400">{p.category}</p>}
+                    {p.category && <p className="text-[10px] text-muted-foreground">{p.category}</p>}
                   </div>
                 </TableCell>
-                <TableCell className="text-xs text-gray-500">{p.sku || "—"}</TableCell>
+                <TableCell className="text-xs text-muted-foreground">{p.sku || "—"}</TableCell>
                 <TableCell className="text-xs text-right">${(p.cost_per_unit || 0).toFixed(2)}</TableCell>
                 <TableCell className="text-xs text-right font-medium">${(p.retail_price || 0).toFixed(2)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     {lowStock && <AlertTriangle className="w-3 h-3 text-amber-500" />}
-                    <span className={`text-xs font-medium ${lowStock ? "text-amber-600" : "text-gray-700"}`}>
+                    <span className={`text-xs font-medium ${lowStock ? "text-amber-600" : "text-foreground"}`}>
                       {p.stock_quantity || 0}
                     </span>
                   </div>
@@ -76,7 +76,7 @@ export default function ProductTable({ products, onEdit, onDelete, onAdjustInven
           })}
           {products.length === 0 && (
             <TableRow>
-              <TableCell colSpan={8} className="text-center py-12 text-gray-400 text-sm">
+              <TableCell colSpan={8} className="text-center py-12 text-muted-foreground text-sm">
                 No products yet. Add your first product or import via CSV.
               </TableCell>
             </TableRow>

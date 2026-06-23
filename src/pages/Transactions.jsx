@@ -471,7 +471,7 @@ export default function TransactionsPage() {
 
       {/* Header */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-        <h1 className="text-2xl font-bold text-[#0A0A0A]">Transactions</h1>
+        <h1 className="text-2xl font-bold text-foreground">Transactions</h1>
         <div className="flex items-center gap-2 flex-wrap">
           {[["Today", setToday], ["This Week", setThisWeek], ["This Month", setThisMonth]].map(([label, fn]) => (
             <Button key={label} variant="outline" size="sm" onClick={fn}

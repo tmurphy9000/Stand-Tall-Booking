@@ -127,16 +127,16 @@ export default function InventoryPage() {
     <div className="p-4 space-y-4">
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-white rounded-xl p-3 border border-gray-100">
-          <p className="text-[10px] text-gray-400 uppercase tracking-wider">Products</p>
+        <div className="bg-card rounded-xl p-3 border border-border">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Products</p>
           <p className="text-xl font-bold mt-1">{products.length}</p>
         </div>
-        <div className="bg-white rounded-xl p-3 border border-gray-100">
-          <p className="text-[10px] text-gray-400 uppercase tracking-wider">Inventory Value</p>
+        <div className="bg-card rounded-xl p-3 border border-border">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Inventory Value</p>
           <p className="text-xl font-bold mt-1 text-[#C9A94E]">${totalValue.toFixed(0)}</p>
         </div>
-        <div className="bg-white rounded-xl p-3 border border-gray-100">
-          <p className="text-[10px] text-gray-400 uppercase tracking-wider">Low Stock</p>
+        <div className="bg-card rounded-xl p-3 border border-border">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Low Stock</p>
           <p className="text-xl font-bold mt-1 text-amber-500">{lowStockCount}</p>
         </div>
       </div>
@@ -144,7 +144,7 @@ export default function InventoryPage() {
       {/* Toolbar */}
       <div className="flex items-center gap-2">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             value={search}
             onChange={e => setSearch(e.target.value)}

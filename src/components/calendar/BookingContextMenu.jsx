@@ -67,12 +67,12 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
       {!showCancel && !showNoShow && !showLate && !showDeleteBlock && (
         <div
           ref={menuRef}
-          className="fixed z-50 bg-white rounded-xl shadow-xl border border-gray-100 py-1 min-w-[180px]"
+          className="fixed z-50 bg-popover rounded-xl shadow-xl border border-border py-1 min-w-[180px]"
           style={{ top: position.y, left: position.x }}
         >
-          <div className="px-3 py-2 border-b border-gray-50">
-            <p className="text-xs font-semibold text-gray-900">{booking.client_name}</p>
-            <p className="text-[10px] text-gray-400">{booking.service_name} • {booking.start_time}</p>
+          <div className="px-3 py-2 border-b border-border">
+            <p className="text-xs font-semibold text-popover-foreground">{booking.client_name}</p>
+            <p className="text-[10px] text-muted-foreground">{booking.service_name} • {booking.start_time}</p>
             {booking.deposit_amount_paid > 0 && (
               <div className="flex items-center gap-1 mt-1">
                 <DollarSign className="w-3 h-3" style={{ color: "#16a34a" }} />
@@ -86,7 +86,7 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
             <Link
               to={`${createPageUrl("ClientDetails")}?id=${booking.client_id}`}
               onClick={onClose}
-              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 transition-colors border-b border-gray-50"
+              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent transition-colors border-b border-border"
             >
               <User className="w-4 h-4 text-[#B0BFA4]" />
               <span className="text-sm">View Client</span>
@@ -96,7 +96,7 @@ export default function BookingContextMenu({ booking, position, onClose, onActio
             <button
               key={a.label}
               onClick={a.action}
-              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent transition-colors"
             >
               <a.icon className={`w-4 h-4 ${a.color}`} />
               <span className="text-sm">{a.label}</span>
