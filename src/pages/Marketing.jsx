@@ -533,7 +533,7 @@ function CampaignEditor({ campaign, shop, promoCodes, templates, onBack, onSent 
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="__none">No promo code</SelectItem>
-                      {promoCodes.map(p => (
+                      {promoCodes.filter(p => p.active).map(p => (
                         <SelectItem key={p.id} value={p.id}>
                           {p.code} ({p.type === "percent" ? `${p.value}%` : `$${p.value}`} off)
                         </SelectItem>
@@ -1162,7 +1162,7 @@ function MarketingSettingsTab({ shopSettings, templates, promoCodes, onSaved }) 
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="__none">None</SelectItem>
-                    {promoCodes.map(p => (
+                    {promoCodes.filter(p => p.active).map(p => (
                       <SelectItem key={p.id} value={p.id}>{p.code} ({p.type === "percent" ? `${p.value}%` : `$${p.value}`} off)</SelectItem>
                     ))}
                   </SelectContent>
@@ -1263,7 +1263,7 @@ export default function Marketing() {
       const [shopRes, campaignRes, promoRes, settingsRes] = await Promise.all([
         supabase.from("shops").select("id, name, url_slug").limit(1).single(),
         supabase.from("marketing_campaigns").select("*").order("created_at", { ascending: false }),
-        supabase.from("promo_codes").select("id, code, type, value").eq("active", true).order("code"),
+        supabase.from("promo_codes").select("id, code, type, value, use_count, max_uses, active, expires_at").order("code"),
         supabase.from("shop_settings").select("id, marketing_settings").limit(1).single(),
       ]);
 
