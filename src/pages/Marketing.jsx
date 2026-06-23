@@ -785,6 +785,7 @@ function PromoCodesTab({ promoCodes, shopId, onRefresh }) {
   function setF(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
   async function saveCode() {
+    console.log("[PromoCodesTab] saveCode form state:", JSON.stringify(form));
     const err = validatePromoForm(form);
     if (err) { setFormError(err); return; }
     setSaving(true);
@@ -883,7 +884,7 @@ function PromoCodesTab({ promoCodes, shopId, onRefresh }) {
                 placeholder={form.type === "percent" ? "20" : "10.00"}
                 min="0.01"
                 max={form.type === "percent" ? "100" : undefined}
-                step={form.type === "percent" ? "1" : "0.01"}
+                step="any"
                 className="h-9 text-sm"
               />
             </div>
