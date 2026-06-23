@@ -29,7 +29,7 @@ const fadeSlide = {
 
 const DEPOSIT_TIP_PRESETS = [0, 15, 18, 20];
 
-function DepositStepInner({ depositAmountCents, servicePriceCents, pretipEnabled, shopId, onSuccess, onBack, logoUrl }) {
+function DepositStepInner({ depositAmountCents, servicePriceCents, pretipEnabled, shopId, onSuccess, onBack, logoUrl, barber }) {
   const stripe = useStripe();
   const elements = useElements();
   const [processing, setProcessing] = useState(false);
@@ -102,7 +102,7 @@ function DepositStepInner({ depositAmountCents, servicePriceCents, pretipEnabled
 
   return (
     <motion.div {...fadeSlide} className="min-h-screen flex flex-col" style={{ background: "#0A0A0A", color: "#FAFAF8" }}>
-      <StepHeader stepLabel="Final Step" title="Pay Deposit" onBack={onBack} progress={100} logoUrl={logoUrl} />
+      <StepHeader stepLabel="Final Step" title="Pay Deposit" onBack={onBack} progress={100} logoUrl={logoUrl} barber={barber} />
       <div className="flex-1 px-6 py-8 flex flex-col gap-6 max-w-md mx-auto w-full">
         <div className="rounded-xl p-4 flex items-start gap-3" style={{ background: "#141414", border: "1px solid #2D2D2D" }}>
           <CreditCard className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: "#8B9A7E" }} />
@@ -221,7 +221,7 @@ function DepositStepInner({ depositAmountCents, servicePriceCents, pretipEnabled
   );
 }
 
-function DepositStep({ depositAmountCents, servicePriceCents, pretipEnabled, shopId, onSuccess, onBack, logoUrl, stripePromise }) {
+function DepositStep({ depositAmountCents, servicePriceCents, pretipEnabled, shopId, onSuccess, onBack, logoUrl, stripePromise, barber }) {
   return (
     <Elements stripe={stripePromise}>
       <DepositStepInner
@@ -232,12 +232,31 @@ function DepositStep({ depositAmountCents, servicePriceCents, pretipEnabled, sho
         onSuccess={onSuccess}
         onBack={onBack}
         logoUrl={logoUrl}
+        barber={barber}
       />
     </Elements>
   );
 }
 
-function StepHeader({ stepLabel, title, onBack, progress, logoUrl }) {
+function BarberChip({ barber }) {
+  if (!barber || barber.id === "any") return null;
+  return (
+    <div className="ml-auto flex items-center gap-2 min-w-0">
+      <div
+        className="w-7 h-7 rounded-full overflow-hidden flex-shrink-0 flex items-center justify-center"
+        style={{ border: "1px solid rgba(255,255,255,0.12)", background: "#1a1a1a" }}
+      >
+        {barber.photo_url
+          ? <img src={barber.photo_url} alt={barber.name} className="w-full h-full object-cover" />
+          : <span className="text-white/50 text-[10px] font-bold">{barber.name?.[0]?.toUpperCase()}</span>
+        }
+      </div>
+      <span className="text-white/60 text-sm font-medium truncate" style={{ maxWidth: 90 }}>{barber.name}</span>
+    </div>
+  );
+}
+
+function StepHeader({ stepLabel, title, onBack, progress, logoUrl, barber }) {
   return (
     <>
       <div className="sticky top-0 z-10 flex items-center gap-4 px-6 py-4 border-b border-white/10" style={{ background: "#0A0A0A" }}>
@@ -251,7 +270,10 @@ function StepHeader({ stepLabel, title, onBack, progress, logoUrl }) {
           <p className="text-xs text-white/40 uppercase tracking-widest font-semibold">{stepLabel}</p>
           <h2 className="text-white font-bold text-lg leading-tight">{title}</h2>
         </div>
-        <img src={logoUrl || LOGO_URL} alt="" className="w-8 h-8 rounded-lg ml-auto opacity-60 object-cover" />
+        {(barber && barber.id !== "any")
+          ? <BarberChip barber={barber} />
+          : <img src={logoUrl || LOGO_URL} alt="" className="w-8 h-8 rounded-lg ml-auto opacity-60 object-cover" />
+        }
       </div>
       <div className="h-0.5 bg-white/10">
         <div className="h-full bg-[#8B9A7E] transition-all duration-500" style={{ width: `${progress}%` }} />
@@ -740,7 +762,7 @@ function ServiceStep({ services, barber, onSelect, onBack }) {
 
   return (
     <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
-      <StepHeader stepLabel="Step 2 of 5" title="Choose a Service" onBack={onBack} progress={40} />
+      <StepHeader stepLabel="Step 2 of 5" title="Choose a Service" onBack={onBack} progress={40} barber={barber} />
       <div className="px-6 py-8">
         <p className="text-white/40 text-sm mb-6">
           {services.length === 0
@@ -793,13 +815,16 @@ function ServiceStep({ services, barber, onSelect, onBack }) {
 
 // ─── Guest Prompt Step ────────────────────────────────────────────────────────
 
-function GuestPromptStep({ onYes, onNo, onBack }) {
+function GuestPromptStep({ onYes, onNo, onBack, barber }) {
   return (
     <motion.div {...fadeSlide} className="flex flex-col items-center justify-center min-h-screen px-6" style={{ background: "#0A0A0A" }}>
       <div className="w-full max-w-sm">
-        <button onClick={onBack} className="flex items-center gap-2 text-white/40 hover:text-white text-sm mb-10 transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back
-        </button>
+        <div className="flex items-center mb-10">
+          <button onClick={onBack} className="flex items-center gap-2 text-white/40 hover:text-white text-sm transition-colors">
+            <ArrowLeft className="w-4 h-4" /> Back
+          </button>
+          <BarberChip barber={barber} />
+        </div>
         <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ background: "#1f2a1f" }}>
           <Users className="w-8 h-8" style={{ color: "#8B9A7E" }} />
         </div>
@@ -832,7 +857,7 @@ function GuestPromptStep({ onYes, onNo, onBack }) {
 
 // ─── Guest Form Step ──────────────────────────────────────────────────────────
 
-function GuestFormStep({ allServices, allBarbers, guestName, guestService, guestBarber, guestTiming, onNameChange, onServiceChange, onBarberChange, onTimingChange, onNext, onBack }) {
+function GuestFormStep({ allServices, allBarbers, guestName, guestService, guestBarber, guestTiming, onNameChange, onServiceChange, onBarberChange, onTimingChange, onNext, onBack, mainBarber }) {
   const allBarbersWithAny = [ANY_BARBER, ...allBarbers];
   const canContinue = guestName.trim() && guestService && guestBarber;
 
@@ -843,7 +868,7 @@ function GuestFormStep({ allServices, allBarbers, guestName, guestService, guest
 
   return (
     <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
-      <StepHeader stepLabel="Guest Details" title="Add a Guest" onBack={onBack} progress={50} />
+      <StepHeader stepLabel="Guest Details" title="Add a Guest" onBack={onBack} progress={50} barber={mainBarber} />
       <div className="px-6 py-8 max-w-md mx-auto space-y-6">
 
         {/* Guest name */}
@@ -1278,7 +1303,7 @@ function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack,
 
   return (
     <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
-      <StepHeader stepLabel="Step 3 of 5" title="Pick a Date & Time" onBack={onBack} progress={60} />
+      <StepHeader stepLabel="Step 3 of 5" title="Pick a Date & Time" onBack={onBack} progress={60} barber={barber} />
 
       <div className="px-6 py-6">
         {/* Date strip header */}
@@ -1442,7 +1467,7 @@ function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack,
 
 // ─── Client Info Step ─────────────────────────────────────────────────────────
 
-function ClientInfoStep({ name, phone, email, onChange, onNext, onBack }) {
+function ClientInfoStep({ name, phone, email, onChange, onNext, onBack, barber }) {
   const [error, setError] = useState("");
 
   const handleNext = () => {
@@ -1464,7 +1489,7 @@ function ClientInfoStep({ name, phone, email, onChange, onNext, onBack }) {
 
   return (
     <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
-      <StepHeader stepLabel="Step 4 of 5" title="Your Info" onBack={onBack} progress={80} />
+      <StepHeader stepLabel="Step 4 of 5" title="Your Info" onBack={onBack} progress={80} barber={barber} />
 
       <div className="px-6 py-8 max-w-md mx-auto">
         <p className="text-white/40 text-sm mb-8">Almost there — just tell us who you are.</p>
@@ -1654,7 +1679,7 @@ function ConfirmStep({ barber, service, date, time, clientName, clientPhone, cli
 
   return (
     <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
-      <StepHeader stepLabel="Step 5 of 5" title="Confirm Booking" onBack={onBack} progress={100} />
+      <StepHeader stepLabel="Step 5 of 5" title="Confirm Booking" onBack={onBack} progress={100} barber={barber} />
 
       <div className="px-6 py-8 max-w-md mx-auto">
         {guest && <p className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-2">Your Appointment</p>}
@@ -2347,6 +2372,7 @@ export default function ClientBooking() {
         {step === 3 && (
           <GuestPromptStep
             key="guest-prompt"
+            barber={selectedBarber}
             onYes={() => setStep(4)}
             onNo={() => { setHasGuest(false); setGuestName(""); setGuestService(null); setGuestBarber(null); setStep(5); }}
             onBack={() => setStep(2)}
@@ -2357,6 +2383,7 @@ export default function ClientBooking() {
             key="guest-form"
             allServices={allServices}
             allBarbers={barbers}
+            mainBarber={selectedBarber}
             guestName={guestName}
             guestService={guestService}
             guestBarber={guestBarber}
@@ -2389,6 +2416,7 @@ export default function ClientBooking() {
         {step === 6 && (
           <ClientInfoStep
             key="info"
+            barber={selectedBarber}
             name={clientName}
             phone={clientPhone}
             email={clientEmail}
@@ -2429,6 +2457,7 @@ export default function ClientBooking() {
             shopId={shopId}
             logoUrl={logoUrl}
             stripePromise={depositStripePromise}
+            barber={selectedBarber}
             onBack={() => setDepositPending(false)}
             onSuccess={(paymentIntentId, totalCents) => {
               setDepositPending(false);
