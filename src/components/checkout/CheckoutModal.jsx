@@ -65,21 +65,32 @@ export default function CheckoutModal({ open, onClose, booking, onComplete }) {
   // Without this, discount, tip, paymentMethod, and additionalBookings bleed
   // from one checkout session into the next because the component stays mounted.
   useEffect(() => {
-    if (booking) {
-      setItems([{
-        id: Date.now(),
-        type: "service",
-        name: booking.service_name,
-        price: booking.price || 0,
-        serviceId: booking.service_id,
-        barberId: booking.barber_id,
-        barberName: booking.barber_name,
-        bookingId: booking.id,
-      }]);
-      setAdditionalBookings([]);
-      setDiscount({ type: "none", value: 0 });
-      setTip("");
-      setPaymentMethod("cash");
+    if (!booking) return;
+    setItems([{
+      id: Date.now(),
+      type: "service",
+      name: booking.service_name,
+      price: booking.price || 0,
+      serviceId: booking.service_id,
+      barberId: booking.barber_id,
+      barberName: booking.barber_name,
+      bookingId: booking.id,
+    }]);
+    setAdditionalBookings([]);
+    setDiscount({ type: "none", value: 0 });
+    setTip("");
+    setPaymentMethod("cash");
+
+    // Pre-fill promo code if the booking already has one (e.g. applied during online booking).
+    // Fetch by ID without re-validating active/expiry — the discount was already promised.
+    if (booking.promo_code_id) {
+      supabase
+        .from("promo_codes")
+        .select("*")
+        .eq("id", booking.promo_code_id)
+        .single()
+        .then(({ data }) => setAppliedPromo(data ?? null));
+    } else {
       setAppliedPromo(null);
     }
   }, [booking]);

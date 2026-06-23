@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { format, addDays, parse, addMinutes } from "date-fns";
-import { sortBarbersForBooking, runGapMinimization } from "@/lib/scheduleOptimizer";
+import { sortBarbersForBooking } from "@/lib/scheduleOptimizer";
 
 const LOGO_URL =
   "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6993eba91209ee0a1089f355/fd9cfe023_6f5fd5cc-8fc9-4041-9d87-c24e77a3bc58.png";
@@ -1032,7 +1032,7 @@ function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack,
             const timeToBarber = new Map();
             for (const wb of working) {
               const dh = wb.hours[dayName];
-              const daySlots = generateSlots(dh.start || "09:00", dh.end || "18:00", 30);
+              const daySlots = generateSlots(dh.start || "09:00", dh.end || "18:00", 15);
               for (const s of daySlots) {
                 if (timeToBarber.has(s.time)) continue;
                 const key = `${dateStr}|${s.time}`;
@@ -1064,7 +1064,7 @@ function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack,
               bookingsCacheRef.current[dateStr] = await entities.Booking.filter({ shop_id: shopId, barber_id: barber.id, date: dateStr });
             }
             const dayBookings = bookingsCacheRef.current[dateStr];
-            const daySlots = generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 30);
+            const daySlots = generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 15);
             for (const s of daySlots) {
               if (found.length >= limit) break;
               const key = `${dateStr}|${s.time}`;
@@ -1249,7 +1249,7 @@ function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack,
         const dh = b.hours?.[dayName];
         if (!dh || dh.off || dh.closed) return;
         if (isBarberOnTimeOff(b.id, selectedDate, approvedTimeOff)) return;
-        generateSlots(dh.start || "09:00", dh.end || "18:00", 30).forEach(s => timeSet.add(s.time));
+        generateSlots(dh.start || "09:00", dh.end || "18:00", 15).forEach(s => timeSet.add(s.time));
       });
       return Array.from(timeSet).sort().map(time => {
         const label = format(parse(time, "HH:mm", new Date()), "h:mm a");
@@ -1268,7 +1268,7 @@ function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack,
     const dayHours = barber.hours?.[dayName];
     if (!dayHours || dayHours.off || dayHours.closed) return [];
     if (isBarberOnTimeOff(barber.id, selectedDate, approvedTimeOff)) return [];
-    return generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 30).map(slot => ({
+    return generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 15).map(slot => ({
       ...slot,
       taken: isSlotTaken(slot.time, serviceDuration, bookings) ||
              (cutoffHHMM !== null && slot.time <= cutoffHHMM) ||
@@ -2162,10 +2162,6 @@ export default function ClientBooking() {
         ...(depositAmountPaid !== null && { deposit_amount_paid: depositAmountPaid }),
       });
 
-      if (shopSettings.schedule_optimizer_enabled !== false) {
-        await runGapMinimization(bookingBarber.id, selectedDate).catch(console.error);
-      }
-
       // Guest booking
       let bookingGuestBarber = null;
       let guestStartHHMM = null;
@@ -2209,9 +2205,6 @@ export default function ClientBooking() {
           visit_type: "online",
         });
 
-        if (shopSettings.schedule_optimizer_enabled !== false) {
-          await runGapMinimization(bookingGuestBarber.id, selectedDate).catch(console.error);
-        }
       }
 
       if (clientEmail) {
