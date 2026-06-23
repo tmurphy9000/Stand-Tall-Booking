@@ -960,13 +960,13 @@ function MarketingSettingsTab({ shopSettings, templates, promoCodes, onSaved }) 
         <Info className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
         <div className="text-sm text-muted-foreground space-y-2">
           <p className="font-medium text-foreground">Daily scheduling is set up via pg_cron</p>
-          <p>Each automation runs daily at <strong>10 AM US Eastern (14:00 UTC)</strong> via a database cron job. Use the <strong>Run now</strong> buttons above to trigger them immediately for testing.</p>
-          <p>One-time setup required — run this once in the <strong>Supabase SQL Editor</strong>:</p>
+          <p>Each automation runs daily at <strong>10 AM US Eastern (14:00 UTC)</strong>. Use the <strong>Run now</strong> buttons above to trigger any automation immediately for testing.</p>
+          <p>One-time setup — run this once in <strong>Dashboard → SQL Editor</strong> to store your service role key in Supabase Vault:</p>
           <code className="block font-mono text-xs bg-muted px-3 py-2 rounded border border-border whitespace-pre">
-            {"ALTER DATABASE postgres\n  SET app.settings.service_role_key = '<your-service-role-key>';"}
+            {"SELECT vault.create_secret(\n  'eyJ...',  -- your service_role JWT\n  'marketing_service_role_key'\n);"}
           </code>
-          <p>Find your service role key at <strong>Project Settings → API → service_role</strong>. Until set, cron jobs run but authentication fails silently.</p>
-          <p>To verify the jobs are active, run in the SQL Editor: <code className="font-mono text-xs">SELECT jobname, schedule, active FROM cron.job WHERE jobname LIKE 'automation-%';</code></p>
+          <p>Find your key at <strong>Project Settings → API → service_role</strong> (the long <code className="font-mono text-xs">eyJ…</code> token). The key is stored encrypted and is not visible in plaintext after this step.</p>
+          <p>Verify jobs are active: <code className="font-mono text-xs">SELECT jobname, schedule, active FROM cron.job WHERE jobname LIKE 'automation-%';</code></p>
         </div>
       </section>
 
