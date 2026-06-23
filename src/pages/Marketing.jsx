@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import {
   Megaphone, Tag, History, Settings, Mail, Plus, ChevronLeft,
   Send, Sparkles, Link2, Loader2, Users, FileText, TicketPercent,
-  Eye, EyeOff, Check, Star, RefreshCw, CalendarDays, Info,
+  Eye, EyeOff, Check, Star, RefreshCw, CalendarDays, Info, X,
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
