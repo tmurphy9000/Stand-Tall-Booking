@@ -296,7 +296,13 @@ function CheckoutContent({
   const [promoInput, setPromoInput] = useState("");
   const [promoError, setPromoError] = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
-  const { shopId } = useShop();
+
+  // Keep Elements amount in sync with the checkout total (Stripe ignores options prop after mount)
+  useEffect(() => {
+    if (!elements) return;
+    try { elements.update({ amount: Math.max(50, Math.round(Math.max(0, total) * 100)) }); } catch (_) {}
+  }, [total, elements]);
+  const { shopId, stripeAccountId, stripeTerminalLocationId } = useShop();
 
   const applyPromoCode = useCallback(async () => {
     const code = promoInput.trim().toUpperCase();
@@ -322,13 +328,6 @@ function CheckoutContent({
       setPromoLoading(false);
     }
   }, [promoInput, shopId, setAppliedPromo]);
-
-  // Keep Elements amount in sync with the checkout total (Stripe ignores options prop after mount)
-  useEffect(() => {
-    if (!elements) return;
-    try { elements.update({ amount: Math.max(50, Math.round(Math.max(0, total) * 100)) }); } catch (_) {}
-  }, [total, elements]);
-  const { shopId, stripeAccountId, stripeTerminalLocationId } = useShop();
   const [clientSearch, setClientSearch] = useState(booking?.client_name || "");
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [bookingPopoverOpen, setBookingPopoverOpen] = useState(false);
