@@ -44,6 +44,13 @@ function formatDuration(mins) {
   return m > 0 ? `${h}h ${m}m` : `${h}h`;
 }
 
+// For "indefinite", generate blocks up to 1 year from the start date.
+function oneYearFrom(dateStr) {
+  const d = new Date(dateStr + "T12:00:00");
+  d.setFullYear(d.getFullYear() + 1);
+  return format(d, "yyyy-MM-dd");
+}
+
 export default function BlockTimeModal({ open, onClose, onSave, barbers, prefill }) {
   const [barberId, setBarberId] = useState("");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -55,12 +62,12 @@ export default function BlockTimeModal({ open, onClose, onSave, barbers, prefill
   const [repeatEnabled, setRepeatEnabled] = useState(false);
   const [repeatPattern, setRepeatPattern] = useState("weekly");
   const [repeatDays, setRepeatDays] = useState([]);
+  // "date" | "count" | "indefinite"
   const [repeatEndType, setRepeatEndType] = useState("date");
   const [repeatEndDate, setRepeatEndDate] = useState("");
   const [repeatCount, setRepeatCount] = useState(4);
   const [saving, setSaving] = useState(false);
 
-  // Reset state whenever the modal is opened with new prefill data
   useEffect(() => {
     if (!open) return;
     const s = prefill?.start_time || "09:00";
@@ -101,6 +108,13 @@ export default function BlockTimeModal({ open, onClose, onSave, barbers, prefill
     );
   };
 
+  // Resolve the effective end date for generation ("indefinite" → 1 year window)
+  const effectiveEndDate = useMemo(() => {
+    if (repeatEndType === "date") return repeatEndDate || null;
+    if (repeatEndType === "indefinite") return oneYearFrom(date);
+    return null; // "count" — not date-based
+  }, [repeatEndType, repeatEndDate, date]);
+
   const generatedDates = useMemo(() => {
     if (!repeatEnabled) return [date];
     const results = [];
@@ -110,10 +124,10 @@ export default function BlockTimeModal({ open, onClose, onSave, barbers, prefill
         for (let i = 0; i < repeatCount; i++) {
           results.push(format(addDays(new Date(date + "T12:00:00"), i), "yyyy-MM-dd"));
         }
-      } else if (repeatEndDate) {
+      } else if (effectiveEndDate) {
         let cur = new Date(date + "T12:00:00");
-        const end = new Date(repeatEndDate + "T12:00:00");
-        while (cur <= end && results.length < 365) {
+        const end = new Date(effectiveEndDate + "T12:00:00");
+        while (cur <= end && results.length < 366) {
           results.push(format(cur, "yyyy-MM-dd"));
           cur = addDays(cur, 1);
         }
@@ -123,10 +137,10 @@ export default function BlockTimeModal({ open, onClose, onSave, barbers, prefill
         for (let i = 0; i < repeatCount; i++) {
           results.push(format(addDays(new Date(date + "T12:00:00"), i * 7), "yyyy-MM-dd"));
         }
-      } else if (repeatEndDate) {
+      } else if (effectiveEndDate) {
         let cur = new Date(date + "T12:00:00");
-        const end = new Date(repeatEndDate + "T12:00:00");
-        while (cur <= end && results.length < 365) {
+        const end = new Date(effectiveEndDate + "T12:00:00");
+        while (cur <= end && results.length < 366) {
           results.push(format(cur, "yyyy-MM-dd"));
           cur = addWeeks(cur, 1);
         }
@@ -138,12 +152,12 @@ export default function BlockTimeModal({ open, onClose, onSave, barbers, prefill
         while (results.length < repeatCount) {
           if (repeatDays.includes(cur.getDay())) results.push(format(cur, "yyyy-MM-dd"));
           cur = addDays(cur, 1);
-          if (results.length > 1000) break;
+          if (cur > addDays(new Date(date + "T12:00:00"), 3650)) break;
         }
-      } else if (repeatEndDate) {
+      } else if (effectiveEndDate) {
         let cur = new Date(date + "T12:00:00");
-        const end = new Date(repeatEndDate + "T12:00:00");
-        while (cur <= end && results.length < 365) {
+        const end = new Date(effectiveEndDate + "T12:00:00");
+        while (cur <= end && results.length < 366) {
           if (repeatDays.includes(cur.getDay())) results.push(format(cur, "yyyy-MM-dd"));
           cur = addDays(cur, 1);
         }
@@ -151,7 +165,7 @@ export default function BlockTimeModal({ open, onClose, onSave, barbers, prefill
     }
 
     return results;
-  }, [repeatEnabled, repeatPattern, repeatDays, repeatEndType, repeatEndDate, repeatCount, date]);
+  }, [repeatEnabled, repeatPattern, repeatDays, repeatEndType, repeatCount, effectiveEndDate, date]);
 
   const handleSave = async () => {
     if (!barberId) { toast.error("Please select a barber."); return; }
@@ -211,6 +225,20 @@ export default function BlockTimeModal({ open, onClose, onSave, barbers, prefill
 
   const blockCount = repeatEnabled ? generatedDates.length : 1;
 
+  const endConditionBtn = (type, label) => (
+    <button
+      type="button"
+      onClick={() => setRepeatEndType(type)}
+      className={`py-1.5 rounded-md text-xs font-medium border transition-colors ${
+        repeatEndType === type
+          ? "bg-foreground text-background border-foreground"
+          : "border-input bg-background hover:bg-accent text-foreground"
+      }`}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
@@ -241,21 +269,10 @@ export default function BlockTimeModal({ open, onClose, onSave, barbers, prefill
             <Input type="date" value={date} onChange={e => setDate(e.target.value)} />
           </div>
 
-          {/* Start time */}
+          {/* Quick Buttons — above the time fields */}
           <div>
-            <Label className="text-xs text-muted-foreground">Start Time *</Label>
-            <Input
-              type="time"
-              value={startTime}
-              onChange={e => handleStartChange(e.target.value)}
-              step="900"
-            />
-          </div>
-
-          {/* Duration presets */}
-          <div>
-            <Label className="text-xs text-muted-foreground mb-2 block">Duration</Label>
-            <div className="flex gap-2 mb-2">
+            <Label className="text-xs text-muted-foreground mb-2 block">Quick Buttons</Label>
+            <div className="flex gap-2">
               {DURATION_PRESETS.map(p => (
                 <button
                   key={p.mins}
@@ -271,8 +288,22 @@ export default function BlockTimeModal({ open, onClose, onSave, barbers, prefill
                 </button>
               ))}
             </div>
-            <div className="flex items-center gap-2">
-              <div className="flex-1">
+          </div>
+
+          {/* Time fields */}
+          <div>
+            <p className="text-xs text-muted-foreground mb-2">Or set a custom time</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Start Time *</Label>
+                <Input
+                  type="time"
+                  value={startTime}
+                  onChange={e => handleStartChange(e.target.value)}
+                  step="900"
+                />
+              </div>
+              <div>
                 <Label className="text-xs text-muted-foreground">End Time</Label>
                 <Input
                   type="time"
@@ -281,12 +312,10 @@ export default function BlockTimeModal({ open, onClose, onSave, barbers, prefill
                   step="900"
                 />
               </div>
-              {duration > 0 && (
-                <div className="mt-5 text-xs text-muted-foreground tabular-nums">
-                  {formatDuration(duration)}
-                </div>
-              )}
             </div>
+            {duration > 0 && !activePreset && (
+              <p className="text-xs text-muted-foreground mt-1">{formatDuration(duration)}</p>
+            )}
           </div>
 
           {/* Reason */}
@@ -355,33 +384,14 @@ export default function BlockTimeModal({ open, onClose, onSave, barbers, prefill
                   </div>
                 )}
 
-                {/* End condition */}
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setRepeatEndType("date")}
-                    className={`py-1.5 rounded-md text-xs font-medium border transition-colors ${
-                      repeatEndType === "date"
-                        ? "bg-foreground text-background border-foreground"
-                        : "border-input bg-background hover:bg-accent text-foreground"
-                    }`}
-                  >
-                    End by date
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRepeatEndType("count")}
-                    className={`py-1.5 rounded-md text-xs font-medium border transition-colors ${
-                      repeatEndType === "count"
-                        ? "bg-foreground text-background border-foreground"
-                        : "border-input bg-background hover:bg-accent text-foreground"
-                    }`}
-                  >
-                    # of times
-                  </button>
+                {/* End condition — 3 options */}
+                <div className="grid grid-cols-3 gap-2">
+                  {endConditionBtn("date", "End by date")}
+                  {endConditionBtn("count", "# of times")}
+                  {endConditionBtn("indefinite", "Indefinite")}
                 </div>
 
-                {repeatEndType === "date" ? (
+                {repeatEndType === "date" && (
                   <div>
                     <Label className="text-xs text-muted-foreground">Repeat until</Label>
                     <Input
@@ -391,7 +401,9 @@ export default function BlockTimeModal({ open, onClose, onSave, barbers, prefill
                       min={date}
                     />
                   </div>
-                ) : (
+                )}
+
+                {repeatEndType === "count" && (
                   <div>
                     <Label className="text-xs text-muted-foreground">Number of occurrences</Label>
                     <Input
@@ -404,12 +416,22 @@ export default function BlockTimeModal({ open, onClose, onSave, barbers, prefill
                   </div>
                 )}
 
+                {repeatEndType === "indefinite" && (
+                  <p className="text-xs text-muted-foreground">
+                    Generates a 1-year rolling window of blocks. Delete the series to stop.
+                  </p>
+                )}
+
                 {/* Preview count */}
                 {blockCount > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    Will create <span className="font-semibold text-foreground">{blockCount}</span> block{blockCount !== 1 ? "s" : ""}
-                    {blockCount > 1 && repeatEndType === "date" && repeatEndDate
+                    Will create{" "}
+                    <span className="font-semibold text-foreground">{blockCount}</span>{" "}
+                    block{blockCount !== 1 ? "s" : ""}
+                    {repeatEndType === "date" && repeatEndDate
                       ? ` through ${format(new Date(repeatEndDate + "T12:00:00"), "MMM d, yyyy")}`
+                      : repeatEndType === "indefinite"
+                      ? ` (${format(new Date(effectiveEndDate + "T12:00:00"), "MMM d, yyyy")} — 1 year)`
                       : ""}
                   </p>
                 )}
