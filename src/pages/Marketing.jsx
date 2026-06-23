@@ -785,7 +785,6 @@ function PromoCodesTab({ promoCodes, shopId, onRefresh }) {
   function setF(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
   async function saveCode() {
-    console.log("[PromoCodesTab] saveCode form state:", JSON.stringify(form));
     const err = validatePromoForm(form);
     if (err) { setFormError(err); return; }
     setSaving(true);
@@ -878,13 +877,11 @@ function PromoCodesTab({ promoCodes, shopId, onRefresh }) {
             <div className="space-y-1.5">
               <Label className="text-sm">{form.type === "percent" ? "Discount %" : "Discount $"}</Label>
               <Input
-                type="number"
+                type="text"
+                inputMode="decimal"
                 value={form.value}
-                onChange={e => setF("value", e.target.value)}
+                onChange={e => setF("value", e.target.value.replace(/[^0-9.]/g, ""))}
                 placeholder={form.type === "percent" ? "20" : "10.00"}
-                min="0.01"
-                max={form.type === "percent" ? "100" : undefined}
-                step="any"
                 className="h-9 text-sm"
               />
             </div>
