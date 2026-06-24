@@ -154,9 +154,7 @@ export default function CalendarPage() {
 
   const handleCreateBlock = async (data) => {
     const items = Array.isArray(data) ? data : [data];
-    for (const item of items) {
-      await entities.Booking.create(item);
-    }
+    await entities.Booking.bulkCreate(items);
     queryClient.invalidateQueries({ queryKey: ["bookings"] });
   };
 
