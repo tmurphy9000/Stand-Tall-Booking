@@ -1,6 +1,7 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ShieldAlert, Search } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -264,6 +265,146 @@ function AccountActionsTab() {
   );
 }
 
+const STEP_LABELS = {
+  shop_type: "Shop type",
+  barbers_current: "# barbers (current)",
+  barbers_capacity: "# barbers (capacity)",
+  model: "Pay structure",
+  current_software: "Current software",
+  biggest_complaint: "Pain points",
+  biggest_like: "What they like",
+  plan: "Plan selection",
+  name: "Name",
+  terms: "Terms",
+  email: "Email",
+  phone: "Phone",
+  questionnaire_complete: "All done (pre-checkout)",
+};
+
+const DROPOFF_RANGES = [
+  { value: "1", label: "Last 24 hours" },
+  { value: "7", label: "Last 7 days" },
+  { value: "all", label: "All time" },
+];
+
+function timeAgo(ts) {
+  const ms = Date.now() - new Date(ts).getTime();
+  const m = Math.floor(ms / 60000);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+function DropOffsTab() {
+  const [range, setRange] = useState("7");
+  const [attempts, setAttempts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    supabase
+      .from("signup_attempts")
+      .select("*")
+      .eq("completed", false)
+      .order("last_updated_at", { ascending: false })
+      .limit(200)
+      .then(({ data }) => {
+        setAttempts(data ?? []);
+        setLoading(false);
+      });
+  }, []);
+
+  const filtered = useMemo(() => {
+    if (range === "all") return attempts;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - parseInt(range, 10));
+    return attempts.filter(a => new Date(a.last_updated_at) >= cutoff);
+  }, [attempts, range]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <span className="text-sm text-muted-foreground">Activity in:</span>
+        <Select value={range} onValueChange={setRange}>
+          <SelectTrigger className="w-44">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {DROPOFF_RANGES.map(r => (
+              <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {!loading && (
+          <span className="text-sm text-muted-foreground ml-2">
+            {filtered.length} incomplete {filtered.length === 1 ? "attempt" : "attempts"}
+          </span>
+        )}
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Contact</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Furthest step</TableHead>
+                <TableHead>Tier selected</TableHead>
+                <TableHead>Last active</TableHead>
+                <TableHead>Started</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    Loading…
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    No drop-offs in this period
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && filtered.map(a => (
+                <TableRow key={a.id}>
+                  <TableCell>
+                    <div className="space-y-0.5">
+                      {a.email && <div className="text-sm font-medium">{a.email}</div>}
+                      {a.phone && <div className="text-xs text-muted-foreground">{a.phone}</div>}
+                      {!a.email && !a.phone && <span className="text-xs text-muted-foreground">—</span>}
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-sm">{a.name || <span className="text-muted-foreground">—</span>}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs font-mono">
+                      {STEP_LABELS[a.current_step] ?? a.current_step ?? "—"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {a.selected_tier
+                      ? <Badge variant="outline" className="bg-[#8B9A7E]/10 text-[#6B7A5E] border-[#8B9A7E]/30">{a.selected_tier}</Badge>
+                      : <span className="text-xs text-muted-foreground">—</span>}
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground whitespace-nowrap">{timeAgo(a.last_updated_at)}</TableCell>
+                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                    {new Date(a.started_at).toLocaleDateString()}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const { isSuperAdmin } = usePermissions();
 
@@ -294,14 +435,18 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <Tabs defaultValue="active">
+        <Tabs defaultValue="dropoffs">
           <TabsList>
+            <TabsTrigger value="dropoffs">Drop-offs</TabsTrigger>
             <TabsTrigger value="active">Active Subscriptions</TabsTrigger>
             <TabsTrigger value="inactive">Inactive</TabsTrigger>
             <TabsTrigger value="signups">All Signups</TabsTrigger>
             <TabsTrigger value="actions">Account Actions</TabsTrigger>
           </TabsList>
 
+          <TabsContent value="dropoffs">
+            <DropOffsTab />
+          </TabsContent>
           <TabsContent value="active">
             <ActiveSubscriptionsTab />
           </TabsContent>

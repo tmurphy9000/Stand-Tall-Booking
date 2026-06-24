@@ -1,4 +1,4 @@
-import { useState, useEffect, Fragment } from "react";
+import { useState, useEffect, useRef, Fragment } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────
@@ -359,6 +359,60 @@ function JoinTab() {
 
   const [termsAccepted, setTermsAccepted] = useState({ terms: false, smsEmail: false, age: false });
 
+  // ── Signup attempt tracking ──────────────────────────────────
+  // Store id in both ref (for synchronous access inside callbacks) and
+  // sessionStorage (so it survives Stripe redirects within the same tab).
+  const attemptIdRef = useRef(sessionStorage.getItem("signup_attempt_id") || null);
+
+  // Fire upsert on every FORWARD step transition.
+  const lastTrackedStep = useRef(0); // 0 = haven't fired yet; don't fire on mount
+  useEffect(() => {
+    if (stage !== "questionnaire") return;
+    if (step <= lastTrackedStep.current) return; // back-nav or initial render
+    lastTrackedStep.current = step;
+
+    const payload = {
+      current_step: questions[step]?.id ?? `step_${step}`,
+      last_updated_at: new Date().toISOString(),
+    };
+    if (answers.email) payload.email = answers.email;
+    if (answers.phone) payload.phone = answers.phone;
+    if (answers.name)  payload.name  = answers.name;
+    if (answers.plan)  payload.selected_tier = answers.plan.split(" — ")[0];
+
+    const id = attemptIdRef.current;
+    if (!id) {
+      supabase
+        .from("signup_attempts")
+        .insert({ ...payload, started_at: new Date().toISOString(), completed: false })
+        .select("id")
+        .single()
+        .then(({ data, error }) => {
+          if (!error && data?.id) {
+            attemptIdRef.current = data.id;
+            sessionStorage.setItem("signup_attempt_id", data.id);
+          }
+        });
+    } else {
+      supabase.from("signup_attempts").update(payload).eq("id", id);
+    }
+  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Mark attempt complete when the user lands on ?checkout=success.
+  useEffect(() => {
+    if (stage !== "done" || checkoutStatus === "cancelled") return;
+    const id = attemptIdRef.current || sessionStorage.getItem("signup_attempt_id");
+    if (!id) return;
+    supabase
+      .from("signup_attempts")
+      .update({ completed: true, completed_at: new Date().toISOString() })
+      .eq("id", id)
+      .then(() => {
+        sessionStorage.removeItem("signup_attempt_id");
+        attemptIdRef.current = null;
+      });
+  }, [stage]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const planOptions = [
     {
       id:"Basic — $29/mo", name:"Basic", price:"$29/mo", tag:"Solo barber",
@@ -440,6 +494,15 @@ function JoinTab() {
   function handleBack() { setStep(s => Math.max(0, s - 1)); }
 
   async function handleSubmit() {
+    // Capture phone (last question — step doesn't increment so the useEffect won't fire)
+    const id = attemptIdRef.current;
+    if (id) {
+      supabase.from("signup_attempts").update({
+        phone: answers.phone || null,
+        current_step: "questionnaire_complete",
+        last_updated_at: new Date().toISOString(),
+      }).eq("id", id);
+    }
     setSubmitting(true);
     await new Promise(r => setTimeout(r, 900));
     setSubmitting(false);
