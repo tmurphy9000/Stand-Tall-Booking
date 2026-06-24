@@ -241,11 +241,7 @@ export default function CalendarPage() {
       return;
     }
     if (action === "delete_block_all" && extra?.repeat_group_id) {
-      const allBookings = await entities.Booking.list("-date", 1000);
-      const groupBookings = allBookings.filter(b => b.repeat_group_id === extra.repeat_group_id);
-      for (const b of groupBookings) {
-        await entities.Booking.delete(b.id);
-      }
+      await supabase.from("bookings").delete().eq("repeat_group_id", extra.repeat_group_id);
       queryClient.invalidateQueries({ queryKey: ["bookings"] });
       return;
     }
