@@ -13,12 +13,19 @@ function json(body: unknown, status = 200) {
   });
 }
 
+// Excludes visually ambiguous chars (0/O, 1/l/I) so the password is easy to read and type.
+function generateTempPassword(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  const bytes = new Uint8Array(12);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => chars[b % chars.length]).join("");
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  // Verify caller is authenticated
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) return json({ error: "Unauthorized" }, 401);
 
@@ -37,7 +44,6 @@ Deno.serve(async (req) => {
   const { data: { user: caller }, error: callerError } = await callerClient.auth.getUser();
   if (callerError || !caller) return json({ error: "Unauthorized" }, 401);
 
-  // Verify caller is superadmin — check their barbers row directly
   const { data: callerBarber } = await supabaseAdmin
     .from("barbers")
     .select("permission_level")
@@ -48,14 +54,14 @@ Deno.serve(async (req) => {
     return json({ error: "Forbidden: superadmin access required" }, 403);
   }
 
-  let body: { action?: string; name?: string; email?: string };
+  let body: { action?: string; name?: string; email?: string; barber_id?: string };
   try {
     body = await req.json();
   } catch {
     return json({ error: "Invalid request body" }, 400);
   }
 
-  // ── LIST action ──────────────────────────────────────────────
+  // ── LIST ──────────────────────────────────────────────────────────────────
   if (body.action === "list") {
     const { data, error } = await supabaseAdmin
       .from("barbers")
@@ -67,9 +73,36 @@ Deno.serve(async (req) => {
     return json({ superadmins: data ?? [] });
   }
 
-  // ── INVITE action ────────────────────────────────────────────
+  // ── RESET (generate new temp password for an existing superadmin) ─────────
+  if (body.action === "reset") {
+    const { barber_id } = body;
+    if (!barber_id) return json({ error: "barber_id is required" }, 400);
+
+    const { data: barber } = await supabaseAdmin
+      .from("barbers")
+      .select("user_id")
+      .eq("id", barber_id)
+      .maybeSingle();
+
+    if (!barber?.user_id) return json({ error: "Barber not found or has no auth account" }, 400);
+
+    const tempPassword = generateTempPassword();
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(barber.user_id, {
+      password: tempPassword,
+      user_metadata: { must_change_password: true },
+    });
+
+    if (updateError) {
+      console.error("Password reset error:", updateError.message);
+      return json({ error: `Failed to reset password: ${updateError.message}` }, 500);
+    }
+
+    return json({ success: true, temp_password: tempPassword });
+  }
+
+  // ── INVITE ────────────────────────────────────────────────────────────────
   if (body.action !== "invite") {
-    return json({ error: "action must be 'list' or 'invite'" }, 400);
+    return json({ error: "action must be 'list', 'invite', or 'reset'" }, 400);
   }
 
   const { name, email } = body;
@@ -77,42 +110,51 @@ Deno.serve(async (req) => {
     return json({ error: "name and email are required" }, 400);
   }
 
-  // Step 1: Create auth user via invite email (they set their own password via the link).
+  const tempPassword = generateTempPassword();
   let authUserId: string;
   let alreadyExisted = false;
 
-  const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-    email.trim(),
-    { redirectTo: "https://www.standtallbooking.com/ChangePassword" }
-  );
+  // Create the auth user with a temp password (email_confirm: true skips the verification email).
+  // No invite email is sent — the admin delivers the temp password out-of-band.
+  const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
+    email: email.trim(),
+    password: tempPassword,
+    email_confirm: true,
+    user_metadata: { must_change_password: true },
+  });
 
-  if (inviteError) {
-    console.error("inviteUserByEmail error:", inviteError.message);
-    const msg = inviteError.message.toLowerCase();
+  if (createError) {
+    const msg = createError.message.toLowerCase();
     const isExisting =
-      msg.includes("already been registered") ||
-      msg.includes("already registered") ||
-      msg.includes("already exists") ||
-      msg.includes("duplicate") ||
-      msg.includes("user already invited");
+      msg.includes("already") || msg.includes("exists") || msg.includes("duplicate");
 
     if (!isExisting) {
-      return json({ error: `Failed to send invite: ${inviteError.message}` }, 500);
+      console.error("createUser error:", createError.message);
+      return json({ error: `Failed to create account: ${createError.message}` }, 500);
     }
 
-    // User already has an auth account — find them and promote
+    // User already has an auth account — reset their password and set the flag
     alreadyExisted = true;
     const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
     if (listError) return json({ error: "Could not look up existing auth user" }, 500);
 
     const existing = listData.users.find((u) => u.email === email.trim());
-    if (!existing) return json({ error: "Auth user exists but could not be retrieved. Contact support." }, 500);
+    if (!existing) return json({ error: "Auth user exists but could not be retrieved." }, 500);
     authUserId = existing.id;
+
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(authUserId, {
+      password: tempPassword,
+      user_metadata: { must_change_password: true },
+    });
+    if (updateError) {
+      console.error("updateUserById error:", updateError.message);
+      return json({ error: `Failed to update existing account: ${updateError.message}` }, 500);
+    }
   } else {
-    authUserId = inviteData.user.id;
+    authUserId = createData.user.id;
   }
 
-  // Step 2: Create or promote their barbers row
+  // Create or promote the barbers row
   const { data: existingBarber, error: lookupError } = await supabaseAdmin
     .from("barbers")
     .select("id, permission_level")
@@ -148,16 +190,20 @@ Deno.serve(async (req) => {
 
     if (insertError) {
       console.error("Barber insert error:", insertError.message);
-      return json({ error: `Failed to create account: ${insertError.message}` }, 500);
+      return json({ error: `Failed to create barber record: ${insertError.message}` }, 500);
     }
   }
 
-  // Return updated list along with success so the UI can refresh in one round trip
   const { data: updatedList } = await supabaseAdmin
     .from("barbers")
     .select("id, name, email, created_at")
     .eq("permission_level", "superadmin")
     .order("created_at", { ascending: true });
 
-  return json({ success: true, already_existed: alreadyExisted, superadmins: updatedList ?? [] });
+  return json({
+    success: true,
+    already_existed: alreadyExisted,
+    temp_password: tempPassword,
+    superadmins: updatedList ?? [],
+  });
 });

@@ -29,7 +29,7 @@ export default function BarberLogin() {
     }
 
     setLoading(true);
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({ email, password });
     setLoading(false);
 
     if (authError) {
@@ -37,7 +37,12 @@ export default function BarberLogin() {
       return;
     }
 
-    window.location.href = "/Calendar";
+    // New superadmins log in with a temporary password — send them to set a permanent one.
+    if (authData.user?.user_metadata?.must_change_password) {
+      window.location.href = "/ChangePassword";
+    } else {
+      window.location.href = "/Calendar";
+    }
   };
 
   const handleForgotPassword = async (e) => {

@@ -9,26 +9,31 @@ import { Label } from "@/components/ui/label";
 import { Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
-// 'invite'   — new superadmin clicked their invite email link
-// 'recovery' — existing user clicked a forgot-password email link
-// null       — logged-in user navigated here from Settings
-function useFlowType() {
+// 'force-change' — logged in with a temp password, must set a permanent one
+// 'recovery'     — clicked a forgot-password email link
+// null           — logged-in user navigated here from Settings
+function useFlowType(user) {
   const [flowType, setFlowType] = useState(null);
 
   useEffect(() => {
-    // Read hash synchronously before the Supabase client consumes it
+    // Check temp-password flag first (superadmin created via admin dashboard)
+    if (user?.user_metadata?.must_change_password === true) {
+      setFlowType("force-change");
+      return;
+    }
+    // Fall back to URL hash for email-link flows (forgot password)
     const params = new URLSearchParams(window.location.hash.slice(1));
     const t = params.get("type");
-    if (t === "invite" || t === "recovery") setFlowType(t);
-  }, []);
+    if (t === "recovery") setFlowType("recovery");
+  }, [user]);
 
   return flowType;
 }
 
 const COPY = {
-  invite: {
-    title: "Set Your Password",
-    description: "You've been invited as a Stand Tall admin. Create a password to access your account.",
+  "force-change": {
+    title: "Set Your Permanent Password",
+    description: "Your account was set up with a temporary password. Create a permanent one to continue.",
     button: "Set Password",
     success: "Password set! Redirecting to the admin dashboard…",
   },
@@ -47,9 +52,9 @@ const COPY = {
 };
 
 export default function ChangePassword() {
-  const { currentBarber, logout } = useAuth();
+  const { user, currentBarber, logout } = useAuth();
   const navigate = useNavigate();
-  const flowType = useFlowType();
+  const flowType = useFlowType(user);
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -75,7 +80,9 @@ export default function ChangePassword() {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    const updatePayload = { password: newPassword };
+    if (flowType === "force-change") updatePayload.data = { must_change_password: false };
+    const { error } = await supabase.auth.updateUser(updatePayload);
     setLoading(false);
 
     if (error) {
@@ -87,7 +94,7 @@ export default function ChangePassword() {
     setNewPassword("");
     setConfirmPassword("");
 
-    if (flowType === "invite") {
+    if (flowType === "force-change") {
       navigate("/AdminDashboard");
     } else if (flowType === "recovery") {
       navigate("/");

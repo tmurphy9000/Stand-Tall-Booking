@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ShieldAlert, Search } from "lucide-react";
+import { ArrowLeft, ShieldAlert, Search, Loader2 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -300,10 +300,12 @@ function SuperadminsTab() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
   const [superadmins, setSuperadmins] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
+  // { password: string, label: string } — shown once, never persisted; null when dismissed
+  const [tempPasswordData, setTempPasswordData] = useState(null);
+  const [resettingId, setResettingId] = useState(null);
 
   const loadList = async () => {
     setLoadingList(true);
@@ -316,35 +318,47 @@ function SuperadminsTab() {
 
   useEffect(() => { loadList(); }, []);
 
+  const extractFnError = async (fnError) => {
+    if (fnError?.context instanceof Response) {
+      try {
+        const body = await fnError.context.clone().json();
+        if (body?.error) return body.error;
+      } catch { /* fall through */ }
+    }
+    return fnError?.message || "Unknown error";
+  };
+
   const handleInvite = async () => {
     setError("");
-    setSuccess("");
     if (!name.trim() || !email.trim()) { setError("Name and email are required."); return; }
     setSubmitting(true);
+    const capturedEmail = email.trim();
     const { data, error: fnError } = await supabase.functions.invoke("inviteSuperadmin", {
-      body: { action: "invite", name: name.trim(), email: email.trim() },
+      body: { action: "invite", name: name.trim(), email: capturedEmail },
     });
     setSubmitting(false);
     if (fnError || data?.error) {
-      let msg = data?.error || fnError?.message || "Unknown error";
-      // Extract actual error body from non-2xx responses (Supabase wraps it in fnError.context)
-      if (fnError && fnError.context instanceof Response) {
-        try {
-          const body = await fnError.context.clone().json();
-          if (body?.error) msg = body.error;
-        } catch { /* fall through to generic message */ }
-      }
-      setError(msg);
+      setError(data?.error || await extractFnError(fnError));
       return;
     }
     if (data?.superadmins) setSuperadmins(data.superadmins);
     setName("");
     setEmail("");
-    setSuccess(
-      data?.already_existed
-        ? `${email.trim()} already had an account — their permission has been upgraded to superadmin.`
-        : `Invite sent to ${email.trim()}. They'll receive an email to set their password.`
-    );
+    setTempPasswordData({ password: data.temp_password, label: `for ${capturedEmail}` });
+  };
+
+  const handleReset = async (barber) => {
+    setError("");
+    setResettingId(barber.id);
+    const { data, error: fnError } = await supabase.functions.invoke("inviteSuperadmin", {
+      body: { action: "reset", barber_id: barber.id },
+    });
+    setResettingId(null);
+    if (fnError || data?.error) {
+      setError(data?.error || await extractFnError(fnError));
+      return;
+    }
+    setTempPasswordData({ password: data.temp_password, label: `for ${barber.email}` });
   };
 
   return (
@@ -364,6 +378,7 @@ function SuperadminsTab() {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Added</TableHead>
+                  <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -374,6 +389,19 @@ function SuperadminsTab() {
                     <TableCell className="text-sm text-muted-foreground">
                       {new Date(s.created_at).toLocaleDateString()}
                     </TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-xs h-7 px-2"
+                        disabled={resettingId === s.id}
+                        onClick={() => handleReset(s)}
+                      >
+                        {resettingId === s.id
+                          ? <Loader2 className="w-3 h-3 animate-spin" />
+                          : "Reset password"}
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -382,43 +410,78 @@ function SuperadminsTab() {
         </CardContent>
       </Card>
 
-      {/* Invite form */}
+      {/* Add New Superadmin / one-time temp password display */}
       <Card>
         <CardContent className="p-4 space-y-4">
-          <div>
-            <h3 className="text-sm font-semibold">Add New Superadmin</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              They'll receive an email with a link to set their own password. No shop association is created.
-            </p>
-          </div>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">Full name</label>
-              <Input
-                value={name}
-                onChange={e => { setName(e.target.value); setSuccess(""); setError(""); }}
-                placeholder="Jane Smith"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">Email address</label>
-              <Input
-                type="email"
-                value={email}
-                onChange={e => { setEmail(e.target.value); setSuccess(""); setError(""); }}
-                placeholder="jane@example.com"
-                onKeyDown={e => { if (e.key === "Enter") handleInvite(); }}
-              />
-            </div>
-          </div>
-          {error && <p className="text-sm text-red-500">{error}</p>}
-          {success && <p className="text-sm text-green-600">✓ {success}</p>}
-          <Button
-            onClick={handleInvite}
-            disabled={submitting || !name.trim() || !email.trim()}
-          >
-            {submitting ? "Sending invite…" : "Send invite"}
-          </Button>
+          {tempPasswordData ? (
+            /* Shown once — dismissed on "Done", never retrievable after that */
+            <>
+              <div>
+                <h3 className="text-sm font-semibold">Temporary Password</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Account {tempPasswordData.label}. Copy it now — it won't be shown again.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 bg-muted border border-border rounded px-3 py-2.5 text-sm font-mono tracking-wider select-all">
+                  {tempPasswordData.password}
+                </code>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    navigator.clipboard.writeText(tempPasswordData.password);
+                    toast.success("Copied to clipboard");
+                  }}
+                >
+                  Copy
+                </Button>
+              </div>
+              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                Send via phone or a secure channel — do not email this password.
+              </p>
+              <Button className="w-full" onClick={() => setTempPasswordData(null)}>
+                Done — I've copied it
+              </Button>
+            </>
+          ) : (
+            /* Invite form */
+            <>
+              <div>
+                <h3 className="text-sm font-semibold">Add New Superadmin</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Creates an account with a temporary password you'll share out-of-band. No email is sent.
+                </p>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1">Full name</label>
+                  <Input
+                    value={name}
+                    onChange={e => { setName(e.target.value); setError(""); }}
+                    placeholder="Jane Smith"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1">Email address</label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={e => { setEmail(e.target.value); setError(""); }}
+                    placeholder="jane@example.com"
+                    onKeyDown={e => { if (e.key === "Enter") handleInvite(); }}
+                  />
+                </div>
+              </div>
+              {error && <p className="text-sm text-red-500">{error}</p>}
+              <Button
+                onClick={handleInvite}
+                disabled={submitting || !name.trim() || !email.trim()}
+              >
+                {submitting ? "Creating account…" : "Create account"}
+              </Button>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>
