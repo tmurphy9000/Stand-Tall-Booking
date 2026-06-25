@@ -10,21 +10,32 @@ import { Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 // 'force-change' — logged in with a temp password, must set a permanent one
-// 'recovery'     — clicked a forgot-password email link
+// 'recovery'     — clicked a forgot-password email link (implicit or PKCE flow)
 // null           — logged-in user navigated here from Settings
 function useFlowType(user) {
-  const [flowType, setFlowType] = useState(null);
+  const [flowType, setFlowType] = useState(() => {
+    // Read URL synchronously on first render, before the Supabase client may clear params.
+    // Implicit flow:  /ChangePassword#type=recovery&access_token=...
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    if (hashParams.get("type") === "recovery") return "recovery";
+    // PKCE flow:      /ChangePassword?code=xxx  (no type in URL; code presence implies recovery)
+    if (new URLSearchParams(window.location.search).has("code")) return "recovery";
+    return null;
+  });
 
   useEffect(() => {
-    // Check temp-password flag first (superadmin created via admin dashboard)
+    // force-change takes priority: user logged in with a temp password
     if (user?.user_metadata?.must_change_password === true) {
       setFlowType("force-change");
       return;
     }
-    // Fall back to URL hash for email-link flows (forgot password)
-    const params = new URLSearchParams(window.location.hash.slice(1));
-    const t = params.get("type");
-    if (t === "recovery") setFlowType("recovery");
+
+    // PKCE fallback: PASSWORD_RECOVERY fires when the client exchanges the ?code=.
+    // Covers the case where the code was already cleared from the URL before first render.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setFlowType("recovery");
+    });
+    return () => subscription.unsubscribe();
   }, [user]);
 
   return flowType;
