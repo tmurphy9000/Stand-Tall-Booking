@@ -326,7 +326,15 @@ function SuperadminsTab() {
     });
     setSubmitting(false);
     if (fnError || data?.error) {
-      setError(data?.error || fnError?.message || "Unknown error");
+      let msg = data?.error || fnError?.message || "Unknown error";
+      // Extract actual error body from non-2xx responses (Supabase wraps it in fnError.context)
+      if (fnError && fnError.context instanceof Response) {
+        try {
+          const body = await fnError.context.clone().json();
+          if (body?.error) msg = body.error;
+        } catch { /* fall through to generic message */ }
+      }
+      setError(msg);
       return;
     }
     if (data?.superadmins) setSuperadmins(data.superadmins);

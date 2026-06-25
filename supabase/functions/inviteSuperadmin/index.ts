@@ -87,11 +87,14 @@ Deno.serve(async (req) => {
   );
 
   if (inviteError) {
+    console.error("inviteUserByEmail error:", inviteError.message);
+    const msg = inviteError.message.toLowerCase();
     const isExisting =
-      inviteError.message.toLowerCase().includes("already been registered") ||
-      inviteError.message.toLowerCase().includes("already registered") ||
-      inviteError.message.toLowerCase().includes("already exists") ||
-      inviteError.message.toLowerCase().includes("duplicate");
+      msg.includes("already been registered") ||
+      msg.includes("already registered") ||
+      msg.includes("already exists") ||
+      msg.includes("duplicate") ||
+      msg.includes("user already invited");
 
     if (!isExisting) {
       return json({ error: `Failed to send invite: ${inviteError.message}` }, 500);
@@ -116,7 +119,10 @@ Deno.serve(async (req) => {
     .eq("email", email.trim())
     .maybeSingle();
 
-  if (lookupError) return json({ error: `Barber lookup failed: ${lookupError.message}` }, 500);
+  if (lookupError) {
+    console.error("Barber lookup error:", lookupError.message);
+    return json({ error: `Barber lookup failed: ${lookupError.message}` }, 500);
+  }
 
   if (existingBarber) {
     const { error: updateError } = await supabaseAdmin
@@ -124,7 +130,10 @@ Deno.serve(async (req) => {
       .update({ permission_level: "superadmin", user_id: authUserId, name: name.trim() })
       .eq("id", existingBarber.id);
 
-    if (updateError) return json({ error: `Failed to promote account: ${updateError.message}` }, 500);
+    if (updateError) {
+      console.error("Barber update error:", updateError.message);
+      return json({ error: `Failed to promote account: ${updateError.message}` }, 500);
+    }
   } else {
     const { error: insertError } = await supabaseAdmin
       .from("barbers")
@@ -133,12 +142,14 @@ Deno.serve(async (req) => {
         email: email.trim(),
         permission_level: "superadmin",
         user_id: authUserId,
-        shop_id: null,
         is_active: true,
         online_bookable: false,
       });
 
-    if (insertError) return json({ error: `Failed to create account: ${insertError.message}` }, 500);
+    if (insertError) {
+      console.error("Barber insert error:", insertError.message);
+      return json({ error: `Failed to create account: ${insertError.message}` }, 500);
+    }
   }
 
   // Return updated list along with success so the UI can refresh in one round trip

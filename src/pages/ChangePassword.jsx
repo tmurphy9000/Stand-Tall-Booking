@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/lib/AuthContext";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,12 +9,54 @@ import { Label } from "@/components/ui/label";
 import { Lock, Eye, EyeOff, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
+// 'invite'   — new superadmin clicked their invite email link
+// 'recovery' — existing user clicked a forgot-password email link
+// null       — logged-in user navigated here from Settings
+function useFlowType() {
+  const [flowType, setFlowType] = useState(null);
+
+  useEffect(() => {
+    // Read hash synchronously before the Supabase client consumes it
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const t = params.get("type");
+    if (t === "invite" || t === "recovery") setFlowType(t);
+  }, []);
+
+  return flowType;
+}
+
+const COPY = {
+  invite: {
+    title: "Set Your Password",
+    description: "You've been invited as a Stand Tall admin. Create a password to access your account.",
+    button: "Set Password",
+    success: "Password set! Redirecting to the admin dashboard…",
+  },
+  recovery: {
+    title: "Reset Your Password",
+    description: "Enter a new password for your account.",
+    button: "Reset Password",
+    success: "Password reset! Redirecting…",
+  },
+  default: {
+    title: "Change Password",
+    description: null,
+    button: "Update Password",
+    success: "Password updated successfully!",
+  },
+};
+
 export default function ChangePassword() {
   const { currentBarber, logout } = useAuth();
+  const navigate = useNavigate();
+  const flowType = useFlowType();
+
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPasswords, setShowPasswords] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const copy = COPY[flowType] ?? COPY.default;
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -40,9 +83,16 @@ export default function ChangePassword() {
       return;
     }
 
-    toast.success("Password updated successfully!");
+    toast.success(copy.success);
     setNewPassword("");
     setConfirmPassword("");
+
+    if (flowType === "invite") {
+      navigate("/AdminDashboard");
+    } else if (flowType === "recovery") {
+      navigate("/");
+    }
+    // No redirect for the "change from settings" case — user stays on the page
   };
 
   return (
@@ -56,11 +106,13 @@ export default function ChangePassword() {
           </div>
 
           <h1 className="text-2xl font-bold text-center text-foreground mb-2">
-            Change Password
+            {copy.title}
           </h1>
-          {currentBarber && (
+          {copy.description ? (
+            <p className="text-center text-sm text-muted-foreground mb-6">{copy.description}</p>
+          ) : currentBarber ? (
             <p className="text-center text-sm text-muted-foreground mb-6">Hi {currentBarber.name}!</p>
-          )}
+          ) : null}
 
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div>
@@ -103,9 +155,9 @@ export default function ChangePassword() {
               className="w-full bg-[#8B9A7E] hover:bg-[#6B7A5E] text-white h-10 mt-6"
             >
               {loading ? (
-                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Updating...</>
+                <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Updating…</>
               ) : (
-                "Update Password"
+                copy.button
               )}
             </Button>
           </form>
