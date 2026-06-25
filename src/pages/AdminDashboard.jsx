@@ -296,6 +296,127 @@ function timeAgo(ts) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
+function SuperadminsTab() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState("");
+  const [error, setError] = useState("");
+  const [superadmins, setSuperadmins] = useState([]);
+  const [loadingList, setLoadingList] = useState(true);
+
+  const loadList = async () => {
+    setLoadingList(true);
+    const { data } = await supabase.functions.invoke("inviteSuperadmin", {
+      body: { action: "list" },
+    });
+    setSuperadmins(data?.superadmins ?? []);
+    setLoadingList(false);
+  };
+
+  useEffect(() => { loadList(); }, []);
+
+  const handleInvite = async () => {
+    setError("");
+    setSuccess("");
+    if (!name.trim() || !email.trim()) { setError("Name and email are required."); return; }
+    setSubmitting(true);
+    const { data, error: fnError } = await supabase.functions.invoke("inviteSuperadmin", {
+      body: { action: "invite", name: name.trim(), email: email.trim() },
+    });
+    setSubmitting(false);
+    if (fnError || data?.error) {
+      setError(data?.error || fnError?.message || "Unknown error");
+      return;
+    }
+    if (data?.superadmins) setSuperadmins(data.superadmins);
+    setName("");
+    setEmail("");
+    setSuccess(
+      data?.already_existed
+        ? `${email.trim()} already had an account — their permission has been upgraded to superadmin.`
+        : `Invite sent to ${email.trim()}. They'll receive an email to set their password.`
+    );
+  };
+
+  return (
+    <div className="space-y-6 max-w-xl">
+      {/* Current superadmins list */}
+      <Card>
+        <CardContent className="p-4">
+          <h3 className="text-sm font-semibold mb-3">Current Superadmins</h3>
+          {loadingList ? (
+            <p className="text-sm text-muted-foreground">Loading…</p>
+          ) : superadmins.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No superadmin accounts yet.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Added</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {superadmins.map(s => (
+                  <TableRow key={s.id}>
+                    <TableCell className="font-medium text-sm">{s.name}</TableCell>
+                    <TableCell className="text-sm">{s.email}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(s.created_at).toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Invite form */}
+      <Card>
+        <CardContent className="p-4 space-y-4">
+          <div>
+            <h3 className="text-sm font-semibold">Add New Superadmin</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              They'll receive an email with a link to set their own password. No shop association is created.
+            </p>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">Full name</label>
+              <Input
+                value={name}
+                onChange={e => { setName(e.target.value); setSuccess(""); setError(""); }}
+                placeholder="Jane Smith"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">Email address</label>
+              <Input
+                type="email"
+                value={email}
+                onChange={e => { setEmail(e.target.value); setSuccess(""); setError(""); }}
+                placeholder="jane@example.com"
+                onKeyDown={e => { if (e.key === "Enter") handleInvite(); }}
+              />
+            </div>
+          </div>
+          {error && <p className="text-sm text-red-500">{error}</p>}
+          {success && <p className="text-sm text-green-600">✓ {success}</p>}
+          <Button
+            onClick={handleInvite}
+            disabled={submitting || !name.trim() || !email.trim()}
+          >
+            {submitting ? "Sending invite…" : "Send invite"}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function DropOffsTab() {
   const [range, setRange] = useState("7");
   const [attempts, setAttempts] = useState([]);
@@ -442,6 +563,7 @@ export default function AdminDashboard() {
             <TabsTrigger value="inactive">Inactive</TabsTrigger>
             <TabsTrigger value="signups">All Signups</TabsTrigger>
             <TabsTrigger value="actions">Account Actions</TabsTrigger>
+            <TabsTrigger value="superadmins">Superadmins</TabsTrigger>
           </TabsList>
 
           <TabsContent value="dropoffs">
@@ -458,6 +580,9 @@ export default function AdminDashboard() {
           </TabsContent>
           <TabsContent value="actions">
             <AccountActionsTab />
+          </TabsContent>
+          <TabsContent value="superadmins">
+            <SuperadminsTab />
           </TabsContent>
         </Tabs>
       </div>
