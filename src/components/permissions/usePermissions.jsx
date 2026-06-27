@@ -6,6 +6,9 @@ export function usePermissions() {
   const permissionLevel = currentBarber?.permission_level ?? null;
   const isSuperAdmin = permissionLevel === 'superadmin';
   const isOwner = permissionLevel === 'owner' || permissionLevel === 'superadmin';
+  // Platform-level tiers: no shop_id means this is a global account, not a shop employee
+  const isOwnerTier = permissionLevel === 'owner' && !currentBarber?.shop_id;
+  const isAdminTier = permissionLevel === 'superadmin' || isOwnerTier;
   const isManager = permissionLevel === 'manager';
   const isServiceProvider = permissionLevel === 'service_provider';
   const hasFullAccess = isOwner || isManager || isSuperAdmin;
@@ -35,6 +38,8 @@ export function usePermissions() {
     isAdmin: isOwner || isSuperAdmin,
     isSuperAdmin,
     isOwner,
+    isOwnerTier,
+    isAdminTier,
     isManager,
     isServiceProvider,
     hasFullAccess,

@@ -46,63 +46,196 @@ Deno.serve(async (req) => {
 
   const { data: callerBarber } = await supabaseAdmin
     .from("barbers")
-    .select("permission_level")
+    .select("id, name, email, permission_level, shop_id")
     .eq("user_id", caller.id)
     .maybeSingle();
 
-  if (callerBarber?.permission_level !== "superadmin") {
-    return json({ error: "Forbidden: superadmin access required" }, 403);
+  // Platform admin: superadmin or owner with no shop_id
+  const isOwnerTier =
+    callerBarber?.permission_level === "owner" && !callerBarber?.shop_id;
+  const isAdminTier =
+    callerBarber?.permission_level === "superadmin" || isOwnerTier;
+
+  if (!isAdminTier) {
+    return json({ error: "Forbidden: admin access required" }, 403);
   }
 
-  let body: { action?: string; name?: string; email?: string; barber_id?: string };
+  let body: {
+    action?: string;
+    name?: string;
+    email?: string;
+    barber_id?: string;
+  };
   try {
     body = await req.json();
   } catch {
     return json({ error: "Invalid request body" }, 400);
   }
 
-  // ── LIST ──────────────────────────────────────────────────────────────────
-  if (body.action === "list") {
-    const { data, error } = await supabaseAdmin
+  // Helper — logs to admin_activity_log via service role (bypasses RLS)
+  const log = (opts: {
+    action_type: string;
+    target_type?: string;
+    target_id?: string;
+    target_label?: string;
+    old_value?: unknown;
+    new_value?: unknown;
+  }) =>
+    supabaseAdmin.from("admin_activity_log").insert({
+      actor_user_id: caller.id,
+      actor_name: callerBarber?.name ?? "Unknown",
+      actor_email: callerBarber?.email ?? "unknown",
+      ...opts,
+    });
+
+  // Helper — returns current platform admin list
+  const listAdmins = () =>
+    supabaseAdmin
       .from("barbers")
-      .select("id, name, email, created_at")
-      .eq("permission_level", "superadmin")
+      .select("id, name, email, created_at, permission_level")
+      .in("permission_level", ["superadmin", "owner"])
+      .is("shop_id", null)
       .order("created_at", { ascending: true });
 
+  // ── LIST (superadmin OR owner) ─────────────────────────────────────────────
+  if (body.action === "list") {
+    const { data, error } = await listAdmins();
     if (error) return json({ error: error.message }, 500);
-    return json({ superadmins: data ?? [] });
+    return json({ admins: data ?? [] });
   }
 
-  // ── RESET (generate new temp password for an existing superadmin) ─────────
+  // All remaining actions require owner tier
+  if (!isOwnerTier) {
+    return json({ error: "Forbidden: owner access required" }, 403);
+  }
+
+  // ── RESET PASSWORD ────────────────────────────────────────────────────────
   if (body.action === "reset") {
     const { barber_id } = body;
     if (!barber_id) return json({ error: "barber_id is required" }, 400);
 
     const { data: barber } = await supabaseAdmin
       .from("barbers")
-      .select("user_id")
+      .select("user_id, name, email")
       .eq("id", barber_id)
       .maybeSingle();
 
     if (!barber?.user_id) return json({ error: "Barber not found or has no auth account" }, 400);
 
     const tempPassword = generateTempPassword();
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(barber.user_id, {
-      password: tempPassword,
-      user_metadata: { must_change_password: true },
-    });
-
+    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+      barber.user_id,
+      { password: tempPassword, user_metadata: { must_change_password: true } }
+    );
     if (updateError) {
       console.error("Password reset error:", updateError.message);
       return json({ error: `Failed to reset password: ${updateError.message}` }, 500);
     }
 
+    await log({
+      action_type: "password_reset_triggered",
+      target_type: "barber",
+      target_id: barber_id,
+      target_label: `${barber.name} (${barber.email})`,
+    });
+
     return json({ success: true, temp_password: tempPassword });
   }
 
-  // ── INVITE ────────────────────────────────────────────────────────────────
+  // ── REMOVE ADMIN ACCESS ───────────────────────────────────────────────────
+  if (body.action === "delete") {
+    const { barber_id } = body;
+    if (!barber_id) return json({ error: "barber_id is required" }, 400);
+
+    // Prevent self-deletion
+    if (barber_id === callerBarber?.id) {
+      return json({ error: "You cannot remove your own admin access." }, 400);
+    }
+
+    const { data: target, error: lookupError } = await supabaseAdmin
+      .from("barbers")
+      .select("id, name, email, permission_level, shop_id, user_id")
+      .eq("id", barber_id)
+      .maybeSingle();
+
+    if (lookupError || !target) return json({ error: "Account not found" }, 404);
+    if (target.shop_id !== null) {
+      return json({ error: "Cannot remove access from a shop-associated account via this panel." }, 400);
+    }
+
+    const oldLevel = target.permission_level;
+
+    const { error: deleteError } = await supabaseAdmin
+      .from("barbers")
+      .delete()
+      .eq("id", barber_id);
+
+    if (deleteError) {
+      console.error("Delete barber error:", deleteError.message);
+      return json({ error: `Failed to remove access: ${deleteError.message}` }, 500);
+    }
+
+    // Also disable the auth user so they can't log in
+    if (target.user_id) {
+      await supabaseAdmin.auth.admin.updateUserById(target.user_id, {
+        ban_duration: "876600h", // ~100 years
+      });
+    }
+
+    await log({
+      action_type: "superadmin_deleted",
+      target_type: "barber",
+      target_id: barber_id,
+      target_label: `${target.name} (${target.email})`,
+      old_value: { permission_level: oldLevel },
+    });
+
+    const { data: updatedList } = await listAdmins();
+    return json({ success: true, admins: updatedList ?? [] });
+  }
+
+  // ── PROMOTE TO OWNER ──────────────────────────────────────────────────────
+  if (body.action === "promote") {
+    const { barber_id } = body;
+    if (!barber_id) return json({ error: "barber_id is required" }, 400);
+
+    const { data: target, error: lookupError } = await supabaseAdmin
+      .from("barbers")
+      .select("id, name, email, permission_level")
+      .eq("id", barber_id)
+      .maybeSingle();
+
+    if (lookupError || !target) return json({ error: "Account not found" }, 404);
+    if (target.permission_level === "owner") {
+      return json({ error: `${target.name} is already an Owner.` }, 400);
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from("barbers")
+      .update({ permission_level: "owner" })
+      .eq("id", barber_id);
+
+    if (updateError) {
+      console.error("Promote error:", updateError.message);
+      return json({ error: `Failed to promote account: ${updateError.message}` }, 500);
+    }
+
+    await log({
+      action_type: "promoted_to_owner",
+      target_type: "barber",
+      target_id: barber_id,
+      target_label: `${target.name} (${target.email})`,
+      old_value: { permission_level: target.permission_level },
+      new_value: { permission_level: "owner" },
+    });
+
+    const { data: updatedList } = await listAdmins();
+    return json({ success: true, admins: updatedList ?? [] });
+  }
+
+  // ── INVITE (create new superadmin with temp password) ─────────────────────
   if (body.action !== "invite") {
-    return json({ error: "action must be 'list', 'invite', or 'reset'" }, 400);
+    return json({ error: "action must be list, invite, reset, delete, or promote" }, 400);
   }
 
   const { name, email } = body;
@@ -114,28 +247,26 @@ Deno.serve(async (req) => {
   let authUserId: string;
   let alreadyExisted = false;
 
-  // Create the auth user with a temp password (email_confirm: true skips the verification email).
-  // No invite email is sent — the admin delivers the temp password out-of-band.
-  const { data: createData, error: createError } = await supabaseAdmin.auth.admin.createUser({
-    email: email.trim(),
-    password: tempPassword,
-    email_confirm: true,
-    user_metadata: { must_change_password: true },
-  });
+  const { data: createData, error: createError } =
+    await supabaseAdmin.auth.admin.createUser({
+      email: email.trim(),
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { must_change_password: true },
+    });
 
   if (createError) {
     const msg = createError.message.toLowerCase();
     const isExisting =
       msg.includes("already") || msg.includes("exists") || msg.includes("duplicate");
-
     if (!isExisting) {
       console.error("createUser error:", createError.message);
       return json({ error: `Failed to create account: ${createError.message}` }, 500);
     }
 
-    // User already has an auth account — reset their password and set the flag
     alreadyExisted = true;
-    const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
+    const { data: listData, error: listError } =
+      await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
     if (listError) return json({ error: "Could not look up existing auth user" }, 500);
 
     const existing = listData.users.find((u) => u.email === email.trim());
@@ -154,7 +285,7 @@ Deno.serve(async (req) => {
     authUserId = createData.user.id;
   }
 
-  // Create or promote the barbers row
+  // Create or promote their barbers row
   const { data: existingBarber, error: lookupError } = await supabaseAdmin
     .from("barbers")
     .select("id, permission_level")
@@ -166,18 +297,20 @@ Deno.serve(async (req) => {
     return json({ error: `Barber lookup failed: ${lookupError.message}` }, 500);
   }
 
+  let newBarberId: string;
+
   if (existingBarber) {
     const { error: updateError } = await supabaseAdmin
       .from("barbers")
       .update({ permission_level: "superadmin", user_id: authUserId, name: name.trim() })
       .eq("id", existingBarber.id);
-
     if (updateError) {
       console.error("Barber update error:", updateError.message);
       return json({ error: `Failed to promote account: ${updateError.message}` }, 500);
     }
+    newBarberId = existingBarber.id;
   } else {
-    const { error: insertError } = await supabaseAdmin
+    const { data: inserted, error: insertError } = await supabaseAdmin
       .from("barbers")
       .insert({
         name: name.trim(),
@@ -186,24 +319,29 @@ Deno.serve(async (req) => {
         user_id: authUserId,
         is_active: true,
         online_bookable: false,
-      });
-
+      })
+      .select("id")
+      .single();
     if (insertError) {
       console.error("Barber insert error:", insertError.message);
       return json({ error: `Failed to create barber record: ${insertError.message}` }, 500);
     }
+    newBarberId = inserted.id;
   }
 
-  const { data: updatedList } = await supabaseAdmin
-    .from("barbers")
-    .select("id, name, email, created_at")
-    .eq("permission_level", "superadmin")
-    .order("created_at", { ascending: true });
+  await log({
+    action_type: "superadmin_created",
+    target_type: "barber",
+    target_id: newBarberId,
+    target_label: `${name.trim()} (${email.trim()})`,
+    new_value: { permission_level: "superadmin", email: email.trim(), already_existed: alreadyExisted },
+  });
 
+  const { data: updatedList } = await listAdmins();
   return json({
     success: true,
     already_existed: alreadyExisted,
     temp_password: tempPassword,
-    superadmins: updatedList ?? [],
+    admins: updatedList ?? [],
   });
 });

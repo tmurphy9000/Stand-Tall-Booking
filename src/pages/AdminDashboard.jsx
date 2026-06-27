@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, ShieldAlert, Search, Loader2 } from "lucide-react";
+import { ArrowLeft, ShieldAlert, Search, Loader2, Crown } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -296,23 +296,37 @@ function timeAgo(ts) {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-function SuperadminsTab() {
+function RoleBadge({ level }) {
+  if (level === "owner") {
+    return (
+      <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200 gap-1">
+        <Crown className="w-3 h-3" /> Owner
+      </Badge>
+    );
+  }
+  return <Badge variant="outline" className="bg-muted text-muted-foreground border-border">Superadmin</Badge>;
+}
+
+function SuperadminsTab({ isOwnerTier }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [superadmins, setSuperadmins] = useState([]);
+  const [admins, setAdmins] = useState([]);
   const [loadingList, setLoadingList] = useState(true);
   // { password: string, label: string } — shown once, never persisted; null when dismissed
   const [tempPasswordData, setTempPasswordData] = useState(null);
   const [resettingId, setResettingId] = useState(null);
+  // { type: 'remove'|'promote', barber } | null
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [actionLoading, setActionLoading] = useState(false);
 
   const loadList = async () => {
     setLoadingList(true);
     const { data } = await supabase.functions.invoke("inviteSuperadmin", {
       body: { action: "list" },
     });
-    setSuperadmins(data?.superadmins ?? []);
+    setAdmins(data?.admins ?? []);
     setLoadingList(false);
   };
 
@@ -341,7 +355,7 @@ function SuperadminsTab() {
       setError(data?.error || await extractFnError(fnError));
       return;
     }
-    if (data?.superadmins) setSuperadmins(data.superadmins);
+    if (data?.admins) setAdmins(data.admins);
     setName("");
     setEmail("");
     setTempPasswordData({ password: data.temp_password, label: `for ${capturedEmail}` });
@@ -361,47 +375,103 @@ function SuperadminsTab() {
     setTempPasswordData({ password: data.temp_password, label: `for ${barber.email}` });
   };
 
+  const handleRemove = async (barber) => {
+    setActionLoading(true);
+    const { data, error: fnError } = await supabase.functions.invoke("inviteSuperadmin", {
+      body: { action: "delete", barber_id: barber.id },
+    });
+    setActionLoading(false);
+    setConfirmAction(null);
+    if (fnError || data?.error) {
+      setError(data?.error || await extractFnError(fnError));
+      return;
+    }
+    if (data?.admins) setAdmins(data.admins);
+    toast.success(`${barber.name}'s admin access has been removed.`);
+  };
+
+  const handlePromote = async (barber) => {
+    setActionLoading(true);
+    const { data, error: fnError } = await supabase.functions.invoke("inviteSuperadmin", {
+      body: { action: "promote", barber_id: barber.id },
+    });
+    setActionLoading(false);
+    setConfirmAction(null);
+    if (fnError || data?.error) {
+      setError(data?.error || await extractFnError(fnError));
+      return;
+    }
+    if (data?.admins) setAdmins(data.admins);
+    toast.success(`${barber.name} has been promoted to Owner.`);
+  };
+
   return (
-    <div className="space-y-6 max-w-xl">
-      {/* Current superadmins list */}
+    <div className="space-y-6 max-w-2xl">
+      {/* Current platform admins list */}
       <Card>
         <CardContent className="p-4">
-          <h3 className="text-sm font-semibold mb-3">Current Superadmins</h3>
+          <h3 className="text-sm font-semibold mb-3">Platform Admins</h3>
           {loadingList ? (
             <p className="text-sm text-muted-foreground">Loading…</p>
-          ) : superadmins.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No superadmin accounts yet.</p>
+          ) : admins.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No admin accounts yet.</p>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
                   <TableHead>Added</TableHead>
-                  <TableHead></TableHead>
+                  {isOwnerTier && <TableHead></TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {superadmins.map(s => (
+                {admins.map(s => (
                   <TableRow key={s.id}>
                     <TableCell className="font-medium text-sm">{s.name}</TableCell>
                     <TableCell className="text-sm">{s.email}</TableCell>
+                    <TableCell><RoleBadge level={s.permission_level} /></TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {new Date(s.created_at).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-xs h-7 px-2"
-                        disabled={resettingId === s.id}
-                        onClick={() => handleReset(s)}
-                      >
-                        {resettingId === s.id
-                          ? <Loader2 className="w-3 h-3 animate-spin" />
-                          : "Reset password"}
-                      </Button>
-                    </TableCell>
+                    {isOwnerTier && (
+                      <TableCell>
+                        <div className="flex gap-1 justify-end">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-xs h-7 px-2"
+                            disabled={resettingId === s.id || !!confirmAction}
+                            onClick={() => handleReset(s)}
+                          >
+                            {resettingId === s.id
+                              ? <Loader2 className="w-3 h-3 animate-spin" />
+                              : "Reset pwd"}
+                          </Button>
+                          {s.permission_level !== "owner" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-xs h-7 px-2 text-purple-700 hover:text-purple-800 hover:bg-purple-50"
+                              disabled={!!confirmAction}
+                              onClick={() => setConfirmAction({ type: "promote", barber: s })}
+                            >
+                              Promote
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-xs h-7 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                            disabled={!!confirmAction}
+                            onClick={() => setConfirmAction({ type: "remove", barber: s })}
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -410,78 +480,263 @@ function SuperadminsTab() {
         </CardContent>
       </Card>
 
-      {/* Add New Superadmin / one-time temp password display */}
-      <Card>
-        <CardContent className="p-4 space-y-4">
-          {tempPasswordData ? (
-            /* Shown once — dismissed on "Done", never retrievable after that */
-            <>
-              <div>
-                <h3 className="text-sm font-semibold">Temporary Password</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Account {tempPasswordData.label}. Copy it now — it won't be shown again.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 bg-muted border border-border rounded px-3 py-2.5 text-sm font-mono tracking-wider select-all">
-                  {tempPasswordData.password}
-                </code>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => {
-                    navigator.clipboard.writeText(tempPasswordData.password);
-                    toast.success("Copied to clipboard");
-                  }}
-                >
-                  Copy
-                </Button>
-              </div>
-              <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
-                Send via phone or a secure channel — do not email this password.
-              </p>
-              <Button className="w-full" onClick={() => setTempPasswordData(null)}>
-                Done — I've copied it
-              </Button>
-            </>
-          ) : (
-            /* Invite form */
-            <>
-              <div>
-                <h3 className="text-sm font-semibold">Add New Superadmin</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Creates an account with a temporary password you'll share out-of-band. No email is sent.
-                </p>
-              </div>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1">Full name</label>
-                  <Input
-                    value={name}
-                    onChange={e => { setName(e.target.value); setError(""); }}
-                    placeholder="Jane Smith"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium text-muted-foreground block mb-1">Email address</label>
-                  <Input
-                    type="email"
-                    value={email}
-                    onChange={e => { setEmail(e.target.value); setError(""); }}
-                    placeholder="jane@example.com"
-                    onKeyDown={e => { if (e.key === "Enter") handleInvite(); }}
-                  />
-                </div>
-              </div>
-              {error && <p className="text-sm text-red-500">{error}</p>}
+      {/* Confirmation card — shown when Remove or Promote is clicked */}
+      {confirmAction && (
+        <Card className={confirmAction.type === "remove" ? "border-red-200 bg-red-50" : "border-purple-200 bg-purple-50"}>
+          <CardContent className="p-4 space-y-3">
+            <p className="text-sm font-medium">
+              {confirmAction.type === "remove"
+                ? `Remove ${confirmAction.barber.name}'s admin access? Their login will be disabled immediately.`
+                : `Promote ${confirmAction.barber.name} to Owner? They'll have full platform control, including the ability to remove other admins.`}
+            </p>
+            <div className="flex gap-2">
               <Button
-                onClick={handleInvite}
-                disabled={submitting || !name.trim() || !email.trim()}
+                size="sm"
+                variant="outline"
+                disabled={actionLoading}
+                onClick={() => setConfirmAction(null)}
               >
-                {submitting ? "Creating account…" : "Create account"}
+                Cancel
               </Button>
-            </>
-          )}
+              <Button
+                size="sm"
+                disabled={actionLoading}
+                className={
+                  confirmAction.type === "remove"
+                    ? "bg-red-600 hover:bg-red-700 text-white"
+                    : "bg-purple-600 hover:bg-purple-700 text-white"
+                }
+                onClick={() =>
+                  confirmAction.type === "remove"
+                    ? handleRemove(confirmAction.barber)
+                    : handlePromote(confirmAction.barber)
+                }
+              >
+                {actionLoading ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : confirmAction.type === "remove" ? (
+                  "Yes, remove access"
+                ) : (
+                  "Yes, promote to Owner"
+                )}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {error && <p className="text-sm text-red-500">{error}</p>}
+
+      {/* Add New Superadmin / one-time temp password display (owner-only) */}
+      {isOwnerTier && (
+        <Card>
+          <CardContent className="p-4 space-y-4">
+            {tempPasswordData ? (
+              /* Shown once — dismissed on "Done", never retrievable after that */
+              <>
+                <div>
+                  <h3 className="text-sm font-semibold">Temporary Password</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Account {tempPasswordData.label}. Copy it now — it won't be shown again.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <code className="flex-1 bg-muted border border-border rounded px-3 py-2.5 text-sm font-mono tracking-wider select-all">
+                    {tempPasswordData.password}
+                  </code>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      navigator.clipboard.writeText(tempPasswordData.password);
+                      toast.success("Copied to clipboard");
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
+                <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                  Send via phone or a secure channel — do not email this password.
+                </p>
+                <Button className="w-full" onClick={() => setTempPasswordData(null)}>
+                  Done — I've copied it
+                </Button>
+              </>
+            ) : (
+              /* Invite form */
+              <>
+                <div>
+                  <h3 className="text-sm font-semibold">Add New Superadmin</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Creates an account with a temporary password you'll share out-of-band. No email is sent.
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground block mb-1">Full name</label>
+                    <Input
+                      value={name}
+                      onChange={e => { setName(e.target.value); setError(""); }}
+                      placeholder="Jane Smith"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground block mb-1">Email address</label>
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={e => { setEmail(e.target.value); setError(""); }}
+                      placeholder="jane@example.com"
+                      onKeyDown={e => { if (e.key === "Enter") handleInvite(); }}
+                    />
+                  </div>
+                </div>
+                <Button
+                  onClick={handleInvite}
+                  disabled={submitting || !name.trim() || !email.trim()}
+                >
+                  {submitting ? "Creating account…" : "Create account"}
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+const ACTION_LABELS = {
+  superadmin_created: "Account created",
+  password_reset_triggered: "Password reset",
+  superadmin_deleted: "Access removed",
+  promoted_to_owner: "Promoted to Owner",
+  recurring_block_series_deleted: "Recurring blocks deleted",
+};
+
+const LOG_DATE_RANGES = [
+  { value: "7", label: "Last 7 days" },
+  { value: "30", label: "Last 30 days" },
+  { value: "90", label: "Last 90 days" },
+  { value: "all", label: "All time" },
+];
+
+const LOG_TYPE_OPTIONS = [
+  { value: "all", label: "All actions" },
+  { value: "superadmin_created", label: "Account created" },
+  { value: "password_reset_triggered", label: "Password reset" },
+  { value: "superadmin_deleted", label: "Access removed" },
+  { value: "promoted_to_owner", label: "Promoted to Owner" },
+  { value: "recurring_block_series_deleted", label: "Recurring blocks deleted" },
+];
+
+function ActivityLogTab() {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [range, setRange] = useState("30");
+  const [typeFilter, setTypeFilter] = useState("all");
+
+  useEffect(() => {
+    setLoading(true);
+    supabase
+      .from("admin_activity_log")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(500)
+      .then(({ data }) => {
+        setLogs(data ?? []);
+        setLoading(false);
+      });
+  }, []);
+
+  const filtered = useMemo(() => {
+    let items = logs;
+    if (typeFilter !== "all") items = items.filter(l => l.action_type === typeFilter);
+    if (range !== "all") {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - parseInt(range, 10));
+      items = items.filter(l => new Date(l.created_at) >= cutoff);
+    }
+    return items;
+  }, [logs, range, typeFilter]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2 flex-wrap">
+        <Select value={range} onValueChange={setRange}>
+          <SelectTrigger className="w-40">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {LOG_DATE_RANGES.map(r => (
+              <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={typeFilter} onValueChange={setTypeFilter}>
+          <SelectTrigger className="w-52">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {LOG_TYPE_OPTIONS.map(o => (
+              <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {!loading && (
+          <span className="text-sm text-muted-foreground ml-1">
+            {filtered.length} {filtered.length === 1 ? "entry" : "entries"}
+          </span>
+        )}
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>When</TableHead>
+                <TableHead>Actor</TableHead>
+                <TableHead>Action</TableHead>
+                <TableHead>Target</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    Loading…
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
+                    No activity in this period
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && filtered.map(l => (
+                <TableRow key={l.id}>
+                  <TableCell className="text-xs text-muted-foreground whitespace-nowrap">
+                    {timeAgo(l.created_at)}
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm font-medium">{l.actor_name}</div>
+                    <div className="text-xs text-muted-foreground">{l.actor_email}</div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs">
+                      {ACTION_LABELS[l.action_type] ?? l.action_type}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {l.target_label ?? l.target_id ?? "—"}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         </CardContent>
       </Card>
     </div>
@@ -598,9 +853,9 @@ function DropOffsTab() {
 }
 
 export default function AdminDashboard() {
-  const { isSuperAdmin } = usePermissions();
+  const { isAdminTier, isOwnerTier } = usePermissions();
 
-  if (!isSuperAdmin) {
+  if (!isAdminTier) {
     return (
       <div className="flex items-center justify-center h-[70vh]">
         <div className="text-center">
@@ -635,6 +890,7 @@ export default function AdminDashboard() {
             <TabsTrigger value="signups">All Signups</TabsTrigger>
             <TabsTrigger value="actions">Account Actions</TabsTrigger>
             <TabsTrigger value="superadmins">Superadmins</TabsTrigger>
+            {isOwnerTier && <TabsTrigger value="activitylog">Activity Log</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="dropoffs">
@@ -653,8 +909,13 @@ export default function AdminDashboard() {
             <AccountActionsTab />
           </TabsContent>
           <TabsContent value="superadmins">
-            <SuperadminsTab />
+            <SuperadminsTab isOwnerTier={isOwnerTier} />
           </TabsContent>
+          {isOwnerTier && (
+            <TabsContent value="activitylog">
+              <ActivityLogTab />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>
