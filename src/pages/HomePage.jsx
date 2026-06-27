@@ -323,6 +323,7 @@ function PricingTab({ setTab }) {
 
 // ─── JOIN TODAY TAB ──────────────────────────────────────────
 const questions = [
+  { id:"contact", type:"contact", label:"Let's start with your contact info." },
   { id:"shop_type", type:"choice", label:"Are you a solo barber, or do you manage more than one barber?", choices:["Just me — I'm a solo barber","I manage a team of barbers"] },
   { id:"barbers_current", type:"number", label:"How many barbers are currently working in your shop?", placeholder:"e.g. 4" },
   { id:"barbers_capacity", type:"number", label:"How many barbers does your shop run at full capacity?", placeholder:"e.g. 6" },
@@ -332,10 +333,7 @@ const questions = [
   { id:"biggest_complaint", type:"textarea", label:"What's your biggest frustration with your current software?", placeholder:"Tell us what drives you crazy…" },
   { id:"biggest_like", type:"textarea", label:"Is there anything you actually like about it?", placeholder:"Anything you'd want us to keep in mind…" },
   { id:"plan", type:"plan", label:"Which plan is right for your shop?" },
-  { id:"name", type:"text", label:"What's your name?", placeholder:"First and last" },
   { id:"terms", type:"terms", label:"Before we get started — a few things to know." },
-  { id:"email", type:"email", label:"Your email address", placeholder:"you@example.com" },
-  { id:"phone", type:"tel", label:"Best phone number to reach you", placeholder:"(555) 555-5555" },
 ];
 
 const PLAN_KEYS = {
@@ -374,6 +372,7 @@ function JoinTab() {
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
 
   const [termsAccepted, setTermsAccepted] = useState({ terms: false, smsEmail: false, age: false });
+  const [contactErrors, setContactErrors] = useState({});
 
   // ── Signup attempt tracking ──────────────────────────────────
   // Store id in both ref (for synchronous access inside callbacks) and
@@ -511,8 +510,20 @@ function JoinTab() {
 
   function handleBack() { setStep(s => Math.max(0, s - 1)); }
 
+  function handleContactNext() {
+    const errors = {};
+    if (!answers.name?.trim()) errors.name = "Full name is required.";
+    if (!answers.email?.trim()) errors.email = "Email address is required.";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(answers.email.trim())) errors.email = "Enter a valid email address.";
+    if (!answers.phone?.trim()) errors.phone = "Phone number is required.";
+    else if (answers.phone.replace(/\D/g, "").length < 10) errors.phone = "Enter a valid 10-digit phone number.";
+    setContactErrors(errors);
+    if (Object.keys(errors).length === 0) handleNext();
+  }
+
   async function handleSubmit() {
-    // Capture phone (last question — step doesn't increment so the useEffect won't fire)
+    // Fired when the terms step (last question) is accepted. Step doesn't increment, so the
+    // useEffect won't fire. Phone/name/email are already captured at step 0; this marks completion.
     const id = attemptIdRef.current;
     if (id) {
       supabase.from("signup_attempts").update({
@@ -700,7 +711,34 @@ function JoinTab() {
       <div style={{width:"100%", maxWidth:"620px"}}>
         <h2 style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"clamp(28px,4vw,42px)", color:FG, margin:"0 0 2rem", letterSpacing:"0.02em", lineHeight:1.1}}>{q.label}</h2>
 
-        {q.type === "terms" ? (
+        {q.type === "contact" ? (
+          <div style={{display:"flex", flexDirection:"column", gap:"14px"}}>
+            {[
+              { key:"name",  label:"Full name",       type:"text",  placeholder:"First and last" },
+              { key:"email", label:"Email address",   type:"email", placeholder:"you@example.com" },
+              { key:"phone", label:"Phone number",    type:"tel",   placeholder:"(555) 555-5555" },
+            ].map(f => (
+              <div key={f.key}>
+                <label style={{fontSize:"11px", letterSpacing:"0.1em", color:"#D1D5DB", textTransform:"uppercase", fontWeight:500, display:"block", marginBottom:"6px"}}>{f.label}</label>
+                <input
+                  type={f.type}
+                  value={answers[f.key] || ""}
+                  onChange={e => { setAnswers(a => ({...a, [f.key]: e.target.value})); setContactErrors(err => ({...err, [f.key]: ""})); }}
+                  onKeyDown={e => { if (e.key === "Enter") handleContactNext(); }}
+                  placeholder={f.placeholder}
+                  style={{width:"100%", padding:"13px 16px", background:"#111", border:`1px solid ${contactErrors[f.key] ? "#F87171" : BORDER}`, color:FG, fontSize:"14px", borderRadius:"4px", fontFamily:"inherit", outline:"none", boxSizing:"border-box"}}
+                />
+                {contactErrors[f.key] && <p style={{fontSize:"12px", color:"#F87171", margin:"4px 0 0"}}>{contactErrors[f.key]}</p>}
+              </div>
+            ))}
+            <div style={{marginTop:"8px"}}>
+              <button onClick={handleContactNext}
+                style={{background:G, color:BG, border:"none", padding:"11px 28px", fontSize:"13px", fontWeight:600, letterSpacing:"0.06em", borderRadius:"2px", cursor:"pointer", fontFamily:"inherit"}}>
+                NEXT →
+              </button>
+            </div>
+          </div>
+        ) : q.type === "terms" ? (
           <div>
             {/* Scrollable T&C box */}
             <div style={{background:"#0A0A0A", border:`1px solid ${BORDER}`, borderRadius:"4px", padding:"1.5rem", maxHeight:"340px", overflowY:"auto", marginBottom:"1.5rem", fontSize:"12px", color:"#C9CAD0", lineHeight:1.75}}>
@@ -842,7 +880,7 @@ function JoinTab() {
         )}
 
         {/* Nav buttons */}
-        {q.type !== "choice" && q.type !== "plan" && (
+        {q.type !== "choice" && q.type !== "plan" && q.type !== "contact" && (
           <div style={{display:"flex", gap:"10px", marginTop:"2rem", alignItems:"center"}}>
             {step > 0 && (
               <button onClick={handleBack} style={{background:"transparent", border:`1px solid ${BORDER}`, color:"#D1D5DB", padding:"11px 20px", fontSize:"13px", borderRadius:"2px", cursor:"pointer", fontFamily:"inherit"}}>← Back</button>
