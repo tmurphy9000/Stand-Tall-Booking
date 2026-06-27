@@ -405,6 +405,21 @@ function SuperadminsTab({ isOwnerTier }) {
     toast.success(`${barber.name} has been promoted to Owner.`);
   };
 
+  const handleDemote = async (barber) => {
+    setActionLoading(true);
+    const { data, error: fnError } = await supabase.functions.invoke("inviteSuperadmin", {
+      body: { action: "demote", barber_id: barber.id },
+    });
+    setActionLoading(false);
+    setConfirmAction(null);
+    if (fnError || data?.error) {
+      setError(data?.error || await extractFnError(fnError));
+      return;
+    }
+    if (data?.admins) setAdmins(data.admins);
+    toast.success(`${barber.name} has been demoted to Superadmin.`);
+  };
+
   return (
     <div className="space-y-6 max-w-2xl">
       {/* Current platform admins list */}
@@ -460,6 +475,17 @@ function SuperadminsTab({ isOwnerTier }) {
                               Promote
                             </Button>
                           )}
+                          {s.permission_level === "owner" && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-xs h-7 px-2 text-amber-700 hover:text-amber-800 hover:bg-amber-50"
+                              disabled={!!confirmAction}
+                              onClick={() => setConfirmAction({ type: "demote", barber: s })}
+                            >
+                              Demote
+                            </Button>
+                          )}
                           <Button
                             size="sm"
                             variant="ghost"
@@ -480,13 +506,19 @@ function SuperadminsTab({ isOwnerTier }) {
         </CardContent>
       </Card>
 
-      {/* Confirmation card — shown when Remove or Promote is clicked */}
+      {/* Confirmation card — shown when Remove, Demote, or Promote is clicked */}
       {confirmAction && (
-        <Card className={confirmAction.type === "remove" ? "border-red-200 bg-red-50" : "border-purple-200 bg-purple-50"}>
+        <Card className={
+          confirmAction.type === "remove" ? "border-red-200 bg-red-50"
+          : confirmAction.type === "demote" ? "border-amber-200 bg-amber-50"
+          : "border-purple-200 bg-purple-50"
+        }>
           <CardContent className="p-4 space-y-3">
             <p className="text-sm font-medium">
               {confirmAction.type === "remove"
                 ? `Remove ${confirmAction.barber.name}'s admin access? Their login will be disabled immediately.`
+                : confirmAction.type === "demote"
+                ? `Demote ${confirmAction.barber.name} from Owner to Superadmin? They will lose access to the invite form, Remove/Promote/Demote buttons, and Activity Log.`
                 : `Promote ${confirmAction.barber.name} to Owner? They'll have full platform control, including the ability to remove other admins.`}
             </p>
             <div className="flex gap-2">
@@ -504,18 +536,22 @@ function SuperadminsTab({ isOwnerTier }) {
                 className={
                   confirmAction.type === "remove"
                     ? "bg-red-600 hover:bg-red-700 text-white"
+                    : confirmAction.type === "demote"
+                    ? "bg-amber-600 hover:bg-amber-700 text-white"
                     : "bg-purple-600 hover:bg-purple-700 text-white"
                 }
-                onClick={() =>
-                  confirmAction.type === "remove"
-                    ? handleRemove(confirmAction.barber)
-                    : handlePromote(confirmAction.barber)
-                }
+                onClick={() => {
+                  if (confirmAction.type === "remove") handleRemove(confirmAction.barber);
+                  else if (confirmAction.type === "demote") handleDemote(confirmAction.barber);
+                  else handlePromote(confirmAction.barber);
+                }}
               >
                 {actionLoading ? (
                   <Loader2 className="w-3 h-3 animate-spin" />
                 ) : confirmAction.type === "remove" ? (
                   "Yes, remove access"
+                ) : confirmAction.type === "demote" ? (
+                  "Yes, demote to Superadmin"
                 ) : (
                   "Yes, promote to Owner"
                 )}
@@ -611,6 +647,7 @@ const ACTION_LABELS = {
   password_reset_triggered: "Password reset",
   superadmin_deleted: "Access removed",
   promoted_to_owner: "Promoted to Owner",
+  demoted_to_superadmin: "Demoted to Superadmin",
   recurring_block_series_deleted: "Recurring blocks deleted",
 };
 
@@ -627,6 +664,7 @@ const LOG_TYPE_OPTIONS = [
   { value: "password_reset_triggered", label: "Password reset" },
   { value: "superadmin_deleted", label: "Access removed" },
   { value: "promoted_to_owner", label: "Promoted to Owner" },
+  { value: "demoted_to_superadmin", label: "Demoted to Superadmin" },
   { value: "recurring_block_series_deleted", label: "Recurring blocks deleted" },
 ];
 

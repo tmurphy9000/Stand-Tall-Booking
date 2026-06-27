@@ -233,6 +233,49 @@ Deno.serve(async (req) => {
     return json({ success: true, admins: updatedList ?? [] });
   }
 
+  // ── DEMOTE OWNER TO SUPERADMIN ────────────────────────────────────────────
+  if (body.action === "demote") {
+    const { barber_id } = body;
+    if (!barber_id) return json({ error: "barber_id is required" }, 400);
+
+    if (barber_id === callerBarber?.id) {
+      return json({ error: "You cannot demote your own account." }, 400);
+    }
+
+    const { data: target, error: lookupError } = await supabaseAdmin
+      .from("barbers")
+      .select("id, name, email, permission_level")
+      .eq("id", barber_id)
+      .maybeSingle();
+
+    if (lookupError || !target) return json({ error: "Account not found" }, 404);
+    if (target.permission_level !== "owner") {
+      return json({ error: `${target.name} is not an Owner.` }, 400);
+    }
+
+    const { error: updateError } = await supabaseAdmin
+      .from("barbers")
+      .update({ permission_level: "superadmin" })
+      .eq("id", barber_id);
+
+    if (updateError) {
+      console.error("Demote error:", updateError.message);
+      return json({ error: `Failed to demote account: ${updateError.message}` }, 500);
+    }
+
+    await log({
+      action_type: "demoted_to_superadmin",
+      target_type: "barber",
+      target_id: barber_id,
+      target_label: `${target.name} (${target.email})`,
+      old_value: { permission_level: "owner" },
+      new_value: { permission_level: "superadmin" },
+    });
+
+    const { data: updatedList } = await listAdmins();
+    return json({ success: true, admins: updatedList ?? [] });
+  }
+
   // ── INVITE (create new superadmin with temp password) ─────────────────────
   if (body.action !== "invite") {
     return json({ error: "action must be list, invite, reset, delete, or promote" }, 400);
