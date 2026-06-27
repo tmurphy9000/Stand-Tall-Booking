@@ -14,11 +14,11 @@ DO $$ BEGIN
 END $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- 2. Promote the platform owner account (tmurphy9000@gmail.com)
+-- 2. Promote the platform owner account (tanner@standtallbarbering.com)
 -- ─────────────────────────────────────────────────────────────────────────────
 UPDATE public.barbers
 SET permission_level = 'owner'
-WHERE user_id = (SELECT id FROM auth.users WHERE email = 'tmurphy9000@gmail.com');
+WHERE user_id = (SELECT id FROM auth.users WHERE email = 'tanner@standtallbarbering.com');
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- 3. Append-only admin activity log
