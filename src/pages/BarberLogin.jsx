@@ -56,8 +56,11 @@ export default function BarberLogin() {
 
     setForgotLoading(true);
     try {
+      const redirectTo = `${window.location.origin}/ChangePassword`;
+      console.log('[resetPassword] origin:', window.location.origin);
+      console.log('[resetPassword] redirectTo:', redirectTo);
       const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail.trim(), {
-        redirectTo: `${window.location.origin}/ChangePassword`,
+        redirectTo,
       });
 
       if (error) {
