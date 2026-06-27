@@ -39,16 +39,15 @@ CREATE TABLE IF NOT EXISTS public.admin_activity_log (
 
 ALTER TABLE public.admin_activity_log ENABLE ROW LEVEL SECURITY;
 
--- Owner-only SELECT (platform owners: permission_level='owner' AND shop_id IS NULL).
--- Relies on "Users can read own barber row" to resolve the EXISTS subquery safely.
+-- Owner-only SELECT: any barbers row with permission_level='owner' matching the caller.
+-- No shop_id restriction — matches the isOwnerTier definition in usePermissions.jsx.
 CREATE POLICY "owner_select_activity_log"
   ON public.admin_activity_log FOR SELECT TO authenticated
   USING (
     EXISTS (
       SELECT 1 FROM public.barbers
-      WHERE user_id   = auth.uid()
+      WHERE user_id = auth.uid()
         AND permission_level = 'owner'
-        AND shop_id   IS NULL
     )
   );
 
