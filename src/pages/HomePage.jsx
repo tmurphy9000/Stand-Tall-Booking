@@ -326,6 +326,7 @@ const questions = [
   { id:"shop_type", type:"choice", label:"Are you a solo barber, or do you manage more than one barber?", choices:["Just me — I'm a solo barber","I manage a team of barbers"] },
   { id:"barbers_current", type:"number", label:"How many barbers are currently working in your shop?", placeholder:"e.g. 4" },
   { id:"barbers_capacity", type:"number", label:"How many barbers does your shop run at full capacity?", placeholder:"e.g. 6" },
+  { id:"locations", type:"number", label:"How many locations do you operate?", placeholder:"e.g. 1" },
   { id:"model", type:"choice", label:"What's your shop's pay structure?", choices:["Booth rent","Commission","Both"] },
   { id:"current_software", type:"text", label:"What booking software are you using now?", placeholder:"e.g. Vagaro, Booksy, paper calendar…" },
   { id:"biggest_complaint", type:"textarea", label:"What's your biggest frustration with your current software?", placeholder:"Tell us what drives you crazy…" },
@@ -342,6 +343,21 @@ const PLAN_KEYS = {
   "Pro — $79/mo": "pro",
   "Elite — $149/mo per location": "elite",
 };
+
+const TEAM_ONLY_STEPS = new Set(["barbers_current", "barbers_capacity", "locations"]);
+
+function getVisibleQuestions(answers) {
+  const isSolo = answers.shop_type === "Just me — I'm a solo barber";
+  return questions.filter(q => !isSolo || !TEAM_ONLY_STEPS.has(q.id));
+}
+
+function getRecommendedPlanId(answers) {
+  if (answers.shop_type === "Just me — I'm a solo barber") return "Basic — $29/mo";
+  const barbers = parseInt(answers.barbers_current, 10) || 1;
+  const locations = parseInt(answers.locations, 10) || 1;
+  if (locations > 1 || barbers > 10) return "Elite — $149/mo per location";
+  return "Pro — $79/mo";
+}
 
 function JoinTab() {
   const checkoutStatus = new URLSearchParams(window.location.search).get("checkout");
@@ -372,7 +388,7 @@ function JoinTab() {
     lastTrackedStep.current = step;
 
     const payload = {
-      current_step: questions[step]?.id ?? `step_${step}`,
+      current_step: getVisibleQuestions(answers)[step]?.id ?? `step_${step}`,
       last_updated_at: new Date().toISOString(),
     };
     if (answers.email) payload.email = answers.email;
@@ -481,10 +497,12 @@ function JoinTab() {
     </div>
   );
 
-  const q = questions[step];
+  const visibleQuestions = getVisibleQuestions(answers);
+  const q = visibleQuestions[step];
   const val = answers[q?.id] || "";
-  const progress = ((step) / questions.length) * 100;
-  const isLast = step === questions.length - 1;
+  const progress = (step / visibleQuestions.length) * 100;
+  const isLast = step === visibleQuestions.length - 1;
+  const recommendedPlanId = getRecommendedPlanId(answers);
 
   function handleNext() {
     if (isLast) { handleSubmit(); return; }
@@ -673,7 +691,7 @@ function JoinTab() {
           <div style={{height:"100%", width:`${progress}%`, background:G, transition:"width 0.3s ease"}} />
         </div>
         <div style={{display:"flex", justifyContent:"space-between", marginTop:"8px"}}>
-          <span style={{fontSize:"11px", color:MID}}>{step + 1} of {questions.length}</span>
+          <span style={{fontSize:"11px", color:MID}}>{step + 1} of {visibleQuestions.length}</span>
           <span style={{fontSize:"11px", color:MID}}>{Math.round(progress)}% complete</span>
         </div>
       </div>
@@ -758,6 +776,7 @@ function JoinTab() {
               {planOptions.map(p => (
                 <button key={p.id} onClick={() => { setAnswers(a=>({...a,[q.id]:p.id})); setTimeout(handleNext, 250); }}
                   style={{textAlign:"left", padding:"0", background: val===p.id ? `${p.gold?GOLD:G}12` : p.highlight ? "#141414" : "#111", border: p.highlight ? `2px solid ${G}` : val===p.id ? `1px solid ${p.gold?GOLD:G}` : `1px solid ${BORDER}`, borderRadius:"4px", cursor:"pointer", fontFamily:"inherit", transition:"all 0.15s", overflow:"hidden"}}>
+                  {p.id === recommendedPlanId && <div style={{background:`${G}22`, color:G, fontSize:"10px", fontWeight:600, letterSpacing:"0.1em", padding:"4px 14px", textTransform:"uppercase", textAlign:"center", borderBottom:`1px solid ${G}33`}}>Recommended for you</div>}
                   {p.highlight && <div style={{background:G, color:BG, fontSize:"10px", fontWeight:600, letterSpacing:"0.1em", padding:"4px 14px", textTransform:"uppercase", textAlign:"center"}}>Most popular</div>}
                   <div style={{padding:"1.25rem 1.5rem"}}>
                     <div style={{display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"0.75rem"}}>
@@ -796,7 +815,11 @@ function JoinTab() {
         ) : q.type === "choice" ? (
           <div style={{display:"flex", flexDirection:"column", gap:"10px"}}>
             {q.choices.map(c => (
-              <button key={c} onClick={() => { setAnswers(a=>({...a,[q.id]:c})); setTimeout(handleNext, 200); }} style={{
+              <button key={c} onClick={() => {
+                const soloChoice = c === "Just me — I'm a solo barber";
+                setAnswers(a => ({...a, [q.id]: c, ...(soloChoice ? {barbers_current:"1", barbers_capacity:"1", locations:"1"} : {})}));
+                setTimeout(handleNext, 200);
+              }} style={{
                 textAlign:"left", padding:"14px 18px", fontSize:"14px",
                 background: val===c ? `${G}18` : "#111",
                 border: val===c ? `1px solid ${G}` : `1px solid ${BORDER}`,
@@ -834,7 +857,7 @@ function JoinTab() {
           <button onClick={handleBack} style={{marginTop:"1rem", background:"transparent", border:"none", color:"#D1D5DB", fontSize:"12px", cursor:"pointer", fontFamily:"inherit", padding:0}}>← Back</button>
         )}
 
-        {step === questions.length - 1 && (
+        {step === visibleQuestions.length - 1 && (
           <p style={{fontSize:"12px", color:"#D1D5DB", marginTop:"1.5rem", lineHeight:1.6}}>
             By signing up you agree to our Terms of Service. Month 1 billed at your plan rate. Month 2 credited automatically. Cancel any time.
           </p>
