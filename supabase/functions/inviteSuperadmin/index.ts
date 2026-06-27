@@ -84,6 +84,8 @@ Deno.serve(async (req) => {
       actor_name: callerBarber?.name ?? "Unknown",
       actor_email: callerBarber?.email ?? "unknown",
       ...opts,
+    }).then(({ error }) => {
+      if (error) console.error("[inviteSuperadmin] activity log insert failed:", error.message);
     });
 
   // Helper — returns current platform admin list
