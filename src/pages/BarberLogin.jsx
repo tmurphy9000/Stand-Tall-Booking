@@ -64,8 +64,8 @@ export default function BarberLogin() {
       });
 
       if (error) {
-        // Surface a readable message instead of raw Supabase internals
-        setForgotError("Unable to send reset email. Please try again or contact your manager.");
+        console.error('[resetPassword] error:', error.message, error);
+        setForgotError(`Unable to send reset email: ${error.message}`);
         return;
       }
 
