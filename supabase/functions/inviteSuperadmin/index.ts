@@ -50,9 +50,7 @@ Deno.serve(async (req) => {
     .eq("user_id", caller.id)
     .maybeSingle();
 
-  // Platform admin: superadmin or owner with no shop_id
-  const isOwnerTier =
-    callerBarber?.permission_level === "owner" && !callerBarber?.shop_id;
+  const isOwnerTier = callerBarber?.permission_level === "owner";
   const isAdminTier =
     callerBarber?.permission_level === "superadmin" || isOwnerTier;
 
