@@ -397,17 +397,15 @@ function JoinTab() {
 
     const id = attemptIdRef.current;
     if (!id) {
+      // Generate the UUID client-side so we never need to SELECT it back.
+      // The anon INSERT policy is write-only by design — there is no anon SELECT policy,
+      // so chaining .select("id") after insert would 403 on the RETURNING clause.
+      const newId = crypto.randomUUID();
+      attemptIdRef.current = newId;
+      sessionStorage.setItem("signup_attempt_id", newId);
       supabase
         .from("signup_attempts")
-        .insert({ ...payload, started_at: new Date().toISOString(), completed: false })
-        .select("id")
-        .single()
-        .then(({ data, error }) => {
-          if (!error && data?.id) {
-            attemptIdRef.current = data.id;
-            sessionStorage.setItem("signup_attempt_id", data.id);
-          }
-        });
+        .insert({ id: newId, ...payload, started_at: new Date().toISOString(), completed: false });
     } else {
       supabase.from("signup_attempts").update(payload).eq("id", id);
     }
