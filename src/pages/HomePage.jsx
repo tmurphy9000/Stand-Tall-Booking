@@ -397,17 +397,22 @@ function JoinTab() {
 
     const id = attemptIdRef.current;
     if (!id) {
-      // Generate the UUID client-side so we never need to SELECT it back.
-      // The anon INSERT policy is write-only by design — there is no anon SELECT policy,
-      // so chaining .select("id") after insert would 403 on the RETURNING clause.
+      // Generate UUID client-side — no SELECT needed, so no anon SELECT policy required.
+      // postgrest-js is a lazy thenable: .then() must be called to fire the actual fetch.
       const newId = crypto.randomUUID();
       attemptIdRef.current = newId;
       sessionStorage.setItem("signup_attempt_id", newId);
       supabase
         .from("signup_attempts")
-        .insert({ id: newId, ...payload, started_at: new Date().toISOString(), completed: false });
+        .insert({ id: newId, ...payload, started_at: new Date().toISOString(), completed: false })
+        .then(({ error }) => {
+          if (error) console.error("[signup_attempts] insert failed:", error.message);
+        });
     } else {
-      supabase.from("signup_attempts").update(payload).eq("id", id);
+      supabase.from("signup_attempts").update(payload).eq("id", id)
+        .then(({ error }) => {
+          if (error) console.error("[signup_attempts] update failed:", error.message);
+        });
     }
   }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
 
