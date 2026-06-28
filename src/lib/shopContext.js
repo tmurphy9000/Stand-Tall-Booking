@@ -26,17 +26,16 @@ export function useShop() {
         return;
       }
 
-      let resolvedShopId = user.user_metadata?.shop_id ?? null;
-
       const { data: subscription } = await supabase
         .from('subscriptions')
         .select('shop_id, tier, status')
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (!resolvedShopId) {
-        resolvedShopId = subscription?.shop_id ?? null;
-      }
+      // Prefer the subscriptions table (always DB-authoritative) over
+      // user_metadata embedded in the JWT, which can be stale if the token
+      // hasn't been refreshed since the shop_id was last updated.
+      const resolvedShopId = subscription?.shop_id ?? user.user_metadata?.shop_id ?? null;
 
       // Load Stripe Connect info and deposit config from shops table
       if (resolvedShopId) {
