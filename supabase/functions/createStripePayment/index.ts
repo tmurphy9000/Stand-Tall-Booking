@@ -29,12 +29,45 @@ Deno.serve(async (req) => {
   }
   console.log("[createStripePayment] STRIPE_SECRET_KEY present, prefix:", secretKey.slice(0, 12));
 
+  // ── Caller identification ─────────────────────────────────────────────────
+  // Two legitimate callers:
+  //   Staff  — authenticated barber at checkout (CheckoutModal, TerminalPayment,
+  //            QuickCheckout). Identified by a valid user JWT. We resolve the
+  //            shop from their barber record — shopId from the body is ignored.
+  //   Guest  — anonymous visitor paying a booking deposit. No user JWT.
+  //            Caller must pass guestDeposit: true and a valid shopId; we
+  //            validate the shop has deposits enabled before proceeding.
+  const authHeader = req.headers.get("authorization") || "";
+  const jwt = authHeader.replace(/^bearer\s+/i, "");
+
+  let isStaff = false;
+  let resolvedShopId: string | null = null;
+
+  if (jwt && supabaseUrl && serviceRoleKey) {
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const { data: { user } } = await supabase.auth.getUser(jwt);
+    if (user) {
+      const { data: barber } = await supabase
+        .from("barbers")
+        .select("shop_id, is_active")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (barber && barber.is_active !== false) {
+        isStaff = true;
+        resolvedShopId = barber.shop_id ?? null;
+        console.log("[createStripePayment] staff caller — user:", user.id, "resolvedShopId:", resolvedShopId);
+      }
+    }
+  }
+
+  // ── Parse body ───────────────────────────────────────────────────────────
   let body: {
     amount: number;
     description?: string;
     metadata?: Record<string, string>;
     shopId?: string;
     terminal?: boolean;
+    guestDeposit?: boolean;
   };
   try {
     body = await req.json();
@@ -42,23 +75,51 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid request body" }, 400);
   }
 
-  const { amount, description, metadata, shopId, terminal } = body;
+  const { amount, description, metadata, terminal, guestDeposit } = body;
+
   if (!amount || amount < 50) {
     return json({ error: "amount must be at least 50 cents" }, 400);
   }
 
-  // If shopId provided, look up the shop's connected Stripe account
+  // ── Guest deposit validation ──────────────────────────────────────────────
+  if (!isStaff) {
+    if (!guestDeposit) {
+      return json({ error: "Unauthorized" }, 401);
+    }
+
+    // Validate the shop exists and has deposits enabled before creating a payment intent.
+    const shopId = body.shopId;
+    if (!shopId || !supabaseUrl || !serviceRoleKey) {
+      return json({ error: "shopId is required for guest deposit" }, 400);
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const { data: settings } = await supabase
+      .from("shop_settings")
+      .select("deposit_enabled")
+      .eq("shop_id", shopId)
+      .maybeSingle();
+
+    if (!settings?.deposit_enabled) {
+      return json({ error: "Deposits are not enabled for this shop" }, 400);
+    }
+
+    resolvedShopId = shopId;
+    console.log("[createStripePayment] guest deposit — resolvedShopId:", resolvedShopId);
+  }
+
+  // ── Stripe account lookup ─────────────────────────────────────────────────
   let stripeAccountId: string | null = null;
-  if (shopId && supabaseUrl && serviceRoleKey) {
+  if (resolvedShopId && supabaseUrl && serviceRoleKey) {
     try {
       const supabase = createClient(supabaseUrl, serviceRoleKey);
       const { data: shop } = await supabase
         .from("shops")
         .select("stripe_account_id")
-        .eq("id", shopId)
+        .eq("id", resolvedShopId)
         .single();
       stripeAccountId = shop?.stripe_account_id ?? null;
-      console.log("[createStripePayment] shopId:", shopId, "stripeAccountId:", stripeAccountId ? "found" : "none");
+      console.log("[createStripePayment] resolvedShopId:", resolvedShopId, "stripeAccountId:", stripeAccountId ? "found" : "none");
     } catch (e) {
       console.warn("[createStripePayment] shop lookup failed:", e);
     }

@@ -25,25 +25,84 @@ Deno.serve(async (req) => {
     return json({ error: "Server configuration error" }, 500);
   }
 
-  let body: { bookingId: string; shopId: string };
+  const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+  // ── Caller identification ─────────────────────────────────────────────────
+  // Two legitimate callers:
+  //   Staff  — authenticated barber cancelling from the admin calendar.
+  //            Identified by a valid user JWT. We verify the booking belongs
+  //            to their shop server-side; shopId from the body is ignored.
+  //   Guest  — OTP-verified client cancelling their own booking from the
+  //            public booking page. No user JWT. Caller must supply clientId
+  //            and we verify booking.client_id matches.
+  const authHeader = req.headers.get("authorization") || "";
+  const jwt = authHeader.replace(/^bearer\s+/i, "");
+
+  let isStaff = false;
+  let staffShopId: string | null = null;
+
+  if (jwt) {
+    const { data: { user } } = await supabase.auth.getUser(jwt);
+    if (user) {
+      const { data: barber } = await supabase
+        .from("barbers")
+        .select("shop_id, is_active")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      // Superadmins may have shop_id = null — allow them to cancel any booking.
+      if (barber && barber.is_active !== false) {
+        isStaff = true;
+        staffShopId = barber.shop_id ?? null;
+      }
+    }
+  }
+
+  // ── Parse body ───────────────────────────────────────────────────────────
+  let body: { bookingId?: string; shopId?: string; clientId?: string };
   try {
     body = await req.json();
   } catch {
     return json({ error: "Invalid request body" }, 400);
   }
 
-  const { bookingId, shopId } = body;
-  if (!bookingId || !shopId) return json({ error: "bookingId and shopId are required" }, 400);
+  const { bookingId, clientId } = body;
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
+  if (!bookingId) return json({ error: "bookingId is required" }, 400);
 
+  // Guest path requires clientId to prove ownership.
+  if (!isStaff && !clientId) {
+    return json({ error: "Unauthorized" }, 401);
+  }
+
+  // ── Booking lookup ────────────────────────────────────────────────────────
   const { data: booking } = await supabase
     .from("bookings")
-    .select("deposit_payment_intent_id, deposit_amount_paid, deposit_refund_status, date, start_time")
+    .select(
+      "deposit_payment_intent_id, deposit_amount_paid, deposit_refund_status, date, start_time, shop_id, client_id"
+    )
     .eq("id", bookingId)
     .single();
 
-  if (!booking?.deposit_payment_intent_id) {
+  if (!booking) return json({ error: "Booking not found" }, 404);
+
+  // ── Authorization ─────────────────────────────────────────────────────────
+  if (isStaff) {
+    // Staff: booking must belong to their shop (superadmin with null shop_id is exempt).
+    if (staffShopId !== null && booking.shop_id !== staffShopId) {
+      return json({ error: "Forbidden" }, 403);
+    }
+  } else {
+    // Guest: booking must belong to the verified client.
+    if (booking.client_id !== clientId) {
+      return json({ error: "Unauthorized" }, 401);
+    }
+  }
+
+  // All subsequent lookups use booking.shop_id — never the client-supplied shopId.
+  const bookingShopId = booking.shop_id;
+
+  // ── Deposit check ─────────────────────────────────────────────────────────
+  if (!booking.deposit_payment_intent_id) {
     await supabase.from("bookings").update({ status: "cancelled" }).eq("id", bookingId);
     return json({ refunded: false, reason: "no_deposit" });
   }
@@ -53,10 +112,11 @@ Deno.serve(async (req) => {
     return json({ refunded: booking.deposit_refund_status === "refunded", reason: "already_processed" });
   }
 
+  // ── Refund window ─────────────────────────────────────────────────────────
   const { data: settingsRows } = await supabase
     .from("shop_settings")
     .select("deposit_refund_hours")
-    .eq("shop_id", shopId)
+    .eq("shop_id", bookingShopId)
     .limit(1);
 
   const refundHours = settingsRows?.[0]?.deposit_refund_hours ?? 24;
@@ -73,6 +133,7 @@ Deno.serve(async (req) => {
     return json({ refunded: false, reason: "outside_window", hoursUntilAppt });
   }
 
+  // ── Stripe refund ─────────────────────────────────────────────────────────
   const stripe = new Stripe(secretKey, { apiVersion: "2024-06-20" });
   try {
     const refund = await stripe.refunds.create({

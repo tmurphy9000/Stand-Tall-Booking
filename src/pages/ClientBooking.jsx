@@ -58,6 +58,7 @@ function DepositStepInner({ depositAmountCents, servicePriceCents, pretipEnabled
           description: "Booking deposit",
           metadata: { tip_cents: String(tipCents) },
           shopId,
+          guestDeposit: true,
         },
       });
       if (fnError || !data?.clientSecret) {
@@ -425,14 +426,12 @@ function AppointmentsScreen({ client, bookings: initialBookings, shopId, onBack 
   const handleCancel = async (id) => {
     setCancelling(id);
     try {
-      const booking = bookings.find(b => b.id === id);
-      if (booking?.deposit_payment_intent_id) {
-        await supabase.functions.invoke("stripe-refund-deposit", {
-          body: { bookingId: id, shopId },
-        });
-      } else {
-        await entities.Booking.update(id, { status: "cancelled" });
-      }
+      // Route all guest cancellations through stripe-refund-deposit — it handles both
+      // the deposit-refund case and the no-deposit case (just cancels the booking).
+      // clientId proves ownership so the edge function doesn't need a user JWT.
+      await supabase.functions.invoke("stripe-refund-deposit", {
+        body: { bookingId: id, shopId, clientId: client.id },
+      });
       setBookings(prev => prev.filter(b => b.id !== id));
     } finally {
       setCancelling(null);
