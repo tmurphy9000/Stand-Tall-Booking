@@ -29,6 +29,17 @@ const fadeSlide = {
 
 const DEPOSIT_TIP_PRESETS = [0, 15, 18, 20];
 
+// Returns only slot-availability data (no client PII) for a given shop + date.
+// Replaces direct anon SELECT on the bookings table.
+async function getBookedSlots(shopId, dateStr) {
+  const { data, error } = await supabase.rpc("get_booked_slots", {
+    p_shop_id: shopId,
+    p_date: dateStr,
+  });
+  if (error) throw error;
+  return data ?? [];
+}
+
 function DepositStepInner({ depositAmountCents, servicePriceCents, pretipEnabled, shopId, onSuccess, onBack, logoUrl, barber }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -1050,7 +1061,7 @@ function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack,
           if (working.length === 0) continue;
           try {
             if (!bookingsCacheRef.current[dateStr]) {
-              bookingsCacheRef.current[dateStr] = await entities.Booking.filter({ shop_id: shopId, date: dateStr });
+              bookingsCacheRef.current[dateStr] = await getBookedSlots(shopId, dateStr);
             }
             const dayBookings = bookingsCacheRef.current[dateStr];
             const timeToBarber = new Map();
@@ -1085,9 +1096,9 @@ function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack,
           if (isBarberOnTimeOff(barber.id, dateStr, approvedTimeOff)) continue;
           try {
             if (!bookingsCacheRef.current[dateStr]) {
-              bookingsCacheRef.current[dateStr] = await entities.Booking.filter({ shop_id: shopId, barber_id: barber.id, date: dateStr });
+              bookingsCacheRef.current[dateStr] = await getBookedSlots(shopId, dateStr);
             }
-            const dayBookings = bookingsCacheRef.current[dateStr];
+            const dayBookings = bookingsCacheRef.current[dateStr].filter(bk => bk.barber_id === barber.id);
             const daySlots = generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 15);
             for (const s of daySlots) {
               if (found.length >= limit) break;
@@ -1172,15 +1183,11 @@ function DateTimeStep({ shopId, barber, service, maxDays = 60, onSelect, onBack,
   useEffect(() => {
     if (!selectedDate || !barber) return;
     setLoadingSlots(true);
-    const mainQuery = isAny
-      ? entities.Booking.filter({ shop_id: shopId, date: selectedDate })
-      : entities.Booking.filter({ shop_id: shopId, barber_id: barber.id, date: selectedDate });
+    const mainQuery = getBookedSlots(shopId, selectedDate);
 
     if (guestBarber) {
       const guestIsAny = guestBarber.id === "any";
-      const guestQuery = (guestIsAny || isAny)
-        ? entities.Booking.filter({ shop_id: shopId, date: selectedDate })
-        : entities.Booking.filter({ shop_id: shopId, barber_id: guestBarber.id, date: selectedDate });
+      const guestQuery = getBookedSlots(shopId, selectedDate);
       console.log("[DateTimeStep] fetching bookings — date:", selectedDate,
         "| main barber:", isAny ? "any" : barber.id,
         "| guest barber:", guestIsAny ? "any" : guestBarber.id,
@@ -2046,7 +2053,7 @@ export default function ClientBooking() {
         entities.Barber.filter({ shop_id: resolvedShopId }),
         entities.Service.filter({ shop_id: resolvedShopId }),
         entities.ShopSettings.filter({ shop_id: resolvedShopId }),
-        entities.Booking.filter({ shop_id: resolvedShopId, date: todayStr }),
+        getBookedSlots(resolvedShopId, todayStr),
         supabase.from("shop_settings").select("deposit_enabled, deposit_percentage, deposit_pretip_enabled").eq("shop_id", resolvedShopId).single(),
       ]);
       const depositSettings = depositResult?.data;
@@ -2151,7 +2158,7 @@ export default function ClientBooking() {
       let bookingBarber = selectedBarber;
       if (selectedBarber.id === "any") {
         const dayName = format(new Date(selectedDate + "T12:00:00"), "EEEE").toLowerCase();
-        const dayBookings = await entities.Booking.filter({ shop_id: shopId, date: selectedDate });
+        const dayBookings = await getBookedSlots(shopId, selectedDate);
         bookingBarber = barbers.find(b => {
           const dh = b.hours?.[dayName];
           if (!dh || dh.off || dh.closed) return false;
@@ -2198,7 +2205,7 @@ export default function ClientBooking() {
         bookingGuestBarber = guestBarber;
         if (guestBarber.id === "any") {
           const dayName = format(new Date(selectedDate + "T12:00:00"), "EEEE").toLowerCase();
-          const dayBookings = await entities.Booking.filter({ shop_id: shopId, date: selectedDate });
+          const dayBookings = await getBookedSlots(shopId, selectedDate);
           bookingGuestBarber = barbers.find(b => {
             // For same_time, avoid assigning the same barber as the main client
             if (guestTiming === "same_time" && b.id === bookingBarber.id) return false;

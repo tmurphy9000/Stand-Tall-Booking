@@ -19,12 +19,13 @@ import {
 import { Loader2, Upload, FileText, AlertCircle, Info } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabaseClient";
+import { useShop } from "@/lib/shopContext";
 
-const DEFAULT_SHOP_ID = "00000000-0000-0000-0000-000000000001";
 const CHUNK_SIZE = 100000;
 
 export default function ImportClientsDialog({ open, onOpenChange }) {
   const queryClient = useQueryClient();
+  const { shopId } = useShop();
   const fileInputRef = useRef(null);
   const cancelledRef = useRef(false);
   const [fileName, setFileName] = useState("");
@@ -87,11 +88,12 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
     cancelledRef.current = false;
 
     const checkExistingJob = async () => {
+      if (!shopId) return;
       setChecking(true);
       const { data, error } = await supabase
         .from("client_imports")
         .select("*")
-        .eq("shop_id", DEFAULT_SHOP_ID)
+        .eq("shop_id", shopId)
         .in("status", ["pending", "processing"])
         .order("created_at", { ascending: false })
         .limit(1)
@@ -112,7 +114,7 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
     };
 
     checkExistingJob();
-  }, [open]);
+  }, [open, shopId]);
 
   useEffect(() => {
     return () => {
@@ -146,7 +148,8 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
     setFileName(file.name);
     setUploading(true);
     try {
-      const path = `${DEFAULT_SHOP_ID}/${crypto.randomUUID()}-${file.name}`;
+      if (!shopId) throw new Error("Shop not loaded — please refresh and try again.");
+      const path = `${shopId}/${crypto.randomUUID()}-${file.name}`;
 
       const { error: uploadError } = await supabase.storage
         .from("client-imports")
@@ -156,7 +159,7 @@ export default function ImportClientsDialog({ open, onOpenChange }) {
       const { data: importJob, error: insertError } = await supabase
         .from("client_imports")
         .insert({
-          shop_id: DEFAULT_SHOP_ID,
+          shop_id: shopId,
           file_path: path,
           file_name: file.name,
           status: "pending",
