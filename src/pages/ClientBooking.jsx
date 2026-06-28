@@ -2105,12 +2105,13 @@ export default function ClientBooking() {
         return true;
       }
       if (clientPhone || clientEmail) {
-        const all = await entities.Client.list();
-        const existing = all.find(c =>
-          (clientPhone && (c.phone || "").replace(/\D/g, "") === clientPhone.replace(/\D/g, "")) ||
-          (clientEmail && c.email?.toLowerCase() === clientEmail.toLowerCase())
-        );
-        if (existing?.deposit_required) {
+        const { data: clientRows } = await supabase.rpc("find_or_create_client", {
+          p_shop_id: shopId,
+          p_phone:   clientPhone || null,
+          p_email:   clientEmail || null,
+          p_name:    null,
+        });
+        if (clientRows?.[0]?.deposit_required) {
           console.log("[ClientBooking] needsDeposit → true (client has deposit_required flag)");
           return true;
         }
@@ -2130,20 +2131,18 @@ export default function ClientBooking() {
   const handleConfirm = async (depositPaymentIntentId = null, depositAmountPaid = null, smsOptIn = false, promoCodeId = null) => {
     setSubmitting(true);
     try {
-      // Find or create client
+      // Find or create client (server-side, scoped to this shop)
       let clientId = null;
       if (clientPhone || clientEmail) {
-        const all = await entities.Client.list();
-        const existing = all.find(c =>
-          (clientPhone && (c.phone || "").replace(/\D/g, "") === clientPhone.replace(/\D/g, "")) ||
-          (clientEmail && c.email?.toLowerCase() === clientEmail.toLowerCase())
-        );
-        if (existing) {
-          clientId = existing.id;
-        } else {
-          const created = await entities.Client.create({ name: clientName, phone: clientPhone, email: clientEmail, sms_opt_in: smsOptIn });
-          clientId = created.id;
-        }
+        const { data: clientRows, error: clientErr } = await supabase.rpc("find_or_create_client", {
+          p_shop_id:    shopId,
+          p_phone:      clientPhone || null,
+          p_email:      clientEmail || null,
+          p_name:       clientName,
+          p_sms_opt_in: smsOptIn,
+        });
+        if (clientErr) throw clientErr;
+        clientId = clientRows?.[0]?.id ?? null;
       }
 
       const duration = selectedBarber?.service_durations?.[selectedService?.id] ?? selectedService?.duration ?? 30;
