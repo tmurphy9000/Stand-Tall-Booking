@@ -390,11 +390,22 @@ Deno.serve(async (req) => {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
+  const authHeader = req.headers.get("authorization") || "";
+  const jwt = authHeader.replace(/^bearer\s+/i, "");
+  if (!jwt) {
+    return Response.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
+  }
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL") ?? "",
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
+
+  const { data: { user } } = await supabase.auth.getUser(jwt);
+  if (!user) {
+    return Response.json({ error: "Unauthorized" }, { status: 401, headers: corsHeaders });
+  }
 
   let body: { job_id?: string; chunk_start?: number; chunk_end?: number };
   try {
@@ -423,6 +434,26 @@ Deno.serve(async (req) => {
 
   if (jobError || !job) {
     return Response.json({ error: "Import job not found" }, { status: 404, headers: corsHeaders });
+  }
+
+  // Verify caller has access to this job's shop (barbers first, subscriptions fallback)
+  const { data: callerBarber } = await supabase
+    .from("barbers")
+    .select("shop_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  let callerShopId: string | null = callerBarber?.shop_id ?? null;
+  if (!callerBarber) {
+    const { data: sub } = await supabase
+      .from("subscriptions")
+      .select("shop_id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    callerShopId = sub?.shop_id ?? null;
+  }
+  // Superadmin has shop_id = null → bypass; others must match the job's shop
+  if (callerShopId !== null && job.shop_id !== callerShopId) {
+    return Response.json({ error: "Forbidden" }, { status: 403, headers: corsHeaders });
   }
 
   if (job.status === "done") {

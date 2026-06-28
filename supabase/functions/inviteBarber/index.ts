@@ -32,17 +32,26 @@ Deno.serve(async (req) => {
   );
 
   // Verify the calling user is authenticated
-  const callerClient = createClient(
-    Deno.env.get("SUPABASE_URL") ?? "",
-    Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-    { global: { headers: { Authorization: authHeader } } }
-  );
-  const { data: { user: caller }, error: callerError } = await callerClient.auth.getUser();
+  const jwt = authHeader.replace(/^bearer\s+/i, "");
+  const { data: { user: caller }, error: callerError } = await supabaseAdmin.auth.getUser(jwt);
   if (callerError || !caller) {
     console.error("[inviteBarber] Auth verification failed:", callerError?.message);
     return json({ error: "Unauthorized" }, 401);
   }
   console.log("[inviteBarber] Called by user:", caller.email);
+
+  // Verify the caller has permission to invite barbers (owner / manager / superadmin only)
+  const { data: callerBarber } = await supabaseAdmin
+    .from("barbers")
+    .select("shop_id, permission_level")
+    .eq("user_id", caller.id)
+    .maybeSingle();
+
+  const allowedRoles = ["owner", "manager", "superadmin"];
+  if (!callerBarber || !allowedRoles.includes(callerBarber.permission_level ?? "")) {
+    console.error("[inviteBarber] Insufficient permissions:", callerBarber?.permission_level);
+    return json({ error: "Forbidden: only owners and managers can invite barbers" }, 403);
+  }
 
   // Parse request body
   let body: { name?: string; email?: string; phone?: string; permission_level?: string; access_level_id?: string; temp_password?: string };
@@ -115,13 +124,7 @@ Deno.serve(async (req) => {
     return json({ error: `Failed to look up barber record: ${lookupError.message}` });
   }
 
-  // New barbers join the inviter's shop.
-  const { data: inviterBarber } = await callerClient
-    .from("barbers")
-    .select("shop_id")
-    .eq("user_id", caller.id)
-    .maybeSingle();
-
+  // New barbers join the inviter's shop (resolved from their barber record above)
   let barberId: string;
 
   if (existingBarber) {
@@ -152,7 +155,7 @@ Deno.serve(async (req) => {
         is_active: true,
         online_bookable: true,
         user_id: authUserId,
-        shop_id: inviterBarber?.shop_id,
+        shop_id: callerBarber.shop_id,
       })
       .select("id")
       .single();

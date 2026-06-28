@@ -28,9 +28,29 @@ Deno.serve(async (req) => {
     return json({ error: "Server configuration error" }, 500);
   }
 
+  // ── Auth check ──────────────────────────────────────────────────────────────
+  // Only authenticated barbers can trigger a campaign send. We also verify
+  // that the campaign's shop_id matches the caller's shop so a barber from
+  // shop A cannot send shop B's campaigns.
+  const authHeader = req.headers.get("authorization") || "";
+  const jwt = authHeader.replace(/^bearer\s+/i, "");
+  if (!jwt) return json({ error: "Unauthorized" }, 401);
+
   const db = createClient(supabaseUrl, serviceKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+
+  const { data: { user } } = await db.auth.getUser(jwt);
+  if (!user) return json({ error: "Unauthorized" }, 401);
+
+  const { data: callerBarber } = await db
+    .from("barbers")
+    .select("shop_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  // Caller must have a barber record; shop_id = null means superadmin (all shops)
+  if (!callerBarber) return json({ error: "Forbidden" }, 403);
 
   let body: { campaign_id?: string };
   try { body = await req.json(); } catch { return json({ error: "Invalid request body" }, 400); }
@@ -46,6 +66,12 @@ Deno.serve(async (req) => {
     .single();
 
   if (campErr || !campaign) return json({ error: "Campaign not found" }, 404);
+
+  // Verify the caller owns this campaign's shop (superadmin shop_id = null bypasses)
+  if (callerBarber.shop_id !== null && campaign.shop_id !== callerBarber.shop_id) {
+    return json({ error: "Forbidden" }, 403);
+  }
+
   if (campaign.status === "sent") return json({ error: "Campaign already sent" }, 400);
   if (!campaign.subject || !campaign.body_html) {
     return json({ error: "Campaign is missing subject or body" }, 400);
@@ -133,8 +159,6 @@ Deno.serve(async (req) => {
   }
 
   // ── Pre-insert campaign_sends rows to obtain unique IDs for tracking ────────
-  // Each recipient gets their own row upfront; the row's UUID is embedded in
-  // their email's tracking pixel and link URLs before the email is built.
   const now = new Date().toISOString();
   const { data: insertedSends, error: insertErr } = await db
     .from("campaign_sends")
