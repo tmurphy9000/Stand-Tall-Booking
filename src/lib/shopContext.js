@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 
-// Resolves the current user's shop. Prefers shop_id from auth metadata
-// (set by the stripe-webhook when a subscription is created) and falls
-// back to the subscriptions table for users provisioned before that existed.
+// The placeholder UUID seeded during the multi-tenancy migration.
+// Any value equal to this is treated as "not set" in all resolution paths.
+const PLACEHOLDER_SHOP_ID = '00000000-0000-0000-0000-000000000001';
+
+function validShopId(id) {
+  return id && id !== PLACEHOLDER_SHOP_ID ? id : null;
+}
+
 export function useShop() {
   const [shopId, setShopId] = useState(null);
   const [tier, setTier] = useState(null);
@@ -33,9 +38,13 @@ export function useShop() {
         .maybeSingle();
 
       // Prefer the subscriptions table (always DB-authoritative) over
-      // user_metadata embedded in the JWT, which can be stale if the token
-      // hasn't been refreshed since the shop_id was last updated.
-      const resolvedShopId = subscription?.shop_id ?? user.user_metadata?.shop_id ?? null;
+      // user_metadata embedded in the JWT, which can be stale.
+      // Explicitly reject the legacy placeholder UUID at every step — it is
+      // not a real shop and will cause downstream queries to return no rows.
+      const resolvedShopId =
+        validShopId(subscription?.shop_id) ??
+        validShopId(user.user_metadata?.shop_id) ??
+        null;
 
       // Load Stripe Connect info and deposit config from shops table
       if (resolvedShopId) {
