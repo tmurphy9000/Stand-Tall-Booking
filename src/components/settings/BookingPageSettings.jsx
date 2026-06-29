@@ -195,7 +195,7 @@ function CopySnippet({ value, label }) {
 
 export default function BookingPageSettings() {
   const queryClient = useQueryClient();
-  const { shopId, isLoading: shopIsLoading } = useShop();
+  const { shopId } = useShop();
   const [activeModal, setActiveModal] = useState(null);
 
   const { data: settingsArr = [], isLoading } = useQuery({
@@ -354,15 +354,6 @@ export default function BookingPageSettings() {
 
   return (
     <div className="space-y-8 max-w-lg">
-      {/* DEBUG — remove after diagnosis */}
-      <div style={{background:'#dc2626',color:'#fff',padding:'12px 16px',fontFamily:'monospace',fontSize:'13px',borderRadius:'8px',wordBreak:'break-all',lineHeight:'1.6'}}>
-        🔴 DEBUG<br/>
-        shopId: <b>{String(shopId)}</b><br/>
-        urlSlug: <b>"{String(urlSlug)}"</b><br/>
-        shopData: <b>{JSON.stringify(shopData) ?? 'undefined'}</b><br/>
-        shopIsLoading: <b>{String(shopIsLoading)}</b>
-      </div>
-
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold">Booking Page Settings</h2>
         <Button
