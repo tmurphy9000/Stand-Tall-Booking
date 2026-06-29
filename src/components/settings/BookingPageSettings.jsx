@@ -367,6 +367,11 @@ export default function BookingPageSettings() {
         </Button>
       </div>
 
+      {/* DEBUG - remove after diagnosis */}
+      <div style={{background:'#facc15',color:'#000',padding:'8px 12px',fontFamily:'monospace',fontSize:'12px',borderRadius:'6px',margin:'8px 0',wordBreak:'break-all'}}>
+        DEBUG — shopId: <b>{String(shopId)}</b> | urlSlug: <b>"{String(urlSlug)}"</b> | shopData: <b>{JSON.stringify(shopData)}</b>
+      </div>
+
       {/* ── Booking URL ── */}
       {urlSlug && (
         <section className="space-y-3">
