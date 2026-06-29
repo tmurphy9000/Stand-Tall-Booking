@@ -41,6 +41,7 @@ ALTER TABLE public.admin_activity_log ENABLE ROW LEVEL SECURITY;
 
 -- Owner + superadmin SELECT. Updated in 20260801_medium_severity_rls_fixes.sql (M-1)
 -- to add superadmin; this file is kept in sync so a replay produces the correct state.
+DROP POLICY IF EXISTS "owner_select_activity_log" ON public.admin_activity_log;
 CREATE POLICY "owner_select_activity_log"
   ON public.admin_activity_log FOR SELECT TO authenticated
   USING (
