@@ -1,3 +1,5 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -9,6 +11,9 @@ const SYSTEM_PROMPT =
   "You help barbers and shop owners with scheduling questions, client notes, service recommendations, " +
   "and general barbershop business advice. Be concise, friendly, and professional.";
 
+const RATE_LIMIT_MAX = 20;
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; // per minute
+
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -17,24 +22,49 @@ function json(body: unknown, status = 200) {
 }
 
 Deno.serve(async (req) => {
-  console.log("[ai-assistant] request received, method:", req.method);
-
   if (req.method === "OPTIONS") {
-    console.log("[ai-assistant] OPTIONS preflight, returning 204");
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
-  if (!apiKey) {
-    console.error("[ai-assistant] missing ANTHROPIC_API_KEY env var");
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+  if (!apiKey || !supabaseUrl || !serviceRoleKey) {
     return json({ error: "Server configuration error" }, 500);
+  }
+
+  // Require authenticated caller
+  const authHeader = req.headers.get("authorization") || "";
+  const jwt = authHeader.replace(/^bearer\s+/i, "");
+  if (!jwt) return json({ error: "Unauthorized" }, 401);
+
+  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwt);
+  if (authError || !user) return json({ error: "Unauthorized" }, 401);
+
+  // Per-user per-minute rate limit via Deno KV
+  try {
+    const kv = await Deno.openKv();
+    const key = ["ai_rate_limit", user.id];
+    const entry = await kv.get<number[]>(key);
+    const now = Date.now();
+    const timestamps = (entry.value ?? []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
+
+    if (timestamps.length >= RATE_LIMIT_MAX) {
+      return json({ error: "Rate limit exceeded. Please wait before sending more messages." }, 429);
+    }
+
+    timestamps.push(now);
+    await kv.set(key, timestamps, { expireIn: RATE_LIMIT_WINDOW_MS });
+  } catch {
+    // KV unavailable — auth is still enforced; allow request through
   }
 
   let body: { message?: string; conversationHistory?: Array<{ role: string; content: string }> };
   try {
     body = await req.json();
-  } catch (e) {
-    console.error("[ai-assistant] failed to parse request body:", e);
+  } catch {
     return json({ error: "Invalid request body" }, 400);
   }
 

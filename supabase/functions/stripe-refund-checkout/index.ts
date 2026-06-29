@@ -83,6 +83,19 @@ Deno.serve(async (req) => {
     return json({ error: "This booking has already been refunded" }, 400);
   }
 
+  // Validate partial refund amount server-side before sending to Stripe.
+  if (amountCents !== undefined && amountCents !== null) {
+    if (amountCents <= 0) {
+      return json({ error: "Refund amount must be greater than zero" }, 400);
+    }
+    const maxRefundCents = Math.round((booking.final_price ?? 0) * 100);
+    if (amountCents > maxRefundCents) {
+      return json({
+        error: `Refund amount ($${(amountCents / 100).toFixed(2)}) exceeds booking total ($${(booking.final_price ?? 0).toFixed(2)})`,
+      }, 400);
+    }
+  }
+
   const stripe = new Stripe(secretKey, { apiVersion: "2024-06-20" });
 
   const refundParams: Stripe.RefundCreateParams = {

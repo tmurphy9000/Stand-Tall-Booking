@@ -64,6 +64,26 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid phone number" }, 400);
   }
 
+  // ── rate limit: max 5 OTP sends per phone per hour ───────────────────────────
+  try {
+    const kv = await Deno.openKv();
+    const key = ["otp_rate_limit", phone];
+    const windowMs = 60 * 60 * 1000;
+    const entry = await kv.get<number[]>(key);
+    const now = Date.now();
+    const timestamps = (entry.value ?? []).filter((t) => now - t < windowMs);
+
+    if (timestamps.length >= 5) {
+      console.warn("[sendOTP] rate limit exceeded for phone:", phone);
+      return json({ error: "Too many verification code requests for this number. Please wait before requesting another." }, 429);
+    }
+
+    timestamps.push(now);
+    await kv.set(key, timestamps, { expireIn: windowMs });
+  } catch {
+    // KV unavailable — allow through
+  }
+
   // ── generate OTP ─────────────────────────────────────────────────────────────
   const code      = String(Math.floor(100000 + Math.random() * 900000));
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();

@@ -27,6 +27,25 @@ Deno.serve(async (req) => {
     return json({ error: "Server configuration error" }, 500);
   }
 
+  // Verify the caller is an authenticated admin before touching OAuth tokens.
+  const authHeader = req.headers.get("authorization") || "";
+  const jwt = authHeader.replace(/^bearer\s+/i, "");
+  if (!jwt) return json({ error: "Unauthorized" }, 401);
+
+  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey);
+  const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(jwt);
+  if (authError || !user) return json({ error: "Unauthorized" }, 401);
+
+  const { data: callerBarber } = await supabaseAdmin
+    .from("barbers")
+    .select("shop_id, permission_level")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!callerBarber || !["owner", "manager", "superadmin"].includes(callerBarber.permission_level)) {
+    return json({ error: "Forbidden" }, 403);
+  }
+
   let body: { code: string; shopId: string };
   try {
     body = await req.json();
@@ -39,15 +58,18 @@ Deno.serve(async (req) => {
     return json({ error: "code and shopId are required" }, 400);
   }
 
-  // redirect_uri must match what is registered in the Gusto developer dashboard
+  // Superadmin (shop_id = null) can connect any shop; others must match their own.
+  if (callerBarber.shop_id !== null && callerBarber.shop_id !== shopId) {
+    return json({ error: "Forbidden" }, 403);
+  }
+
   const redirectUri = Deno.env.get("APP_ORIGIN") ?? "https://standtallbooking.com";
 
   console.log("[gusto-oauth-callback] exchanging code for shopId:", shopId);
 
-  // TODO: switch to api.gusto.com once the app is approved for production in the Gusto developer dashboard
+  // TODO: switch to api.gusto.com once the app is approved for production
   const GUSTO_BASE = "https://api.gusto-demo.com";
 
-  // Exchange authorization code for access + refresh tokens
   const tokenRes = await fetch(`${GUSTO_BASE}/oauth/token`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -73,7 +95,6 @@ Deno.serve(async (req) => {
     return json({ error: "Incomplete token response from Gusto" }, 500);
   }
 
-  // Fetch company info from Gusto to get company UUID and name
   let companyUuid: string | null = null;
   let companyName: string | null = null;
   try {
@@ -82,7 +103,6 @@ Deno.serve(async (req) => {
     });
     if (meRes.ok) {
       const meData = await meRes.json();
-      // Gusto returns roles.payroll_admin.companies[] on the /v1/me endpoint
       const companies =
         meData?.roles?.payroll_admin?.companies ??
         meData?.companies ??
@@ -98,9 +118,7 @@ Deno.serve(async (req) => {
 
   console.log("[gusto-oauth-callback] company:", companyName, companyUuid);
 
-  // Upsert into gusto_connections using service role (bypasses RLS)
-  const supabase = createClient(supabaseUrl, serviceRoleKey);
-  const { error: dbError } = await supabase
+  const { error: dbError } = await supabaseAdmin
     .from("gusto_connections")
     .upsert(
       {
