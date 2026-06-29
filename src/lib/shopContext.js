@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabaseClient';
+import { useAuth } from '@/lib/AuthContext';
 
 // The placeholder UUID seeded during the multi-tenancy migration.
 // Any value equal to this is treated as "not set" in all resolution paths.
@@ -10,6 +11,13 @@ function validShopId(id) {
 }
 
 export function useShop() {
+  // Derive the user from AuthContext instead of calling getSession() directly.
+  // AuthContext uses onAuthStateChange, so it correctly handles session
+  // restoration on page load. A one-shot getSession() call can return null
+  // during the async restore window and never re-run (empty dep array),
+  // leaving shopId permanently null for the lifetime of the component.
+  const { user, isLoadingAuth } = useAuth();
+
   const [shopId, setShopId] = useState(null);
   const [tier, setTier] = useState(null);
   const [status, setStatus] = useState(null);
@@ -20,17 +28,18 @@ export function useShop() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Wait for AuthContext to finish restoring the session before we try to
+    // load the shop — avoids acting on a transiently-null user.
+    if (isLoadingAuth) return;
+
+    if (!user) {
+      setIsLoading(false);
+      return;
+    }
+
     let isMounted = true;
 
     const loadShop = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      const user = session?.user;
-
-      if (!user) {
-        if (isMounted) setIsLoading(false);
-        return;
-      }
-
       const { data: subscription } = await supabase
         .from('subscriptions')
         .select('shop_id, tier, status')
@@ -39,14 +48,12 @@ export function useShop() {
 
       // Prefer the subscriptions table (always DB-authoritative) over
       // user_metadata embedded in the JWT, which can be stale.
-      // Explicitly reject the legacy placeholder UUID at every step — it is
-      // not a real shop and will cause downstream queries to return no rows.
+      // Explicitly reject the legacy placeholder UUID at every step.
       const resolvedShopId =
         validShopId(subscription?.shop_id) ??
         validShopId(user.user_metadata?.shop_id) ??
         null;
 
-      // Load Stripe Connect info and deposit config from shops table
       if (resolvedShopId) {
         const { data: shopData } = await supabase
           .from('shops')
@@ -74,7 +81,7 @@ export function useShop() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [user?.id, isLoadingAuth]);
 
   return { shopId, tier, status, stripeAccountId, depositsEnabled, depositAmount, stripeTerminalLocationId, isLoading };
 }
