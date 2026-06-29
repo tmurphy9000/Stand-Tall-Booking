@@ -28,23 +28,30 @@ export function useShop() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('[useShop] effect run — user?.id:', user?.id ?? 'NULL', '| isLoadingAuth:', isLoadingAuth);
     // Wait for AuthContext to finish restoring the session before we try to
     // load the shop — avoids acting on a transiently-null user.
-    if (isLoadingAuth) return;
+    if (isLoadingAuth) {
+      console.log('[useShop] still loading auth, waiting...');
+      return;
+    }
 
     if (!user) {
+      console.log('[useShop] isLoadingAuth=false but user is NULL — exiting without loading shop');
       setIsLoading(false);
       return;
     }
 
+    console.log('[useShop] user confirmed, calling loadShop() for user.id:', user.id);
     let isMounted = true;
 
     const loadShop = async () => {
-      const { data: subscription } = await supabase
+      const { data: subscription, error: subError } = await supabase
         .from('subscriptions')
         .select('shop_id, tier, status')
         .eq('user_id', user.id)
         .maybeSingle();
+      console.log('[useShop] subscriptions query result — data:', subscription, '| error:', subError);
 
       // Prefer the subscriptions table (always DB-authoritative) over
       // user_metadata embedded in the JWT, which can be stale.
@@ -53,6 +60,7 @@ export function useShop() {
         validShopId(subscription?.shop_id) ??
         validShopId(user.user_metadata?.shop_id) ??
         null;
+      console.log('[useShop] resolvedShopId:', resolvedShopId, '| user_metadata.shop_id:', user.user_metadata?.shop_id);
 
       if (resolvedShopId) {
         const { data: shopData } = await supabase
