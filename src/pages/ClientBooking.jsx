@@ -2237,27 +2237,29 @@ export default function ClientBooking() {
 
       }
 
-      if (clientEmail) {
-        const emailBody = {
-          client_name: clientName,
-          client_email: clientEmail,
-          barber_name: bookingBarber.name,
+      if (clientEmail || (smsOptIn && clientPhone)) {
+        const confirmBody = {
+          client_name:  clientName,
+          client_email: clientEmail || undefined,
+          client_phone: clientPhone  || undefined,
+          sms_opt_in:   smsOptIn,
+          barber_name:  bookingBarber.name,
           service_name: selectedService.name,
-          date: selectedDate,
-          start_time: selectedTime,
-          end_time: endTime,
-          shop_name: shopName || undefined,
+          date:         selectedDate,
+          start_time:   selectedTime,
+          end_time:     endTime,
+          shop_name:    shopName    || undefined,
           shop_address: shopAddress || undefined,
-          shop_phone: businessPhone || undefined,
+          shop_phone:   businessPhone || undefined,
         };
         if (hasGuest && guestService && bookingGuestBarber) {
-          emailBody.guest_name = guestName;
-          emailBody.guest_barber_name = bookingGuestBarber.name;
-          emailBody.guest_service_name = guestService.name;
-          emailBody.guest_start_time = guestStartHHMM;
-          emailBody.guest_end_time = guestEndHHMM;
+          confirmBody.guest_name         = guestName;
+          confirmBody.guest_barber_name  = bookingGuestBarber.name;
+          confirmBody.guest_service_name = guestService.name;
+          confirmBody.guest_start_time   = guestStartHHMM;
+          confirmBody.guest_end_time     = guestEndHHMM;
         }
-        supabase.functions.invoke("sendBookingConfirmation", { body: emailBody })
+        supabase.functions.invoke("sendBookingConfirmation", { body: confirmBody })
           .then(({ error }) => {
             if (error) console.warn("[sendBookingConfirmation] invoke error:", error);
           });

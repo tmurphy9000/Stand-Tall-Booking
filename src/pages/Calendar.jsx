@@ -269,16 +269,16 @@ export default function CalendarPage() {
 
     if (action === "cancel") {
       const booking = bookings.find(b => b.id === bookingId);
-      if (booking?.deposit_payment_intent_id) {
-        await supabase.functions.invoke("stripe-refund-deposit", {
-          body: { bookingId, shopId: booking.shop_id },
-        });
-        queryClient.invalidateQueries({ queryKey: ["bookings"] });
-        return;
-      }
-      const cancelData = { status: "cancelled" };
-      if (extra?.cancel_reason) cancelData.cancel_reason = extra.cancel_reason;
-      updateBooking.mutate({ id: bookingId, data: cancelData });
+      // Route all cancellations through stripe-refund-deposit so the function
+      // can handle deposit refunds AND send the cancellation SMS in one place.
+      await supabase.functions.invoke("stripe-refund-deposit", {
+        body: {
+          bookingId,
+          shopId:       booking?.shop_id,
+          cancelReason: extra?.cancel_reason,
+        },
+      });
+      queryClient.invalidateQueries({ queryKey: ["bookings"] });
       return;
     }
 

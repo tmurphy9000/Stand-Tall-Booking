@@ -1,3 +1,5 @@
+import { sendSms, smsFormatDate, smsFormatTime } from "../_shared/twilio.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
@@ -158,6 +160,8 @@ Deno.serve(async (req) => {
   let body: {
     client_name?: string;
     client_email?: string;
+    client_phone?: string;
+    sms_opt_in?: boolean;
     barber_name?: string;
     service_name?: string;
     date?: string;
@@ -230,5 +234,16 @@ Deno.serve(async (req) => {
   }
 
   console.log("[sendBookingConfirmation] Email sent, id:", resBody.id);
+
+  // ── SMS confirmation ──────────────────────────────────────────────────────
+  if (body.sms_opt_in && body.client_phone) {
+    const msg =
+      `Your appointment at ${shopName} with ${body.barber_name} on ` +
+      `${smsFormatDate(date)} at ${smsFormatTime(start_time)} is confirmed. ` +
+      `Reply STOP to opt out.`;
+    const { ok: smsOk, error: smsErr } = await sendSms(body.client_phone, msg);
+    if (!smsOk) console.warn("[sendBookingConfirmation] SMS failed:", smsErr);
+  }
+
   return json({ success: true, id: resBody.id });
 });
