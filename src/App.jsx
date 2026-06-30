@@ -15,10 +15,11 @@ import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import StripeCallback from './pages/StripeCallback';
 import KioskPage from './pages/KioskPage';
+import AffiliateDashboard from './pages/AffiliateDashboard';
 
 const { Pages, Layout } = pagesConfig;
 
-const PUBLIC_PATHS = ['/', '/barber-login', '/book', '/checkin', '/ChangePassword', '/terms', '/privacy', '/stripe/callback', '/embed.js'];
+const PUBLIC_PATHS = ['/', '/barber-login', '/book', '/checkin', '/ChangePassword', '/terms', '/privacy', '/stripe/callback', '/embed.js', '/affiliate/dashboard'];
 
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
@@ -64,6 +65,7 @@ const AuthenticatedApp = () => {
       <Route path="/book" element={<ClientBooking />} />
       <Route path="/stripe/callback" element={<StripeCallback />} />
       <Route path="/checkin/:kioskToken" element={<KioskPage />} />
+      <Route path="/affiliate/dashboard" element={<AffiliateDashboard />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

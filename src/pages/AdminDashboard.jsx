@@ -892,27 +892,193 @@ function DropOffsTab() {
 }
 
 // ─── AFFILIATES TAB ─────────────────────────────────────────────────────────
+// ── Payout Panel ─────────────────────────────────────────────────────────────
+function PayoutPanel({ affiliate, onClose }) {
+  const queryClient = useQueryClient();
+  const [payouts, setPayouts]         = useState([]);
+  const [commissionTotal, setCommissionTotal] = useState(0);
+  const [loadingData, setLoadingData] = useState(true);
+  const [saving, setSaving]           = useState(false);
+  const [form, setForm]               = useState({
+    amount: "", paid_at: new Date().toISOString().slice(0, 10), method: "", notes: "",
+  });
+
+  useEffect(() => {
+    async function load() {
+      setLoadingData(true);
+      const [logRes, payoutRes] = await Promise.all([
+        supabase.from("affiliate_commission_log").select("commission_amount").eq("affiliate_id", affiliate.id),
+        supabase.from("affiliate_payouts").select("*").eq("affiliate_id", affiliate.id).order("paid_at", { ascending: false }),
+      ]);
+      const total = (logRes.data ?? []).reduce((s, r) => s + Number(r.commission_amount), 0);
+      setCommissionTotal(total);
+      setPayouts(payoutRes.data ?? []);
+      setLoadingData(false);
+    }
+    load();
+  }, [affiliate.id]);
+
+  const totalPaid = payouts.reduce((s, p) => s + Number(p.amount), 0);
+  const amountOwed = Math.max(0, commissionTotal - totalPaid);
+
+  async function handleSave() {
+    const amt = parseFloat(form.amount);
+    if (!amt || amt <= 0) { toast.error("Enter a valid amount."); return; }
+    if (!form.method.trim()) { toast.error("Payment method is required."); return; }
+    if (!form.paid_at) { toast.error("Date is required."); return; }
+    setSaving(true);
+    const { data: { session } } = await supabase.auth.getSession();
+    const { error } = await supabase.from("affiliate_payouts").insert({
+      affiliate_id: affiliate.id,
+      amount:       amt,
+      paid_at:      form.paid_at,
+      method:       form.method.trim(),
+      notes:        form.notes.trim() || null,
+      recorded_by:  session?.user?.id ?? null,
+    });
+    setSaving(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success("Payout recorded.");
+    setForm(f => ({ ...f, amount: "", method: "", notes: "" }));
+    queryClient.invalidateQueries({ queryKey: ["affiliates"] });
+    // Re-load payout data
+    const { data } = await supabase.from("affiliate_payouts").select("*").eq("affiliate_id", affiliate.id).order("paid_at", { ascending: false });
+    setPayouts(data ?? []);
+  }
+
+  const fmtMoney = n => `$${Number(n).toFixed(2)}`;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex justify-end" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="bg-card border-l border-border w-full max-w-md h-full overflow-y-auto shadow-2xl flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-card z-10">
+          <div>
+            <p className="font-semibold text-sm">{affiliate.name}</p>
+            <p className="text-xs text-muted-foreground">{affiliate.promo_code ?? "No promo code"}</p>
+          </div>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onClose}>
+            <span className="text-lg leading-none">×</span>
+          </Button>
+        </div>
+
+        {loadingData ? (
+          <div className="flex justify-center py-16"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+        ) : (
+          <div className="p-5 space-y-6 flex-1">
+            {/* Summary cards */}
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Commission accrued", value: fmtMoney(commissionTotal), color: "" },
+                { label: "Already paid out", value: fmtMoney(totalPaid), color: "text-muted-foreground" },
+                { label: "Amount owed", value: fmtMoney(amountOwed), color: amountOwed > 0 ? "text-[#B0BFA4]" : "" },
+              ].map(c => (
+                <div key={c.label} className="bg-muted/30 border border-border rounded-md p-3">
+                  <p className="text-xs text-muted-foreground mb-1">{c.label}</p>
+                  <p className={`text-base font-bold ${c.color}`}>{c.value}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Record payout form */}
+            <div className="space-y-3 border border-border rounded-lg p-4">
+              <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Record a Payout</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Amount ($)</label>
+                  <Input type="number" min="0.01" step="0.01" placeholder="0.00" className="h-8 text-sm"
+                    value={form.amount} onChange={e => setForm(f => ({ ...f, amount: e.target.value }))} />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground block mb-1">Date paid</label>
+                  <Input type="date" className="h-8 text-sm"
+                    value={form.paid_at} onChange={e => setForm(f => ({ ...f, paid_at: e.target.value }))} />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Method / Reference</label>
+                <Input placeholder="e.g. Venmo, Check #1234, Zelle" className="h-8 text-sm"
+                  value={form.method} onChange={e => setForm(f => ({ ...f, method: e.target.value }))} />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground block mb-1">Notes (optional)</label>
+                <textarea className="w-full border border-input rounded-md px-3 py-2 text-sm bg-transparent resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+                  rows={2} placeholder="Any payment details for your records"
+                  value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} />
+              </div>
+              <Button size="sm" className="w-full bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white" disabled={saving} onClick={handleSave}>
+                {saving ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : null} Save Payout
+              </Button>
+            </div>
+
+            {/* Payout history */}
+            <div>
+              <p className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Payout History</p>
+              {payouts.length === 0 ? (
+                <p className="text-xs text-muted-foreground">No payouts recorded yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {payouts.map(p => (
+                    <div key={p.id} className="flex items-start gap-3 py-2 border-b border-border last:border-0">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium">{fmtMoney(p.amount)}</p>
+                        <p className="text-xs text-muted-foreground">{p.paid_at} · {p.method}</p>
+                        {p.notes && <p className="text-xs text-muted-foreground mt-0.5 truncate">{p.notes}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function AffiliatesTab() {
   const queryClient = useQueryClient();
-  const [search, setSearch]           = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [actionLoading, setActionLoading] = useState(null); // affiliate_id being processed
-  const [confirmReject, setConfirmReject] = useState(null); // affiliate to reject
+  const [search, setSearch]               = useState("");
+  const [statusFilter, setStatusFilter]   = useState("all");
+  const [actionLoading, setActionLoading] = useState(null);
+  const [confirmReject, setConfirmReject] = useState(null);
+  const [confirmTerminate, setConfirmTerminate] = useState(null);
+  const [payoutAffiliate, setPayoutAffiliate]   = useState(null);
 
   const { data: affiliates = [], isLoading } = useQuery({
     queryKey: ["affiliates"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("affiliates")
-        .select("id, name, email, phone, social_media_links, why_join, application_status, applied_at, reviewed_at, promo_code")
+        .select("id, name, email, phone, social_media_links, why_join, application_status, applied_at, reviewed_at, promo_code, auth_user_id")
         .order("applied_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
     },
   });
 
-  const pending = affiliates.filter(a => a.application_status === "pending");
+  // Referral counts per affiliate
+  const { data: referralCounts = {} } = useQuery({
+    queryKey: ["affiliate_referral_counts"],
+    queryFn: async () => {
+      const { data } = await supabase.from("affiliate_referrals").select("affiliate_id");
+      if (!data) return {};
+      return data.reduce((acc, r) => { acc[r.affiliate_id] = (acc[r.affiliate_id] || 0) + 1; return acc; }, {});
+    },
+  });
 
+  // Commission totals per affiliate
+  const { data: commissionTotals = {} } = useQuery({
+    queryKey: ["affiliate_commission_totals"],
+    queryFn: async () => {
+      const { data } = await supabase.from("affiliate_commission_log").select("affiliate_id, commission_amount");
+      if (!data) return {};
+      return data.reduce((acc, r) => { acc[r.affiliate_id] = (acc[r.affiliate_id] || 0) + Number(r.commission_amount); return acc; }, {});
+    },
+  });
+
+  const pending  = affiliates.filter(a => a.application_status === "pending");
   const filtered = affiliates.filter(a => {
     const matchStatus = statusFilter === "all" || a.application_status === statusFilter;
     const q = search.toLowerCase();
@@ -937,6 +1103,24 @@ function AffiliatesTab() {
     }
   }, [queryClient]);
 
+  const doTerminate = useCallback(async (affiliateId) => {
+    setActionLoading(affiliateId);
+    try {
+      const { error } = await supabase
+        .from("affiliates")
+        .update({ application_status: "terminated", reviewed_at: new Date().toISOString() })
+        .eq("id", affiliateId);
+      if (error) throw error;
+      toast.success("Affiliate terminated. Their promo code is now inactive.");
+      queryClient.invalidateQueries({ queryKey: ["affiliates"] });
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setActionLoading(null);
+      setConfirmTerminate(null);
+    }
+  }, [queryClient]);
+
   const statusColors = {
     pending:    "bg-yellow-100 text-yellow-800 border-yellow-200",
     approved:   "bg-green-100 text-green-800 border-green-200",
@@ -952,6 +1136,8 @@ function AffiliatesTab() {
     const d = Math.floor(diff / 86400000);
     return d < 30 ? `${d}d ago` : new Date(ts).toLocaleDateString();
   };
+
+  const fmtMoney = n => `$${Number(n ?? 0).toFixed(2)}`;
 
   return (
     <div className="space-y-6 pt-4">
@@ -1027,36 +1213,60 @@ function AffiliatesTab() {
           ) : filtered.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-10">No affiliates found.</p>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Promo Code</TableHead>
-                  <TableHead>Applied</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.map(a => (
-                  <TableRow key={a.id}>
-                    <TableCell className="font-medium text-sm">{a.name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{a.email}</TableCell>
-                    <TableCell>
-                      {a.promo_code
-                        ? <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{a.promo_code}</code>
-                        : <span className="text-xs text-muted-foreground">—</span>}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{timeAgo(a.applied_at)}</TableCell>
-                    <TableCell>
-                      <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${statusColors[a.application_status] ?? ""}`}>
-                        {a.application_status}
-                      </span>
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Promo Code</TableHead>
+                    <TableHead className="text-right">Referrals</TableHead>
+                    <TableHead className="text-right">Commission</TableHead>
+                    <TableHead>Applied</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filtered.map(a => (
+                    <TableRow key={a.id}>
+                      <TableCell className="font-medium text-sm whitespace-nowrap">{a.name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{a.email}</TableCell>
+                      <TableCell>
+                        {a.promo_code
+                          ? <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{a.promo_code}</code>
+                          : <span className="text-xs text-muted-foreground">—</span>}
+                      </TableCell>
+                      <TableCell className="text-sm text-right">{referralCounts[a.id] ?? 0}</TableCell>
+                      <TableCell className="text-sm text-right font-medium">{fmtMoney(commissionTotals[a.id])}</TableCell>
+                      <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{timeAgo(a.applied_at)}</TableCell>
+                      <TableCell>
+                        <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${statusColors[a.application_status] ?? ""}`}>
+                          {a.application_status}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          {(a.application_status === "approved" || a.application_status === "terminated") && (
+                            <Button size="sm" variant="outline" className="text-xs h-7 px-2"
+                              onClick={() => setPayoutAffiliate(a)}>
+                              Payout
+                            </Button>
+                          )}
+                          {a.application_status === "approved" && (
+                            <Button size="sm" variant="outline" className="text-xs h-7 px-2 text-red-600 border-red-200 hover:bg-red-50"
+                              disabled={actionLoading === a.id}
+                              onClick={() => setConfirmTerminate(a)}>
+                              Terminate
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -1079,6 +1289,35 @@ function AffiliatesTab() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Terminate confirmation dialog */}
+      {confirmTerminate && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-lg p-6 max-w-sm w-full shadow-xl space-y-4">
+            <h3 className="font-semibold text-base">Terminate affiliate?</h3>
+            <p className="text-sm text-muted-foreground">
+              This will set <strong>{confirmTerminate.name}</strong>'s status to <em>terminated</em>. Their promo code{" "}
+              {confirmTerminate.promo_code && <code className="bg-muted px-1 rounded">{confirmTerminate.promo_code}</code>}{" "}
+              will stop working immediately. Existing referrals within their commission window are unaffected.
+              Historical data is preserved.
+            </p>
+            <p className="text-xs font-medium text-red-600">This cannot be undone.</p>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setConfirmTerminate(null)}>Cancel</Button>
+              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white"
+                disabled={!!actionLoading}
+                onClick={() => doTerminate(confirmTerminate.id)}>
+                {actionLoading === confirmTerminate.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Yes, terminate"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payout panel */}
+      {payoutAffiliate && (
+        <PayoutPanel affiliate={payoutAffiliate} onClose={() => setPayoutAffiliate(null)} />
       )}
     </div>
   );
