@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { usePermissions } from "./components/permissions/usePermissions";
 import { useAuth } from "./lib/AuthContext";
+import SetupChecklist from "./components/onboarding/SetupChecklist";
 
 const tabs = [
   { name: "Calendar", icon: Calendar, page: "Calendar" },
@@ -167,6 +168,9 @@ export default function Layout({ children, currentPageName }) {
           {children}
         </main>
       </div>
+
+      {/* Guided setup checklist — owner-only, self-dismisses after completion */}
+      <SetupChecklist />
 
       {/* Mobile Bottom Navigation */}
       {showTabs && (
