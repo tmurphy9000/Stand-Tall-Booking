@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
   // Look up client — try both bare 10-digit and +1 prefix stored formats
   const { data: clients } = await db
     .from("clients")
-    .select("*")
+    .select("id, name, phone, email, sms_opt_in")
     .or(`phone.eq.${phone},phone.eq.+1${phone},phone.eq.1${phone}`);
 
   const client = clients?.[0] ?? null;

@@ -1226,11 +1226,15 @@ function MarketingSettingsTab({ shopSettings, templates, promoCodes, onSaved }) 
         <div className="text-sm text-muted-foreground space-y-2">
           <p className="font-medium text-foreground">Daily scheduling is set up via pg_cron</p>
           <p>Each automation runs daily at <strong>10 AM US Eastern (14:00 UTC)</strong>. Use the <strong>Run now</strong> buttons above to trigger any automation immediately for testing.</p>
-          <p>One-time setup — run this once in <strong>Dashboard → SQL Editor</strong> to store your service role key in Supabase Vault:</p>
-          <code className="block font-mono text-xs bg-muted px-3 py-2 rounded border border-border whitespace-pre">
-            {"SELECT vault.create_secret(\n  'eyJ...',  -- your service_role JWT\n  'marketing_service_role_key'\n);"}
-          </code>
-          <p>Find your key at <strong>Project Settings → API → service_role</strong> (the long <code className="font-mono text-xs">eyJ…</code> token). The key is stored encrypted and is not visible in plaintext after this step.</p>
+          <p>
+            One-time setup — store your service role key in Supabase Vault so automations can run securely:
+          </p>
+          <ol className="list-decimal list-inside space-y-1 pl-1">
+            <li>Copy your key from <strong>Supabase Dashboard → Project Settings → API → service_role</strong>.</li>
+            <li>Go to <strong>Dashboard → Settings → Vault</strong> and click <strong>Add secret</strong>.</li>
+            <li>Set the name to <code className="font-mono text-xs">marketing_service_role_key</code> and paste the key as the value.</li>
+          </ol>
+          <p>The key is stored encrypted in Vault and is never exposed in plaintext after this step.</p>
           <p>Verify jobs are active: <code className="font-mono text-xs">SELECT jobname, schedule, active FROM cron.job WHERE jobname LIKE 'automation-%';</code></p>
         </div>
       </section>

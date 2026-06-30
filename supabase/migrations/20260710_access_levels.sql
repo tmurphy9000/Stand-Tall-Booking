@@ -84,7 +84,12 @@ CREATE POLICY "access_levels_update"
     )
   );
 
--- access_levels: owners only can delete (protect defaults)
+-- access_levels: owners (and superadmin) only can delete — manager is intentionally excluded.
+-- Rationale: deleting an access level affects every barber assigned to it and is a structural
+-- change to the shop's role hierarchy. Managers can create and edit custom access levels
+-- (INSERT/UPDATE above) but owner sign-off is required before any level is removed.
+-- The is_default = false guard already prevents deleting the three built-in defaults;
+-- this restriction applies to custom levels too.
 CREATE POLICY "access_levels_delete"
   ON public.access_levels FOR DELETE
   TO authenticated
