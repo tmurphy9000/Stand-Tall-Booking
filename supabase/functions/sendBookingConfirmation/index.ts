@@ -186,64 +186,78 @@ Deno.serve(async (req) => {
 
   const { client_name, client_email, barber_name, service_name, date, start_time, end_time } = body;
 
-  if (!client_email || !client_name || !barber_name || !service_name || !date || !start_time || !end_time) {
+  // Always required — these fields appear in both email and SMS
+  if (!client_name || !barber_name || !service_name || !date || !start_time || !end_time) {
     console.error("[sendBookingConfirmation] Missing required fields:", body);
     return json({ error: "Missing required fields" });
   }
 
-  console.log("[sendBookingConfirmation] Sending to:", client_email, "for booking on", date);
-
-  const html = buildHtml({
-    client_name,
-    barber_name,
-    service_name,
-    date,
-    start_time,
-    end_time,
-    shop_name:          body.shop_name,
-    shop_address:       body.shop_address,
-    shop_phone:         body.shop_phone,
-    guest_name:         body.guest_name,
-    guest_barber_name:  body.guest_barber_name,
-    guest_service_name: body.guest_service_name,
-    guest_start_time:   body.guest_start_time,
-    guest_end_time:     body.guest_end_time,
-  });
+  // Must have at least one channel to send to
+  const willEmail = !!client_email;
+  const willSms   = !!(body.sms_opt_in && body.client_phone);
+  if (!willEmail && !willSms) {
+    console.log("[sendBookingConfirmation] No delivery channel available — skipping");
+    return json({ success: true, skipped: true });
+  }
 
   const shopName = body.shop_name || "Stand Tall Barbershop";
 
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${resendApiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: "Stand Tall Booking <onboarding@resend.dev>",
-      to: [client_email],
-      subject: `Appointment Confirmed — ${shopName}`,
-      html,
-    }),
-  });
+  // ── Email ─────────────────────────────────────────────────────────────────
+  let emailId: string | null = null;
+  if (willEmail) {
+    console.log("[sendBookingConfirmation] Sending email to:", client_email, "for booking on", date);
 
-  const resBody = await res.json();
+    const html = buildHtml({
+      client_name,
+      barber_name,
+      service_name,
+      date,
+      start_time,
+      end_time,
+      shop_name:          body.shop_name,
+      shop_address:       body.shop_address,
+      shop_phone:         body.shop_phone,
+      guest_name:         body.guest_name,
+      guest_barber_name:  body.guest_barber_name,
+      guest_service_name: body.guest_service_name,
+      guest_start_time:   body.guest_start_time,
+      guest_end_time:     body.guest_end_time,
+    });
 
-  if (!res.ok) {
-    console.error("[sendBookingConfirmation] Resend API error:", resBody);
-    return json({ error: resBody?.message ?? "Failed to send email" });
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${resendApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "Stand Tall Booking <onboarding@resend.dev>",
+        to: [client_email],
+        subject: `Appointment Confirmed — ${shopName}`,
+        html,
+      }),
+    });
+
+    const resBody = await res.json();
+    if (!res.ok) {
+      console.error("[sendBookingConfirmation] Resend API error:", resBody);
+      // Don't return — still try SMS if opted in
+    } else {
+      emailId = resBody.id;
+      console.log("[sendBookingConfirmation] Email sent, id:", emailId);
+    }
   }
-
-  console.log("[sendBookingConfirmation] Email sent, id:", resBody.id);
 
   // ── SMS confirmation ──────────────────────────────────────────────────────
-  if (body.sms_opt_in && body.client_phone) {
+  if (willSms) {
     const msg =
-      `Your appointment at ${shopName} with ${body.barber_name} on ` +
+      `Your appointment at ${shopName} with ${barber_name} on ` +
       `${smsFormatDate(date)} at ${smsFormatTime(start_time)} is confirmed. ` +
       `Reply STOP to opt out.`;
-    const { ok: smsOk, error: smsErr } = await sendSms(body.client_phone, msg);
+    const { ok: smsOk, error: smsErr } = await sendSms(body.client_phone!, msg);
     if (!smsOk) console.warn("[sendBookingConfirmation] SMS failed:", smsErr);
+    else console.log("[sendBookingConfirmation] SMS sent to", body.client_phone);
   }
 
-  return json({ success: true, id: resBody.id });
+  return json({ success: true, id: emailId });
 });
