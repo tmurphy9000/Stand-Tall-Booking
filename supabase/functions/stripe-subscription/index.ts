@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
     return json({ error: "Server configuration error: missing STRIPE_SECRET_KEY" }, 500);
   }
 
-  let body: { priceId?: string; plan?: string; customerId?: string; customerEmail?: string };
+  let body: { priceId?: string; plan?: string; customerId?: string; customerEmail?: string; affiliate_code?: string };
   try {
     body = await req.json();
   } catch (e) {
@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
     return json({ error: "Invalid request body" }, 400);
   }
 
-  const { priceId, plan, customerId, customerEmail } = body;
+  const { priceId, plan, customerId, customerEmail, affiliate_code } = body;
   if (!customerId && !customerEmail) {
     return json({ error: "customerId or customerEmail is required" }, 400);
   }
@@ -61,14 +61,18 @@ Deno.serve(async (req) => {
   const stripe = new Stripe(secretKey, { apiVersion: "2024-06-20" });
 
   try {
+    const sessionMeta: Record<string, string> = {};
+    if (plan) sessionMeta.plan = plan;
+    if (affiliate_code) sessionMeta.affiliate_code = affiliate_code.trim().toUpperCase();
+
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       ...(customerId ? { customer: customerId } : { customer_email: customerEmail }),
       line_items: [{ price: resolvedPriceId, quantity: 1 }],
       success_url: "https://www.standtallbooking.com?checkout=success",
       cancel_url: "https://www.standtallbooking.com?checkout=cancelled",
-      metadata: plan ? { plan } : undefined,
-      subscription_data: plan ? { metadata: { plan } } : undefined,
+      metadata: Object.keys(sessionMeta).length ? sessionMeta : undefined,
+      subscription_data: Object.keys(sessionMeta).length ? { metadata: sessionMeta } : undefined,
     });
 
     return json({ url: session.url });

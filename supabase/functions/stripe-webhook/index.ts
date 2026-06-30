@@ -59,9 +59,46 @@ function generateSlug(email: string, suffix: string): string {
   return (base || "shop") + "-" + suffix.slice(0, 8);
 }
 
+// Creates affiliate_referrals row and updates signup_attempts.linked_shop_id
+// when a shop activates via a tracked affiliate code.
+async function createAffiliateReferral(shopId: string, code: string, email: string): Promise<void> {
+  const normalised = code.trim().toUpperCase();
+
+  const { data: affiliate } = await supabaseAdmin
+    .from("affiliates")
+    .select("id")
+    .eq("promo_code", normalised)
+    .eq("application_status", "approved")
+    .maybeSingle();
+
+  if (!affiliate) {
+    console.log("[stripe-webhook] affiliate code not found or inactive:", normalised);
+    return;
+  }
+
+  const signedUpAt = new Date();
+  const windowEnd  = new Date(signedUpAt.getTime() + 90 * 24 * 60 * 60 * 1000); // +90 days ≈ 3 months
+
+  const { error } = await supabaseAdmin.from("affiliate_referrals").insert({
+    affiliate_id:              affiliate.id,
+    shop_id:                   shopId,
+    signed_up_at:              signedUpAt.toISOString(),
+    commission_window_ends_at: windowEnd.toISOString(),
+  });
+
+  if (error) {
+    // Ignore unique-violation — could be a webhook replay
+    if (error.code !== "23505") {
+      console.error("[stripe-webhook] failed to create affiliate referral:", error);
+    }
+  } else {
+    console.log("[stripe-webhook] affiliate referral created — code:", normalised, "shop:", shopId);
+  }
+}
+
 // Creates a new shop for a subscriber who doesn't have one yet, then links
 // it back to their subscription row and auth user metadata.
-async function provisionShopForNewSubscriber(userId: string, email: string): Promise<void> {
+async function provisionShopForNewSubscriber(userId: string, email: string): Promise<string | null> {
   // Generate a temporary slug from the email — owner can update it in Settings
   const tempSlug = generateSlug(email, userId);
 
@@ -73,7 +110,7 @@ async function provisionShopForNewSubscriber(userId: string, email: string): Pro
 
   if (shopError || !shop) {
     console.error("[stripe-webhook] failed to create shop for new subscriber:", shopError);
-    return;
+    return null;
   }
 
   const { error: subscriptionError } = await supabaseAdmin
@@ -88,7 +125,7 @@ async function provisionShopForNewSubscriber(userId: string, email: string): Pro
   const { data: userData, error: getUserError } = await supabaseAdmin.auth.admin.getUserById(userId);
   if (getUserError || !userData?.user) {
     console.error("[stripe-webhook] failed to load user for metadata update:", getUserError);
-    return;
+    return shop.id;
   }
 
   const { error: metadataError } = await supabaseAdmin.auth.admin.updateUserById(userId, {
@@ -98,6 +135,8 @@ async function provisionShopForNewSubscriber(userId: string, email: string): Pro
   if (metadataError) {
     console.error("[stripe-webhook] failed to set shop_id on user metadata:", metadataError);
   }
+
+  return shop.id;
 }
 
 async function resolveTierFromSubscription(subscriptionId: string | undefined): Promise<string | undefined> {
@@ -181,8 +220,23 @@ Deno.serve(async (req) => {
 
         if (error) console.error("[stripe-webhook] failed to upsert subscription:", error);
 
+        const affiliateCode = session.metadata?.affiliate_code ?? null;
+
         if (!existingSubscription?.shop_id) {
-          await provisionShopForNewSubscriber(userId, email);
+          const newShopId = await provisionShopForNewSubscriber(userId, email);
+
+          if (newShopId) {
+            // Track affiliate referral if a valid code was used at signup
+            if (affiliateCode) {
+              await createAffiliateReferral(newShopId, affiliateCode, email);
+            }
+            // Link the signup attempt to the newly created shop
+            await supabaseAdmin
+              .from("signup_attempts")
+              .update({ linked_shop_id: newShopId })
+              .eq("email", email)
+              .eq("completed", false);
+          }
         }
 
         break;

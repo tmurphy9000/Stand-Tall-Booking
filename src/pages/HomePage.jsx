@@ -371,6 +371,9 @@ function JoinTab() {
   const [resendStatus, setResendStatus] = useState("");
   const [pricingModalOpen, setPricingModalOpen] = useState(false);
 
+  const [affiliateCode, setAffiliateCode]   = useState("");
+  const [codeStatus, setCodeStatus]         = useState(null); // null | 'checking' | 'valid' | 'invalid'
+
   const [termsAccepted, setTermsAccepted] = useState({ terms: false, smsEmail: false, age: false });
   const [contactErrors, setContactErrors] = useState({});
 
@@ -542,16 +545,36 @@ function JoinTab() {
     setStage("account");
   }
 
+  async function validateCode(rawCode) {
+    const code = rawCode.trim().toUpperCase();
+    if (!code) { setCodeStatus(null); return; }
+    setCodeStatus("checking");
+    const { data, error } = await supabase.rpc("validate_affiliate_code", { p_code: code });
+    setCodeStatus(error ? null : data ? "valid" : "invalid");
+  }
+
   async function handleCreateAccount() {
     setAccountError("");
     if (!accountEmail) { setAccountError("Please enter your email."); return; }
     if (accountPassword.length < 8) { setAccountError("Password must be at least 8 characters."); return; }
     if (accountPassword !== accountConfirm) { setAccountError("Passwords don't match."); return; }
     setSubmitting(true);
+
+    const trimmedCode = affiliateCode.trim().toUpperCase() || null;
+
+    // Persist affiliate code on the signup attempt row before redirecting to Stripe
+    const attemptId = attemptIdRef.current || sessionStorage.getItem("signup_attempt_id");
+    if (attemptId && trimmedCode) {
+      supabase.from("signup_attempts").update({ affiliate_code: trimmedCode }).eq("id", attemptId);
+    }
+
     const { error } = await supabase.auth.signUp({
       email: accountEmail,
       password: accountPassword,
-      options: { data: { ...answers, plan: PLAN_KEYS[answers.plan] }, emailRedirectTo: "https://www.standtallbooking.com/?new=1" },
+      options: {
+        data: { ...answers, plan: PLAN_KEYS[answers.plan], affiliate_code: trimmedCode },
+        emailRedirectTo: "https://www.standtallbooking.com/?new=1",
+      },
     });
     setSubmitting(false);
     if (error) { setAccountError(error.message); return; }
@@ -589,8 +612,24 @@ function JoinTab() {
           <div>
             <label style={{fontSize:"11px", letterSpacing:"0.1em", color:"#D1D5DB", textTransform:"uppercase", fontWeight:500, display:"block", marginBottom:"6px"}}>Confirm password</label>
             <input type="password" value={accountConfirm} onChange={e=>setAccountConfirm(e.target.value)} placeholder="Re-enter your password"
-              onKeyDown={e=>{ if(e.key==="Enter") handleCreateAccount(); }}
               style={{width:"100%", padding:"13px 16px", background:"#111", border:`1px solid ${BORDER}`, color:FG, fontSize:"14px", borderRadius:"4px", fontFamily:"inherit", outline:"none", boxSizing:"border-box"}} />
+          </div>
+          <div style={{borderTop:`1px solid ${BORDER}`, paddingTop:"12px"}}>
+            <label style={{fontSize:"11px", letterSpacing:"0.1em", color:"#D1D5DB", textTransform:"uppercase", fontWeight:500, display:"block", marginBottom:"6px"}}>
+              Referral code <span style={{color:MID, textTransform:"none", letterSpacing:0, fontWeight:400}}>(optional)</span>
+            </label>
+            <input
+              type="text" value={affiliateCode}
+              onChange={e => { setAffiliateCode(e.target.value.toUpperCase()); setCodeStatus(null); }}
+              onBlur={e => validateCode(e.target.value)}
+              onKeyDown={e=>{ if(e.key==="Enter") handleCreateAccount(); }}
+              placeholder="e.g. JOHNDOE487"
+              style={{width:"100%", padding:"13px 16px", background:"#111",
+                border:`1px solid ${codeStatus === "valid" ? G : codeStatus === "invalid" ? "#F87171" : BORDER}`,
+                color:FG, fontSize:"14px", borderRadius:"4px", fontFamily:"inherit", outline:"none", boxSizing:"border-box", textTransform:"uppercase", letterSpacing:"0.08em"}} />
+            {codeStatus === "checking" && <p style={{fontSize:"12px", color:MID, margin:"5px 0 0"}}>Checking…</p>}
+            {codeStatus === "valid"    && <p style={{fontSize:"12px", color:G,   margin:"5px 0 0"}}>✓ Valid referral code</p>}
+            {codeStatus === "invalid"  && <p style={{fontSize:"12px", color:"#F87171", margin:"5px 0 0"}}>Code not found or no longer active.</p>}
           </div>
           {accountError && <p style={{fontSize:"13px", color:"#F87171", margin:0}}>{accountError}</p>}
           <button onClick={handleCreateAccount} disabled={submitting}
@@ -1191,7 +1230,11 @@ export default function HomePage() {
             return;
           }
           return supabase.functions.invoke("stripe-subscription", {
-            body: { plan: session.user.user_metadata.plan, customerEmail: session.user.email },
+            body: {
+              plan: session.user.user_metadata.plan,
+              customerEmail: session.user.email,
+              affiliate_code: session.user.user_metadata.affiliate_code || null,
+            },
           });
         })
         .then((result) => {
