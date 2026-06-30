@@ -248,15 +248,16 @@ Deno.serve(async (req) => {
   }
 
   // ── SMS confirmation ──────────────────────────────────────────────────────
+  let smsResult: { ok: boolean; sid?: string; error?: string; twilioBody?: string } | null = null;
   if (willSms) {
     const msg =
       `Your appointment at ${shopName} with ${barber_name} on ` +
       `${smsFormatDate(date)} at ${smsFormatTime(start_time)} is confirmed. ` +
       `Reply STOP to opt out.`;
-    const { ok: smsOk, error: smsErr } = await sendSms(body.client_phone!, msg);
-    if (!smsOk) console.warn("[sendBookingConfirmation] SMS failed:", smsErr);
-    else console.log("[sendBookingConfirmation] SMS sent to", body.client_phone);
+    smsResult = await sendSms(body.client_phone!, msg);
+    if (!smsResult.ok) console.warn("[sendBookingConfirmation] SMS failed:", smsResult.error, smsResult.twilioBody);
+    else console.log("[sendBookingConfirmation] SMS sent to", body.client_phone, "sid:", smsResult.sid);
   }
 
-  return json({ success: true, id: emailId });
+  return json({ success: true, id: emailId, sms: smsResult });
 });

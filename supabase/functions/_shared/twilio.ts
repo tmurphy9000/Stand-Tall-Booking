@@ -1,4 +1,4 @@
-export async function sendSms(to: string, body: string): Promise<{ ok: boolean; error?: string }> {
+export async function sendSms(to: string, body: string): Promise<{ ok: boolean; sid?: string; error?: string; twilioBody?: string }> {
   const accountSid = Deno.env.get("TWILIO_ACCOUNT_SID");
   const authToken  = Deno.env.get("TWILIO_AUTH_TOKEN");
   const from       = Deno.env.get("TWILIO_PHONE_NUMBER");
@@ -28,10 +28,11 @@ export async function sendSms(to: string, body: string): Promise<{ ok: boolean; 
     if (!res.ok) {
       const text = await res.text();
       console.error("[sendSms] Twilio error:", res.status, text);
-      return { ok: false, error: `Twilio ${res.status}` };
+      return { ok: false, error: `Twilio ${res.status}`, twilioBody: text };
     }
-    console.log("[sendSms] sent to", e164);
-    return { ok: true };
+    const data = await res.json();
+    console.log("[sendSms] sent to", e164, "sid:", data.sid);
+    return { ok: true, sid: data.sid };
   } catch (e) {
     console.error("[sendSms] fetch threw:", e);
     return { ok: false, error: String(e) };
