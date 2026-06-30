@@ -846,7 +846,7 @@ function JoinTab() {
             <div style={{display:"flex", flexDirection:"column", gap:"12px", marginBottom:"2rem"}}>
               {[
                 { key:"terms", label:"I have read and agree to the Stand Tall Booking Terms of Service and Privacy Policy." },
-                { key:"smsEmail", label:"I consent to receive SMS and email communications from Stand Tall Booking including booking notifications, verification codes, and product updates. I understand I can opt out at any time by replying STOP or clicking unsubscribe." },
+                { key:"smsEmail", label:"I agree to receive text messages and emails from Stand Tall Booking, including account verification codes, booking notifications, billing alerts, and product updates. Msg & data rates may apply. Reply STOP to opt out of SMS." },
                 { key:"age", label:"I confirm that I am 18 years of age or older and authorized to enter into this agreement on behalf of my business." },
               ].map(c => (
                 <label key={c.key} style={{display:"flex", gap:"12px", alignItems:"flex-start", cursor:"pointer"}}>

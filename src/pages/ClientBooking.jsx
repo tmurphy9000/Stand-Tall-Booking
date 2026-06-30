@@ -1533,7 +1533,7 @@ function ClientInfoStep({ name, phone, email, onChange, onNext, onBack, barber }
               onBlur={e => (e.target.style.borderColor = "#2a2a2a")}
             />
             <p className="text-xs text-white/40 mt-2">
-              Your phone number is used to send a one-time verification code and for appointment-related contact. You may choose to receive SMS reminders on the next step.
+              Your phone number is used to send a one-time verification code. If you opt in on the next screen, it will also be used for appointment confirmations and reminders via SMS.
             </p>
           </div>
 
@@ -1777,10 +1777,9 @@ function ConfirmStep({ barber, service, date, time, clientName, clientPhone, cli
             className="w-4 h-4 rounded accent-[#8B9A7E] flex-shrink-0 mt-0.5"
           />
           <span className="text-white/70 text-sm">
-            Yes, send me SMS appointment reminders{" "}
-            <span className="text-white/40">(optional)</span>
+            Yes, I agree to receive text messages from Stand Tall Booking, including appointment confirmations, reminders, and updates about my booking.
             <br />
-            <span className="text-white/30 text-xs">Standard message &amp; data rates may apply. Reply STOP to opt out. You may book without selecting this.</span>
+            <span className="text-white/30 text-xs">Msg frequency varies. Msg &amp; data rates may apply. Reply STOP to cancel, HELP for help. Consent is not a condition of booking.</span>
           </span>
         </label>
 
