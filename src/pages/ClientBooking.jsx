@@ -2237,6 +2237,7 @@ export default function ClientBooking() {
 
       }
 
+      console.log("[sendBookingConfirmation] gate check — clientEmail:", clientEmail, "| smsOptIn:", smsOptIn, "| clientPhone:", clientPhone);
       if (clientEmail || (smsOptIn && clientPhone)) {
         const confirmBody = {
           client_name:  clientName,
@@ -2259,10 +2260,13 @@ export default function ClientBooking() {
           confirmBody.guest_start_time   = guestStartHHMM;
           confirmBody.guest_end_time     = guestEndHHMM;
         }
+        console.log("[sendBookingConfirmation] invoking with body:", JSON.stringify(confirmBody));
         supabase.functions.invoke("sendBookingConfirmation", { body: confirmBody })
-          .then(({ error }) => {
-            if (error) console.warn("[sendBookingConfirmation] invoke error:", error);
+          .then(({ data, error }) => {
+            console.log("[sendBookingConfirmation] invoke result — data:", data, "| error:", error);
           });
+      } else {
+        console.warn("[sendBookingConfirmation] gate FAILED — no email or SMS channel — skipping invoke");
       }
 
       setStep(8);
