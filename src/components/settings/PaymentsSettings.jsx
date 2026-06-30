@@ -370,7 +370,7 @@ export default function PaymentsSettings() {
           <div>
             <h3 className="text-sm font-semibold">Deposits</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Collect a percentage deposit when clients book online to secure their appointment.
+              Require clients to pay a deposit when booking online. The deposit is applied toward their final service total at checkout.
             </p>
           </div>
 

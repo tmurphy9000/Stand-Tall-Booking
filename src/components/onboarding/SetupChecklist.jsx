@@ -21,11 +21,35 @@ const STEPS = [
     manual: false,
   },
   {
+    id: "logo",
+    title: "Upload your shop logo",
+    desc: "Your logo appears on your public booking page and in client-facing emails. Upload it to make your page look professional and on-brand.",
+    link: "/Settings?tab=booking_page",
+    linkLabel: "Go to Booking Page",
+    manual: false,
+  },
+  {
+    id: "cancel_policy",
+    title: "Set your cancellation policy",
+    desc: "Add your cancellation policy so clients see it before confirming their booking and must agree to it. This gives you clear ground to stand on for no-shows.",
+    link: "/Settings?tab=booking_page",
+    linkLabel: "Go to Booking Page",
+    manual: false,
+  },
+  {
     id: "services",
     title: "Add your services",
     desc: "Add the services you offer, with prices and durations. Clients will choose from these when booking online.",
     link: "/Settings?tab=services",
     linkLabel: "Go to Services",
+    manual: false,
+  },
+  {
+    id: "tax_rate",
+    title: "Set your tax rate",
+    desc: "Add your local sales tax rate so it's automatically calculated at checkout. Check with your local tax authority for the correct rate for your area.",
+    link: "/Settings?tab=shop",
+    linkLabel: "Go to Tax Rates",
     manual: false,
   },
   {
@@ -37,9 +61,33 @@ const STEPS = [
     manual: true,
   },
   {
+    id: "min_notice",
+    title: "Set your minimum booking notice",
+    desc: "Control how far in advance clients must book. Setting a minimum notice prevents last-second bookings when your barbers are already mid-appointment.",
+    link: "/Settings?tab=booking_page",
+    linkLabel: "Go to Booking Page",
+    manual: true,
+  },
+  {
+    id: "booking_window",
+    title: "Configure your booking window",
+    desc: "Set how far in advance clients can book online. A 2-month window is a good default — long enough for planning, short enough to keep your calendar manageable.",
+    link: "/Settings?tab=booking_page",
+    linkLabel: "Go to Booking Page",
+    manual: true,
+  },
+  {
     id: "barbers",
     title: "Add your barbers",
     desc: "Invite your team. Each barber gets their own login, calendar, and can be assigned services and individual hours.",
+    link: "/Settings?tab=barbers",
+    linkLabel: "Go to Barbers",
+    manual: false,
+  },
+  {
+    id: "commission_rates",
+    title: "Set barber commission rates",
+    desc: "Each barber needs a commission rate set so payroll calculates correctly. You can set different rates for services and product sales per barber.",
     link: "/Settings?tab=barbers",
     linkLabel: "Go to Barbers",
     manual: false,
@@ -69,6 +117,15 @@ const STEPS = [
     manual: false,
   },
   {
+    id: "deposits",
+    title: "Enable deposits",
+    desc: "Require clients to pay a deposit when booking online. This reduces no-shows and ensures you're compensated if they cancel last minute. Deposits require Stripe to be connected first.",
+    link: "/Settings?tab=payments",
+    linkLabel: "Go to Payments",
+    manual: false,
+    stripeRequired: true,
+  },
+  {
     id: "clients",
     title: "Import your existing clients",
     desc: "Already have a client list from Vagaro, Square, or another platform? Import it here so your history comes with you.",
@@ -86,7 +143,7 @@ const STEPS = [
   },
 ];
 
-function computeStepsDone(shopData, shopSettings, servicesCount, barbersCount, meta) {
+function computeStepsDone(shopData, shopSettings, servicesCount, barbersCount, activeBarbers, meta) {
   const manual = meta?.manual_steps || {};
   // A slug is "customized" when it no longer ends with the auto-generated
   // suffix ("-" + first 8 chars of the shop UUID).
@@ -97,26 +154,38 @@ function computeStepsDone(shopData, shopSettings, servicesCount, barbersCount, m
     !shopData.url_slug.endsWith(defaultSuffix)
   ) || !!manual.url_slug;
 
+  const allBarbersHaveCommission =
+    activeBarbers.length > 0 &&
+    activeBarbers.every((b) => b.service_commission_rate != null);
+
   return {
-    shop_info: !!(shopSettings?.shop_name?.trim() && shopSettings?.shop_address?.trim()),
-    services:  servicesCount > 0,
-    hours:     !!manual.hours,
-    barbers:   barbersCount > 1,
-    url_slug:  slugCustomized,
-    social:    !!manual.social,
-    stripe:    !!shopData?.stripe_account_id,
-    clients:   !!manual.clients,
-    share:     !!manual.share,
+    shop_info:        !!(shopSettings?.shop_name?.trim() && shopSettings?.shop_address?.trim()),
+    logo:             !!shopSettings?.booking_logo_url,
+    cancel_policy:    !!(shopSettings?.cancellation_policy_enabled && shopSettings?.cancellation_policy_text?.trim()),
+    services:         servicesCount > 0,
+    tax_rate:         !!(shopSettings?.default_tax_rate > 0 || shopSettings?.default_service_tax_rate > 0),
+    hours:            !!manual.hours,
+    min_notice:       !!manual.min_notice,
+    booking_window:   !!manual.booking_window,
+    barbers:          barbersCount > 1,
+    commission_rates: allBarbersHaveCommission,
+    url_slug:         slugCustomized,
+    social:           !!manual.social,
+    stripe:           !!shopData?.stripe_account_id,
+    deposits:         !!shopSettings?.deposit_enabled,
+    clients:          !!manual.clients,
+    share:            !!manual.share,
   };
 }
 
 function Inner({ shopId }) {
-  const [shopData,      setShopData]      = useState(null);
-  const [shopSettings,  setShopSettings]  = useState(null);
-  const [servicesCount, setServicesCount] = useState(0);
-  const [barbersCount,  setBarbersCount]  = useState(0);
-  const [meta,          setMeta]          = useState({});
-  const [loading,       setLoading]       = useState(true);
+  const [shopData,       setShopData]       = useState(null);
+  const [shopSettings,   setShopSettings]   = useState(null);
+  const [servicesCount,  setServicesCount]  = useState(0);
+  const [barbersCount,   setBarbersCount]   = useState(0);
+  const [activeBarbers,  setActiveBarbers]  = useState([]);
+  const [meta,           setMeta]           = useState({});
+  const [loading,        setLoading]        = useState(true);
 
   const [expanded,     setExpanded]     = useState(null);
   const [minimized,    setMinimized]    = useState(false);
@@ -129,16 +198,20 @@ function Inner({ shopId }) {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [shopRes, settingsRes, svcRes, barberRes] = await Promise.all([
+      const [shopRes, settingsRes, svcRes, barberCountRes, activeBarbersRes] = await Promise.all([
         supabase.from("shops").select("id, url_slug, stripe_account_id, onboarding_meta").eq("id", shopId).single(),
-        supabase.from("shop_settings").select("shop_name, shop_address").eq("shop_id", shopId).maybeSingle(),
+        supabase.from("shop_settings").select(
+          "shop_name, shop_address, booking_logo_url, cancellation_policy_enabled, cancellation_policy_text, deposit_enabled, default_tax_rate, default_service_tax_rate"
+        ).eq("shop_id", shopId).maybeSingle(),
         supabase.from("services").select("id", { count: "exact", head: true }).eq("shop_id", shopId),
         supabase.from("barbers").select("id", { count: "exact", head: true }).eq("shop_id", shopId),
+        supabase.from("barbers").select("id, service_commission_rate").eq("shop_id", shopId).eq("is_active", true),
       ]);
       setShopData(shopRes.data);
       setShopSettings(settingsRes.data);
       setServicesCount(svcRes.count ?? 0);
-      setBarbersCount(barberRes.count ?? 0);
+      setBarbersCount(barberCountRes.count ?? 0);
+      setActiveBarbers(activeBarbersRes.data ?? []);
       setMeta(shopRes.data?.onboarding_meta ?? {});
     } finally {
       setLoading(false);
@@ -164,12 +237,12 @@ function Inner({ shopId }) {
   }, [saveMeta]);
 
   // Derived state
-  const stepsDone    = computeStepsDone(shopData, shopSettings, servicesCount, barbersCount, meta);
-  const doneCount    = Object.values(stepsDone).filter(Boolean).length;
-  const allDone      = doneCount === STEPS.length;
-  const pct          = Math.round((doneCount / STEPS.length) * 100);
-  const remaining    = STEPS.length - doneCount;
-  const isComplete   = meta.completed === true;
+  const stepsDone  = computeStepsDone(shopData, shopSettings, servicesCount, barbersCount, activeBarbers, meta);
+  const doneCount  = Object.values(stepsDone).filter(Boolean).length;
+  const allDone    = doneCount === STEPS.length;
+  const pct        = Math.round((doneCount / STEPS.length) * 100);
+  const remaining  = STEPS.length - doneCount;
+  const isComplete = meta.completed === true;
 
   // When all steps become done for the first time, save completion flag and
   // optionally open the feature overview.
@@ -316,6 +389,7 @@ function Inner({ shopId }) {
             STEPS.map((step) => {
               const done       = stepsDone[step.id];
               const isExpanded = expanded === step.id;
+              const stripeBlocked = step.stripeRequired && !stepsDone.stripe;
 
               return (
                 <div key={step.id} style={{ borderBottom: `1px solid ${BORDER}` }}>
@@ -350,6 +424,11 @@ function Inner({ shopId }) {
                       <p style={{ fontSize: "12px", color: MID, lineHeight: 1.65, margin: "0 0 10px" }}>
                         {step.desc}
                       </p>
+                      {stripeBlocked && (
+                        <p style={{ fontSize: "11px", color: "#F59E0B", margin: "0 0 8px", lineHeight: 1.5 }}>
+                          Complete the Stripe setup step first to enable deposits.
+                        </p>
+                      )}
                       <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
                         <Link
                           to={step.link}
