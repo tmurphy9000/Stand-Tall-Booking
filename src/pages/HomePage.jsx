@@ -128,9 +128,12 @@ function HomeTab({ setTab, onViewPricing }) {
           <span style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"38vw", color:G, letterSpacing:"-0.05em", userSelect:"none", lineHeight:1}}>STB</span>
         </div>
         <p style={{fontSize:"11px", letterSpacing:"0.2em", color:G, fontWeight:500, marginBottom:"1.5rem", textTransform:"uppercase"}}>Stand Tall Booking</p>
-        <h1 style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"clamp(42px,7.5vw,96px)", letterSpacing:"0.01em", lineHeight:1.02, margin:"0 auto 2rem", color:FG, maxWidth:"860px"}}>
-          Made by a barber who got tired of bad software.
+        <h1 style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"clamp(42px,7.5vw,96px)", letterSpacing:"0.01em", lineHeight:1.02, margin:"0 auto 1rem", color:FG, maxWidth:"860px"}}>
+          Scheduling & Booking Software Built for Barbershops
         </h1>
+        <p style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"clamp(22px,3vw,38px)", color:MID, margin:"0 auto 2rem", letterSpacing:"0.02em", lineHeight:1.1, maxWidth:"640px"}}>
+          Made by a barber who got tired of bad software.
+        </p>
         <p style={{fontSize:"17px", color:"#D1D5DB", maxWidth:"500px", margin:"0 auto 3rem", lineHeight:1.75}}>
           Booking, scheduling, client management, payroll, and AI tools — built specifically for barbershops. No hidden fees. No bloat. No nonsense.
         </p>
