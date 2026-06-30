@@ -151,12 +151,6 @@ Deno.serve(async (req) => {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  const resendApiKey = Deno.env.get("RESEND_API_KEY");
-  if (!resendApiKey) {
-    console.error("[sendBookingConfirmation] RESEND_API_KEY secret not set");
-    return json({ error: "Email service not configured" });
-  }
-
   let body: {
     client_name?: string;
     client_email?: string;
@@ -205,46 +199,51 @@ Deno.serve(async (req) => {
   // ── Email ─────────────────────────────────────────────────────────────────
   let emailId: string | null = null;
   if (willEmail) {
-    console.log("[sendBookingConfirmation] Sending email to:", client_email, "for booking on", date);
-
-    const html = buildHtml({
-      client_name,
-      barber_name,
-      service_name,
-      date,
-      start_time,
-      end_time,
-      shop_name:          body.shop_name,
-      shop_address:       body.shop_address,
-      shop_phone:         body.shop_phone,
-      guest_name:         body.guest_name,
-      guest_barber_name:  body.guest_barber_name,
-      guest_service_name: body.guest_service_name,
-      guest_start_time:   body.guest_start_time,
-      guest_end_time:     body.guest_end_time,
-    });
-
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${resendApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: "Stand Tall Booking <onboarding@resend.dev>",
-        to: [client_email],
-        subject: `Appointment Confirmed — ${shopName}`,
-        html,
-      }),
-    });
-
-    const resBody = await res.json();
-    if (!res.ok) {
-      console.error("[sendBookingConfirmation] Resend API error:", resBody);
-      // Don't return — still try SMS if opted in
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
+    if (!resendApiKey) {
+      console.error("[sendBookingConfirmation] RESEND_API_KEY not set — skipping email");
     } else {
-      emailId = resBody.id;
-      console.log("[sendBookingConfirmation] Email sent, id:", emailId);
+      console.log("[sendBookingConfirmation] Sending email to:", client_email, "for booking on", date);
+
+      const html = buildHtml({
+        client_name,
+        barber_name,
+        service_name,
+        date,
+        start_time,
+        end_time,
+        shop_name:          body.shop_name,
+        shop_address:       body.shop_address,
+        shop_phone:         body.shop_phone,
+        guest_name:         body.guest_name,
+        guest_barber_name:  body.guest_barber_name,
+        guest_service_name: body.guest_service_name,
+        guest_start_time:   body.guest_start_time,
+        guest_end_time:     body.guest_end_time,
+      });
+
+      const res = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${resendApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: "Stand Tall Booking <onboarding@resend.dev>",
+          to: [client_email],
+          subject: `Appointment Confirmed — ${shopName}`,
+          html,
+        }),
+      });
+
+      const resBody = await res.json();
+      if (!res.ok) {
+        console.error("[sendBookingConfirmation] Resend API error:", resBody);
+        // Don't return — still try SMS if opted in
+      } else {
+        emailId = resBody.id;
+        console.log("[sendBookingConfirmation] Email sent, id:", emailId);
+      }
     }
   }
 
