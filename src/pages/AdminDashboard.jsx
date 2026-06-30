@@ -1,4 +1,5 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ShieldAlert, Search, Loader2, Crown } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
@@ -890,6 +891,199 @@ function DropOffsTab() {
   );
 }
 
+// ─── AFFILIATES TAB ─────────────────────────────────────────────────────────
+function AffiliatesTab() {
+  const queryClient = useQueryClient();
+  const [search, setSearch]           = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [actionLoading, setActionLoading] = useState(null); // affiliate_id being processed
+  const [confirmReject, setConfirmReject] = useState(null); // affiliate to reject
+
+  const { data: affiliates = [], isLoading } = useQuery({
+    queryKey: ["affiliates"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("affiliates")
+        .select("id, name, email, phone, social_media_links, why_join, application_status, applied_at, reviewed_at, promo_code")
+        .order("applied_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const pending = affiliates.filter(a => a.application_status === "pending");
+
+  const filtered = affiliates.filter(a => {
+    const matchStatus = statusFilter === "all" || a.application_status === statusFilter;
+    const q = search.toLowerCase();
+    const matchSearch = !q || a.name?.toLowerCase().includes(q) || a.email?.toLowerCase().includes(q) || a.promo_code?.toLowerCase().includes(q);
+    return matchStatus && matchSearch;
+  });
+
+  const doAction = useCallback(async (affiliate_id, action) => {
+    setActionLoading(affiliate_id);
+    try {
+      const { data, error } = await supabase.functions.invoke("approve-affiliate", {
+        body: { affiliate_id, action },
+      });
+      if (error || data?.error) throw new Error(data?.error || error?.message || "Unknown error");
+      toast.success(action === "approve" ? `Approved! Promo code: ${data.promo_code}` : "Application rejected.");
+      queryClient.invalidateQueries({ queryKey: ["affiliates"] });
+    } catch (err) {
+      toast.error(err.message);
+    } finally {
+      setActionLoading(null);
+      setConfirmReject(null);
+    }
+  }, [queryClient]);
+
+  const statusColors = {
+    pending:    "bg-yellow-100 text-yellow-800 border-yellow-200",
+    approved:   "bg-green-100 text-green-800 border-green-200",
+    rejected:   "bg-red-100 text-red-800 border-red-200",
+    terminated: "bg-gray-100 text-gray-600 border-gray-200",
+  };
+
+  const timeAgo = (ts) => {
+    if (!ts) return "—";
+    const diff = Date.now() - new Date(ts).getTime();
+    const h = Math.floor(diff / 3600000);
+    if (h < 24) return h < 1 ? "just now" : `${h}h ago`;
+    const d = Math.floor(diff / 86400000);
+    return d < 30 ? `${d}d ago` : new Date(ts).toLocaleDateString();
+  };
+
+  return (
+    <div className="space-y-6 pt-4">
+      {/* Pending applications — highlighted at top */}
+      {pending.length > 0 && (
+        <Card>
+          <CardContent className="pt-5">
+            <div className="flex items-center gap-2 mb-4">
+              <h3 className="font-semibold text-sm">Pending Applications</h3>
+              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 border border-yellow-200">{pending.length}</span>
+            </div>
+            <div className="space-y-4">
+              {pending.map(a => (
+                <div key={a.id} className="border border-border rounded-lg p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-sm">{a.name}</p>
+                      <p className="text-xs text-muted-foreground">{a.email}{a.phone ? ` · ${a.phone}` : ""}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">Applied {timeAgo(a.applied_at)}</p>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50 text-xs"
+                        disabled={!!actionLoading} onClick={() => setConfirmReject(a)}>
+                        Reject
+                      </Button>
+                      <Button size="sm" className="bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white text-xs"
+                        disabled={!!actionLoading} onClick={() => doAction(a.id, "approve")}>
+                        {actionLoading === a.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Approve"}
+                      </Button>
+                    </div>
+                  </div>
+                  {a.social_media_links && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-0.5">Social / Audience</p>
+                      <p className="text-xs text-foreground whitespace-pre-wrap">{a.social_media_links}</p>
+                    </div>
+                  )}
+                  {a.why_join && (
+                    <div>
+                      <p className="text-xs font-medium text-muted-foreground mb-0.5">Why they want to join</p>
+                      <p className="text-xs text-foreground whitespace-pre-wrap">{a.why_join}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* All affiliates table */}
+      <Card>
+        <CardContent className="pt-5">
+          <div className="flex items-center gap-3 mb-4 flex-wrap">
+            <div className="relative flex-1 min-w-[180px]">
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+              <Input className="pl-8 h-8 text-xs" placeholder="Search name, email, code…" value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="h-8 text-xs w-[130px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+                <SelectItem value="terminated">Terminated</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {isLoading ? (
+            <div className="flex justify-center py-12"><Loader2 className="w-5 h-5 animate-spin text-muted-foreground" /></div>
+          ) : filtered.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-10">No affiliates found.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Promo Code</TableHead>
+                  <TableHead>Applied</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filtered.map(a => (
+                  <TableRow key={a.id}>
+                    <TableCell className="font-medium text-sm">{a.name}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">{a.email}</TableCell>
+                    <TableCell>
+                      {a.promo_code
+                        ? <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">{a.promo_code}</code>
+                        : <span className="text-xs text-muted-foreground">—</span>}
+                    </TableCell>
+                    <TableCell className="text-xs text-muted-foreground whitespace-nowrap">{timeAgo(a.applied_at)}</TableCell>
+                    <TableCell>
+                      <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${statusColors[a.application_status] ?? ""}`}>
+                        {a.application_status}
+                      </span>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Reject confirmation dialog */}
+      {confirmReject && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-lg p-6 max-w-sm w-full shadow-xl space-y-4">
+            <h3 className="font-semibold text-base">Reject application?</h3>
+            <p className="text-sm text-muted-foreground">
+              This will reject <strong>{confirmReject.name}</strong> and notify them by email. This cannot be undone.
+            </p>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => setConfirmReject(null)}>Cancel</Button>
+              <Button size="sm" className="bg-red-600 hover:bg-red-700 text-white"
+                disabled={!!actionLoading}
+                onClick={() => doAction(confirmReject.id, "reject")}>
+                {actionLoading === confirmReject.id ? <Loader2 className="w-3 h-3 animate-spin" /> : "Yes, reject"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const { isAdminTier, isOwnerTier } = usePermissions();
 
@@ -928,6 +1122,7 @@ export default function AdminDashboard() {
             <TabsTrigger value="signups">All Signups</TabsTrigger>
             <TabsTrigger value="actions">Account Actions</TabsTrigger>
             <TabsTrigger value="superadmins">Superadmins</TabsTrigger>
+            <TabsTrigger value="affiliates">Affiliates</TabsTrigger>
             {isOwnerTier && <TabsTrigger value="activitylog">Activity Log</TabsTrigger>}
           </TabsList>
 
@@ -948,6 +1143,9 @@ export default function AdminDashboard() {
           </TabsContent>
           <TabsContent value="superadmins">
             <SuperadminsTab isOwnerTier={isOwnerTier} />
+          </TabsContent>
+          <TabsContent value="affiliates">
+            <AffiliatesTab />
           </TabsContent>
           {isOwnerTier && (
             <TabsContent value="activitylog">

@@ -27,7 +27,7 @@ function Nav({ tab, setTab }) {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  const navLinks = ["Home", "Pricing", "Terms", "Join Today", "Login"];
+  const navLinks = ["Home", "Pricing", "Affiliates", "Terms", "Join Today", "Login"];
 
   function handleNav(t) {
     if (t === "Terms") { window.location.href = "/terms"; return; }
@@ -908,6 +908,144 @@ function JoinTab() {
   );
 }
 
+// ─── AFFILIATE TAB ───────────────────────────────────────────
+function AffiliateTab() {
+  const [form, setForm] = useState({ name: "", email: "", phone: "", social_media_links: "", why_join: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+
+  const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
+
+  const handleSubmit = async () => {
+    setError("");
+    if (!form.name.trim()) { setError("Please enter your name."); return; }
+    if (!form.email.trim()) { setError("Please enter your email address."); return; }
+    setSubmitting(true);
+    try {
+      const res = await supabase.functions.invoke("submit-affiliate-application", { body: form });
+      if (res.error || res.data?.error) {
+        setError(res.data?.error || "Something went wrong. Please try again.");
+        return;
+      }
+      setSubmitted(true);
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const inp = (extra = {}) => ({
+    style: {
+      padding: "12px 16px", background: "#111", border: `1px solid ${BORDER}`,
+      color: FG, fontSize: "14px", borderRadius: "4px",
+      fontFamily: "inherit", outline: "none", width: "100%", boxSizing: "border-box",
+      ...extra,
+    },
+  });
+
+  const tiers = [
+    { range: "$0 – $300 / mo", rate: "10%" },
+    { range: "$300 – $800 / mo", rate: "20%" },
+    { range: "$800 – $2,000 / mo", rate: "30%" },
+    { range: "$2,000 – $5,000 / mo", rate: "40%" },
+    { range: "$5,000+ / mo", rate: "50%" },
+  ];
+
+  return (
+    <div style={{ minHeight: "80vh", padding: "5rem 1.5rem 6rem", maxWidth: "720px", margin: "0 auto" }}>
+      {/* Hero */}
+      <p style={{ fontSize: "11px", letterSpacing: "0.15em", color: G, fontWeight: 600, textTransform: "uppercase", marginBottom: "1rem" }}>
+        Affiliate Program
+      </p>
+      <h1 style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "clamp(40px,6vw,72px)", color: FG, margin: "0 0 1.25rem", letterSpacing: "0.02em", lineHeight: 1 }}>
+        Earn up to 50%<br />commission.
+      </h1>
+      <p style={{ fontSize: "16px", color: MID, lineHeight: 1.7, margin: "0 0 3.5rem", maxWidth: "540px" }}>
+        Refer barbershops to Stand Tall Booking and earn a percentage of their subscription revenue for the first three months — no cap, no gimmicks.
+      </p>
+
+      {/* How it works */}
+      <p style={{ fontSize: "11px", letterSpacing: "0.12em", color: G, fontWeight: 600, textTransform: "uppercase", marginBottom: "1.25rem" }}>
+        How it works
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", marginBottom: "3.5rem" }}>
+        {[
+          { n: "01", title: "Apply below", body: "Fill out the short form. We review every application and usually respond within 2–3 business days." },
+          { n: "02", title: "Get your promo code", body: "On approval you'll receive a personal code — e.g. JOHNDOE487. Share it anywhere: social posts, YouTube, email lists, word of mouth." },
+          { n: "03", title: "Earn for 3 months per referral", body: "When a shop signs up using your code, you earn commission on their monthly subscription for 3 months. The more shops you bring in, the higher your rate." },
+        ].map(({ n, title, body }) => (
+          <div key={n} style={{ display: "flex", gap: "1.5rem", alignItems: "flex-start" }}>
+            <span style={{ fontFamily: "'Bebas Neue',sans-serif", fontSize: "22px", color: DG, flexShrink: 0, lineHeight: 1.1, paddingTop: "3px" }}>{n}</span>
+            <div>
+              <p style={{ margin: "0 0 4px", color: FG, fontWeight: 600, fontSize: "15px" }}>{title}</p>
+              <p style={{ margin: 0, color: MID, fontSize: "13px", lineHeight: 1.6 }}>{body}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Commission table */}
+      <p style={{ fontSize: "11px", letterSpacing: "0.12em", color: G, fontWeight: 600, textTransform: "uppercase", marginBottom: "1rem" }}>
+        Commission rates
+      </p>
+      <p style={{ fontSize: "13px", color: MID, marginBottom: "1rem", lineHeight: 1.6 }}>
+        Rate is based on the total subscription revenue your referred shops generate in a given month. The rate applies to your entire month's earnings — not bracket-style.
+      </p>
+      <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: "3.5rem" }}>
+        <thead>
+          <tr style={{ borderBottom: `1px solid ${BORDER}` }}>
+            <th style={{ textAlign: "left", padding: "8px 12px", fontSize: "11px", color: MID, letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>Monthly revenue generated</th>
+            <th style={{ textAlign: "right", padding: "8px 12px", fontSize: "11px", color: MID, letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 500 }}>Your rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          {tiers.map(({ range, rate }, i) => (
+            <tr key={i} style={{ borderBottom: `1px solid ${BORDER}`, background: i % 2 === 0 ? "#111" : "transparent" }}>
+              <td style={{ padding: "12px", fontSize: "14px", color: FG }}>{range}</td>
+              <td style={{ padding: "12px", fontSize: "16px", fontWeight: 700, color: G, textAlign: "right" }}>{rate}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* Application form */}
+      <p style={{ fontSize: "11px", letterSpacing: "0.12em", color: G, fontWeight: 600, textTransform: "uppercase", marginBottom: "1.25rem" }}>
+        Apply
+      </p>
+
+      {submitted ? (
+        <div style={{ padding: "2.5rem", background: "#111", border: `1px solid ${BORDER}`, borderRadius: "8px", textAlign: "center" }}>
+          <div style={{ width: "48px", height: "48px", borderRadius: "50%", background: "rgba(139,154,126,0.15)", border: `1px solid ${G}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.25rem" }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M5 13L9 17L19 7" stroke={G} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </div>
+          <p style={{ margin: "0 0 8px", color: FG, fontWeight: 700, fontSize: "18px" }}>Application submitted!</p>
+          <p style={{ margin: 0, color: MID, fontSize: "14px", lineHeight: 1.6 }}>We'll review it and get back to you within 2–3 business days at the email you provided.</p>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px" }}>
+            <input {...inp()} value={form.name} onChange={e => set("name", e.target.value)} placeholder="Full name *" />
+            <input {...inp()} type="email" value={form.email} onChange={e => set("email", e.target.value)} placeholder="Email address *" />
+          </div>
+          <input {...inp()} value={form.phone} onChange={e => set("phone", e.target.value)} placeholder="Phone (optional)" />
+          <textarea {...inp({ resize: "vertical", minHeight: "80px" })} value={form.social_media_links} onChange={e => set("social_media_links", e.target.value)} placeholder="Where do you plan to promote? (Instagram, YouTube, TikTok, email list, etc.) — include any links or follower counts" />
+          <textarea {...inp({ resize: "vertical", minHeight: "80px" })} value={form.why_join} onChange={e => set("why_join", e.target.value)} placeholder="Why do you want to join? (optional)" />
+          {error && <p style={{ fontSize: "13px", color: "#F87171", margin: 0 }}>{error}</p>}
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            style={{ background: G, color: BG, border: "none", padding: "14px", fontSize: "13px", fontWeight: 700, letterSpacing: "0.1em", borderRadius: "2px", cursor: submitting ? "default" : "pointer", opacity: submitting ? 0.7 : 1, marginTop: "4px" }}
+          >
+            {submitting ? "SUBMITTING…" : "SUBMIT APPLICATION →"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── LOGIN TAB ───────────────────────────────────────────────
 function LoginTab({ setTab }) {
   const [email, setEmail] = useState("");
@@ -1132,10 +1270,11 @@ export default function HomePage() {
   return (
     <div style={{minHeight:"100vh", background:BG, color:FG, fontFamily:"'Inter', system-ui, sans-serif"}}>
       <Nav tab={tab} setTab={setTab} />
-      {tab === "Home"       && <HomeTab setTab={setTab} />}
-      {tab === "Pricing"    && <PricingTab setTab={setTab} />}
-      {tab === "Join Today" && <JoinTab />}
-      {tab === "Login"      && <LoginTab setTab={setTab} />}
+      {tab === "Home"        && <HomeTab setTab={setTab} />}
+      {tab === "Pricing"     && <PricingTab setTab={setTab} />}
+      {tab === "Affiliates"  && <AffiliateTab />}
+      {tab === "Join Today"  && <JoinTab />}
+      {tab === "Login"       && <LoginTab setTab={setTab} />}
       <div style={{borderTop:`1px solid ${BORDER}`, padding:"1.5rem 2rem", textAlign:"center"}}>
         <span style={{fontSize:"12px", color:"#2D2D2D"}}>© 2026 Stand Tall Booking · standtallbooking.com</span>
       </div>
