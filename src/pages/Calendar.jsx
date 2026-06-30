@@ -441,6 +441,7 @@ export default function CalendarPage() {
         services={services}
         prefill={bookingPrefill}
         bookings={bookings}
+        minBookingNotice={shopSettings.min_booking_notice_minutes ?? 0}
       />
 
       <BlockTimeModal

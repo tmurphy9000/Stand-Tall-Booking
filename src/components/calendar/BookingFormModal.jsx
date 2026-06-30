@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,10 +7,41 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, addMinutes, parse, addDays, addWeeks, addMonths } from "date-fns";
 import { entities } from "@/api/entities";
+import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
-export default function BookingFormModal({ open, onClose, onSave, barbers, services, prefill, bookings = [] }) {
+function generateSlots(start, end, intervalMins) {
+  const slots = [];
+  const [sh, sm] = start.split(":").map(Number);
+  const [eh, em] = end.split(":").map(Number);
+  let cur = sh * 60 + sm;
+  const endMins = eh * 60 + em;
+  while (cur < endMins) {
+    const h = Math.floor(cur / 60);
+    const m = cur % 60;
+    const time = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+    slots.push({ time, label: format(parse(time, "HH:mm", new Date()), "h:mm a") });
+    cur += intervalMins;
+  }
+  return slots;
+}
+
+function isSlotTaken(slotTime, duration, bookings) {
+  const [sh, sm] = slotTime.split(":").map(Number);
+  const slotStart = sh * 60 + sm;
+  const slotEnd = slotStart + duration;
+  return bookings.some((b) => {
+    if (b.status === "cancelled") return false;
+    const [bh, bm] = b.start_time.split(":").map(Number);
+    const bStart = bh * 60 + bm;
+    const bEnd = bStart + (b.duration || 30);
+    return slotStart < bEnd && slotEnd > bStart;
+  });
+}
+
+export default function BookingFormModal({ open, onClose, onSave, barbers, services, prefill, bookings = [], minBookingNotice = 0 }) {
   const [form, setForm] = useState({
     client_name: "",
     client_phone: "",
@@ -19,9 +50,11 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
     barber_id: "",
     service_id: "",
     date: format(new Date(), "yyyy-MM-dd"),
-    start_time: "09:00",
+    start_time: "",
     notes: "",
   });
+  const [bookedSlots, setBookedSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
@@ -67,6 +100,59 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
       setForm(prev => ({ ...prev, ...prefill }));
     }
   }, [prefill]);
+
+  // Fetch booked slots for the selected barber + date via the same RPC the public booking page uses.
+  // Filter to the selected barber client-side (RPC returns all barbers for the date).
+  useEffect(() => {
+    if (!form.barber_id || !form.date) {
+      setBookedSlots([]);
+      return;
+    }
+    const shopId = barbers[0]?.shop_id;
+    if (!shopId) return;
+
+    let cancelled = false;
+    setLoadingSlots(true);
+    supabase
+      .rpc("get_booked_slots", { p_shop_id: shopId, p_date: form.date })
+      .then(({ data }) => {
+        if (!cancelled) setBookedSlots((data ?? []).filter(s => s.barber_id === form.barber_id));
+      })
+      .catch(console.error)
+      .finally(() => { if (!cancelled) setLoadingSlots(false); });
+
+    return () => { cancelled = true; };
+  }, [form.barber_id, form.date, barbers]);
+
+  const selectedService = services.find(s => s.id === form.service_id);
+  const selectedBarber = barbers.find(b => b.id === form.barber_id);
+  const serviceDuration = selectedBarber?.service_durations?.[form.service_id] || selectedService?.duration || 30;
+  const servicePrice = selectedBarber?.service_prices?.[form.service_id] ?? selectedService?.price ?? 0;
+  const endTime = (selectedService && form.start_time)
+    ? format(addMinutes(parse(form.start_time, "HH:mm", new Date()), serviceDuration), "HH:mm")
+    : "";
+  const finalPrice = servicePrice;
+  const isBlockTime = form.client_name === "BLOCKED TIME";
+
+  // Build the slot grid: slots within the barber's working hours, marked taken/free.
+  // null = barber or date not yet selected (show placeholder).
+  const slots = useMemo(() => {
+    if (!selectedBarber || !form.date) return null;
+    const dayName = format(new Date(form.date + "T12:00:00"), "EEEE").toLowerCase();
+    const dayHours = selectedBarber.hours?.[dayName];
+    if (!dayHours || dayHours.off || dayHours.closed) return [];
+
+    const todayStr = format(new Date(), "yyyy-MM-dd");
+    const cutoffHHMM = form.date === todayStr
+      ? format(addMinutes(new Date(), minBookingNotice), "HH:mm")
+      : null;
+
+    return generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 15).map(slot => ({
+      ...slot,
+      taken: isSlotTaken(slot.time, serviceDuration, bookedSlots) ||
+             (cutoffHHMM !== null && slot.time <= cutoffHHMM),
+    }));
+  }, [selectedBarber, form.date, bookedSlots, serviceDuration, minBookingNotice]);
 
   const handleClientSelect = (client) => {
     setForm(prev => ({
@@ -178,19 +264,6 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
     c.phone?.includes(searchTerm)
   ).slice(0, 5);
 
-  const selectedService = services.find(s => s.id === form.service_id);
-  const selectedBarber = barbers.find(b => b.id === form.barber_id);
-  const serviceDuration = selectedBarber?.service_durations?.[form.service_id] || selectedService?.duration || 30;
-  const servicePrice = selectedBarber?.service_prices?.[form.service_id] ?? selectedService?.price ?? 0;
-
-  const endTime = selectedService
-    ? format(addMinutes(parse(form.start_time, "HH:mm", new Date()), serviceDuration), "HH:mm")
-    : "";
-
-  const finalPrice = servicePrice;
-
-  const isBlockTime = form.client_name === "BLOCKED TIME";
-
   const isOutsideBookableHours = () => {
     if (!selectedBarber || !form.start_time || !form.date) return false;
     const dayName = format(new Date(form.date + "T12:00:00"), "EEEE").toLowerCase();
@@ -226,6 +299,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
 
   const handleSave = async () => {
     if (!form.client_name || !form.barber_id || (!isBlockTime && !form.service_id)) return;
+    if (!form.start_time) { toast.error("Please select a time slot."); return; }
 
     let finalClientId = form.client_id;
 
@@ -308,7 +382,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
 
           <div>
             <Label className="text-xs text-muted-foreground">Barber *</Label>
-            <Select value={form.barber_id} onValueChange={v => set("barber_id", v)}>
+            <Select value={form.barber_id} onValueChange={v => setForm(prev => ({ ...prev, barber_id: v, start_time: "" }))}>
               <SelectTrigger><SelectValue placeholder="Select barber" /></SelectTrigger>
               <SelectContent>
                 {barbers.filter(b => b.is_active !== false).map(b => {
@@ -349,15 +423,48 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
             </Select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label className="text-xs text-muted-foreground">Date</Label>
-              <Input type="date" value={form.date} onChange={e => set("date", e.target.value)} />
-            </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Time</Label>
-              <Input type="time" value={form.start_time} onChange={e => set("start_time", e.target.value)} step="300" />
-            </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Date</Label>
+            <Input type="date" value={form.date} onChange={e => { set("date", e.target.value); set("start_time", ""); }} />
+          </div>
+
+          <div>
+            <Label className="text-xs text-muted-foreground mb-1.5 block">Time</Label>
+            {slots === null ? (
+              <p className="text-xs text-muted-foreground py-3 text-center border border-dashed border-border rounded-md">
+                Select a barber and date to see available times
+              </p>
+            ) : loadingSlots ? (
+              <div className="flex justify-center py-4 border border-border rounded-md">
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              </div>
+            ) : slots.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-3 text-center border border-dashed border-border rounded-md">
+                No availability on this day.
+              </p>
+            ) : (
+              <div className="max-h-44 overflow-y-auto rounded-md border border-border p-2">
+                <div className="grid grid-cols-3 gap-1.5">
+                  {slots.map(({ time, label, taken }) => (
+                    <button
+                      key={time}
+                      type="button"
+                      disabled={taken}
+                      onClick={() => set("start_time", time)}
+                      className={`py-2 rounded-md text-xs font-medium transition-colors border ${
+                        form.start_time === time
+                          ? "bg-[#B0BFA4] text-white border-[#8B9A7E]"
+                          : taken
+                          ? "opacity-40 cursor-not-allowed text-muted-foreground line-through border-border bg-muted/20"
+                          : "bg-card text-foreground border-border hover:bg-accent hover:border-[#B0BFA4] cursor-pointer"
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {selectedService && (
