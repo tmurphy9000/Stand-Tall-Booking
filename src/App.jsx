@@ -4,6 +4,7 @@ import { queryClientInstance } from '@/lib/query-client'
 import NavigationTracker from '@/lib/NavigationTracker'
 import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes, Navigate, useLocation } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { ThemeProvider } from '@/lib/ThemeContext';
@@ -11,6 +12,8 @@ import BarberLogin from './pages/BarberLogin';
 import ChangePassword from './pages/ChangePassword';
 import ClientBooking from './pages/ClientBooking';
 import HomePage from './pages/HomePage';
+import PricingPage from './pages/PricingPage';
+import AffiliatePage from './pages/AffiliatePage';
 import TermsOfService from './pages/TermsOfService';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import StripeCallback from './pages/StripeCallback';
@@ -19,7 +22,7 @@ import AffiliateDashboard from './pages/AffiliateDashboard';
 
 const { Pages, Layout } = pagesConfig;
 
-const PUBLIC_PATHS = ['/', '/barber-login', '/book', '/checkin', '/ChangePassword', '/terms', '/privacy', '/stripe/callback', '/embed.js', '/affiliate/dashboard'];
+const PUBLIC_PATHS = ['/', '/pricing', '/affiliates', '/barber-login', '/book', '/checkin', '/ChangePassword', '/terms', '/privacy', '/stripe/callback', '/embed.js', '/affiliate/dashboard'];
 
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
@@ -46,6 +49,8 @@ const AuthenticatedApp = () => {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
+      <Route path="/pricing" element={<PricingPage />} />
+      <Route path="/affiliates" element={<AffiliatePage />} />
       <Route path="/terms" element={<TermsOfService />} />
       <Route path="/privacy" element={<PrivacyPolicy />} />
       {Object.entries(Pages).map(([path, Page]) => (
@@ -73,17 +78,19 @@ const AuthenticatedApp = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <ThemeProvider>
-        <QueryClientProvider client={queryClientInstance}>
-          <Router>
-            <NavigationTracker />
-            <AuthenticatedApp />
-          </Router>
-          <Toaster />
-        </QueryClientProvider>
-      </ThemeProvider>
-    </AuthProvider>
+    <HelmetProvider>
+      <AuthProvider>
+        <ThemeProvider>
+          <QueryClientProvider client={queryClientInstance}>
+            <Router>
+              <NavigationTracker />
+              <AuthenticatedApp />
+            </Router>
+            <Toaster />
+          </QueryClientProvider>
+        </ThemeProvider>
+      </AuthProvider>
+    </HelmetProvider>
   );
 }
 

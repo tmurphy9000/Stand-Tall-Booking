@@ -1,0 +1,32 @@
+User-agent: *
+
+# Public marketing and booking pages — allow all
+Allow: /
+Allow: /pricing
+Allow: /affiliates
+Allow: /terms
+Allow: /privacy
+Allow: /book/
+Allow: /checkin/
+Allow: /affiliate/dashboard
+
+# Authenticated app routes — disallow crawling
+Disallow: /Calendar
+Disallow: /AdminDashboard
+Disallow: /AdminReporting
+Disallow: /CashTracker
+Disallow: /ClientDetails
+Disallow: /ClientList
+Disallow: /Inventory
+Disallow: /Payroll
+Disallow: /Transactions
+Disallow: /QuickCheckout
+Disallow: /Reports
+Disallow: /RunPayroll
+Disallow: /Settings
+Disallow: /Marketing
+Disallow: /StaffSchedule
+Disallow: /ChangePassword
+Disallow: /stripe/
+
+Sitemap: https://standtallbooking.com/sitemap.xml

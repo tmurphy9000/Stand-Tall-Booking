@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, Fragment } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { supabase } from "@/lib/supabaseClient";
 
 // ─── DESIGN TOKENS ───────────────────────────────────────────
@@ -17,7 +19,11 @@ const MID = "#6B7280";
 const BORDER = "#1C1C1C";
 
 // ─── NAV ─────────────────────────────────────────────────────
-function Nav({ tab, setTab }) {
+// onJoinToday / onLogin: optional callbacks for in-page tab switches (HomePage only).
+// When not provided, both navigate to /?tab=join and /?tab=login respectively.
+export function Nav({ onJoinToday, onLogin }) {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 700);
 
@@ -27,12 +33,21 @@ function Nav({ tab, setTab }) {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  const activeTab =
+    location.pathname === "/pricing"   ? "Pricing"   :
+    location.pathname === "/affiliates" ? "Affiliates" :
+    location.pathname === "/"          ? "Home"       : null;
+
   const navLinks = ["Home", "Pricing", "Affiliates", "Terms", "Join Today", "Login"];
 
   function handleNav(t) {
-    if (t === "Terms") { window.location.href = "/terms"; return; }
-    setTab(t);
     setMenuOpen(false);
+    if (t === "Terms")      { window.location.href = "/terms"; return; }
+    if (t === "Home")       { navigate("/"); return; }
+    if (t === "Pricing")    { navigate("/pricing"); return; }
+    if (t === "Affiliates") { navigate("/affiliates"); return; }
+    if (t === "Join Today") { onJoinToday ? onJoinToday() : navigate("/?tab=join"); return; }
+    if (t === "Login")      { onLogin     ? onLogin()     : navigate("/?tab=login"); return; }
   }
 
   const btnBase = {
@@ -43,7 +58,6 @@ function Nav({ tab, setTab }) {
 
   return (
     <nav style={{position:"sticky", top:0, zIndex:50, background:BG, borderBottom:`1px solid ${BORDER}`}}>
-      <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
       {/* Top bar */}
       <div style={{display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 1.5rem", height:"56px"}}>
         <span style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"20px", letterSpacing:"0.08em", color:G}}>STAND TALL BOOKING</span>
@@ -53,7 +67,7 @@ function Nav({ tab, setTab }) {
           <div style={{display:"flex", gap:"4px"}}>
             {navLinks.map(t => (
               <button key={t} onClick={() => handleNav(t)}
-                style={{...btnBase, background: tab === t ? G : "transparent", color: tab === t ? BG : MID}}>
+                style={{...btnBase, background: activeTab === t ? G : "transparent", color: activeTab === t ? BG : MID}}>
                 {t.toUpperCase()}
               </button>
             ))}
@@ -77,8 +91,8 @@ function Nav({ tab, setTab }) {
           {navLinks.map(t => (
             <button key={t} onClick={() => handleNav(t)} style={{
               display:"block", width:"100%", textAlign:"left",
-              background: tab === t ? `${G}18` : "transparent",
-              color: tab === t ? G : MID,
+              background: activeTab === t ? `${G}18` : "transparent",
+              color: activeTab === t ? G : MID,
               border:"none", cursor:"pointer",
               fontSize:"13px", fontWeight:500, letterSpacing:"0.06em",
               padding:"12px 1.5rem",
@@ -93,7 +107,7 @@ function Nav({ tab, setTab }) {
 }
 
 // ─── HOME TAB ────────────────────────────────────────────────
-function HomeTab({ setTab }) {
+function HomeTab({ setTab, onViewPricing }) {
   const whyPoints = [
     { title:"Flat-rate pricing", body:"One price covers your whole team. No per-barber fees that balloon as you grow." },
     { title:"SMS & email included", body:"Confirmations and reminders built in at every tier — no add-on required." },
@@ -124,7 +138,7 @@ function HomeTab({ setTab }) {
           <button onClick={() => setTab("Join Today")} style={{background:G, color:BG, border:"none", padding:"13px 32px", fontSize:"13px", fontWeight:600, letterSpacing:"0.08em", borderRadius:"2px", cursor:"pointer"}}>
             GET STARTED →
           </button>
-          <button onClick={() => setTab("Pricing")} style={{background:"transparent", color:FG, border:`1px solid ${BORDER}`, padding:"13px 32px", fontSize:"13px", fontWeight:500, letterSpacing:"0.08em", borderRadius:"2px", cursor:"pointer"}}>
+          <button onClick={onViewPricing} style={{background:"transparent", color:FG, border:`1px solid ${BORDER}`, padding:"13px 32px", fontSize:"13px", fontWeight:500, letterSpacing:"0.08em", borderRadius:"2px", cursor:"pointer"}}>
             SEE PRICING
           </button>
         </div>
@@ -193,7 +207,8 @@ function HomeTab({ setTab }) {
 }
 
 // ─── PRICING TAB ─────────────────────────────────────────────
-function PricingTab({ setTab }) {
+export function PricingTab() {
+  const navigate = useNavigate();
   const [showTable, setShowTable] = useState(false);
 
   const tiers = [
@@ -268,7 +283,7 @@ function PricingTab({ setTab }) {
             <div style={{fontSize:"12px", color:"#D1D5DB", marginBottom:"0.75rem"}}>{t.sub}</div>
             {!t.enterprise && <div style={{display:"inline-flex", alignItems:"center", gap:"5px", background:"rgba(176,191,164,0.12)", border:"1px solid rgba(176,191,164,0.3)", borderRadius:"3px", padding:"3px 8px", fontSize:"11px", color:"#B0BFA4", fontWeight:500, marginBottom:"1rem"}}>✓ SMS & email reminders included</div>}
             <p style={{fontSize:"13px", color:"#D1D5DB", lineHeight:1.6, flex:1, marginBottom:"1.5rem"}}>{t.desc}</p>
-            <button onClick={() => t.enterprise ? window.location.href="mailto:Tanner@standtallbarbering.com" : setTab("Join Today")} style={{display:"block", width:"100%", padding:"10px 0", fontSize:"13px", fontWeight:500, letterSpacing:"0.05em", cursor:"pointer", border:t.highlight?`1px solid ${G}`:t.enterprise?`1px solid ${GOLD}`:`1px solid #2D2D2D`, color:t.highlight?BG:t.enterprise?GOLD:FG, background:t.highlight?G:"transparent", borderRadius:"2px"}}>
+            <button onClick={() => t.enterprise ? window.location.href="mailto:Tanner@standtallbarbering.com" : navigate("/?tab=join")} style={{display:"block", width:"100%", padding:"10px 0", fontSize:"13px", fontWeight:500, letterSpacing:"0.05em", cursor:"pointer", border:t.highlight?`1px solid ${G}`:t.enterprise?`1px solid ${GOLD}`:`1px solid #2D2D2D`, color:t.highlight?BG:t.enterprise?GOLD:FG, background:t.highlight?G:"transparent", borderRadius:"2px"}}>
               {t.enterprise ? "Contact us ↗" : "Get started →"}
             </button>
           </div>
@@ -948,7 +963,7 @@ function JoinTab() {
 }
 
 // ─── AFFILIATE TAB ───────────────────────────────────────────
-function AffiliateTab() {
+export function AffiliateTab() {
   const [form, setForm] = useState({ name: "", email: "", phone: "", social_media_links: "", why_join: "" });
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -1133,8 +1148,11 @@ function LoginTab({ setTab }) {
 
 // ─── ROOT ─────────────────────────────────────────────────────
 export default function HomePage() {
-  const checkoutStatus = new URLSearchParams(window.location.search).get("checkout");
-  const isNewSignup = new URLSearchParams(window.location.search).get("new") === "1";
+  const navigate = useNavigate();
+  const sp = new URLSearchParams(window.location.search);
+  const checkoutStatus = sp.get("checkout");
+  const tabParam = sp.get("tab");
+  const isNewSignup = sp.get("new") === "1";
 
   // Detect Gusto OAuth callback: ?code= (or ?error=) + ?state= with saved CSRF state
   const _gustoSp = new URLSearchParams(window.location.search);
@@ -1144,7 +1162,12 @@ export default function HomePage() {
   const _gustoErrorDesc = _gustoSp.get("error_description");
   const isGustoCallback = !!(_gustoCode || _gustoError) && !!_gustoState && !!sessionStorage.getItem("gusto_oauth_state");
 
-  const [tab, setTab] = useState(checkoutStatus ? "Join Today" : "Home");
+  const [tab, setTab] = useState(
+    checkoutStatus ? "Join Today" :
+    tabParam === "join"  ? "Join Today" :
+    tabParam === "login" ? "Login" :
+    "Home"
+  );
   const [redirectingToCheckout, setRedirectingToCheckout] = useState(false);
   const [checkoutError, setCheckoutError] = useState("");
   const [gustoStatus, setGustoStatus] = useState(isGustoCallback ? "loading" : null);
@@ -1312,12 +1335,21 @@ export default function HomePage() {
 
   return (
     <div style={{minHeight:"100vh", background:BG, color:FG, fontFamily:"'Inter', system-ui, sans-serif"}}>
-      <Nav tab={tab} setTab={setTab} />
-      {tab === "Home"        && <HomeTab setTab={setTab} />}
-      {tab === "Pricing"     && <PricingTab setTab={setTab} />}
-      {tab === "Affiliates"  && <AffiliateTab />}
-      {tab === "Join Today"  && <JoinTab />}
-      {tab === "Login"       && <LoginTab setTab={setTab} />}
+      <Helmet>
+        <title>Stand Tall Booking — Scheduling Software for Barbershops</title>
+        <meta name="description" content="Stand Tall Booking is scheduling and booking software built specifically for barbershops. Flat-rate pricing, SMS & email reminders included, no per-barber fees, no contracts." />
+        <meta property="og:title" content="Stand Tall Booking — Scheduling Software for Barbershops" />
+        <meta property="og:description" content="Booking, scheduling, client management, and AI tools built specifically for barbershops. Flat-rate pricing. SMS & email included. No contracts." />
+        <meta property="og:url" content="https://standtallbooking.com/" />
+        <link rel="canonical" href="https://standtallbooking.com/" />
+      </Helmet>
+      <Nav
+        onJoinToday={() => setTab("Join Today")}
+        onLogin={() => setTab("Login")}
+      />
+      {tab === "Home"       && <HomeTab setTab={setTab} onViewPricing={() => navigate("/pricing")} />}
+      {tab === "Join Today" && <JoinTab />}
+      {tab === "Login"      && <LoginTab setTab={setTab} />}
       <div style={{borderTop:`1px solid ${BORDER}`, padding:"1.5rem 2rem", textAlign:"center"}}>
         <span style={{fontSize:"12px", color:"#2D2D2D"}}>© 2026 Stand Tall Booking · standtallbooking.com</span>
       </div>

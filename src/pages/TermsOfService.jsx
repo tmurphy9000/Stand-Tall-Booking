@@ -56,10 +56,16 @@ const SECTIONS = [
   },
 ];
 
+import { Helmet } from "react-helmet-async";
+
 export default function TermsOfService() {
   return (
     <div style={{minHeight:"100vh", background:BG, color:FG, fontFamily:"'Inter', system-ui, sans-serif"}}>
-      <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+      <Helmet>
+        <title>Terms of Service — Stand Tall Booking</title>
+        <meta name="description" content="Read the Stand Tall Booking Terms of Service, including subscription billing, communications consent, and acceptable use." />
+        <link rel="canonical" href="https://standtallbooking.com/terms" />
+      </Helmet>
 
       <nav style={{position:"sticky", top:0, zIndex:50, background:BG, borderBottom:`1px solid ${BORDER}`, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 2.5rem", height:"60px"}}>
         <span style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"20px", letterSpacing:"0.08em", color:G}}>STAND TALL BOOKING</span>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
+import { Helmet } from "react-helmet-async";
 import { entities } from "@/api/entities";
 import { supabase } from "@/lib/supabaseClient";
 import { useParams, useSearchParams } from "react-router-dom";
@@ -2299,11 +2300,19 @@ export default function ClientBooking() {
   const cancelPolicyText      = shopSettings.cancellation_policy_text || "";
   const pretipEnabled         = depositConfig.pretipEnabled;
 
+  const displayShopName = shopName || "Stand Tall Barbershop";
+  const shopMeta = {
+    title: shopName ? `Book an Appointment — ${displayShopName}` : "Book an Appointment — Stand Tall Booking",
+    description: shopName
+      ? `Book your next haircut at ${displayShopName}${shopAddress ? `, ${shopAddress}` : ""}. Online booking available 24/7.`
+      : "Book a barbershop appointment online. Fast, easy, no account required.",
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "#0A0A0A" }}>
         <div className="flex flex-col items-center gap-4">
-          <img src={logoUrl || LOGO_URL} alt="" className="w-16 h-16 rounded-xl opacity-80 object-cover" />
+          <img src={logoUrl || LOGO_URL} alt={displayShopName} className="w-16 h-16 rounded-xl opacity-80 object-cover" />
           <Loader2 className="w-5 h-5 animate-spin" style={{ color: "#8B9A7E" }} />
         </div>
       </div>
@@ -2314,7 +2323,7 @@ export default function ClientBooking() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "#0A0A0A", color: "#FAFAF8" }}>
         <div className="flex flex-col items-center gap-4 text-center px-6">
-          <img src={LOGO_URL} alt="" className="w-16 h-16 rounded-xl opacity-40 object-cover" />
+          <img src={LOGO_URL} alt="Stand Tall Booking logo" className="w-16 h-16 rounded-xl opacity-40 object-cover" />
           <h1 className="text-2xl font-bold">Shop not found</h1>
           <p className="text-sm" style={{ color: "#9CA3AF" }}>
             The booking page you're looking for doesn't exist. Check the link and try again.
@@ -2326,6 +2335,13 @@ export default function ClientBooking() {
 
   return (
     <div style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+      <Helmet>
+        <title>{shopMeta.title}</title>
+        <meta name="description" content={shopMeta.description} />
+        <meta property="og:title" content={shopMeta.title} />
+        <meta property="og:description" content={shopMeta.description} />
+        {logoUrl && <meta property="og:image" content={logoUrl} />}
+      </Helmet>
       <AnimatePresence mode="wait">
         {myAppts === "phone" && (
           <PhoneEntryScreen

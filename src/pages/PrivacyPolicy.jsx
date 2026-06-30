@@ -52,10 +52,16 @@ const SECTIONS = [
   },
 ];
 
+import { Helmet } from "react-helmet-async";
+
 export default function PrivacyPolicy() {
   return (
     <div style={{minHeight:"100vh", background:BG, color:FG, fontFamily:"'Inter', system-ui, sans-serif"}}>
-      <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+      <Helmet>
+        <title>Privacy Policy — Stand Tall Booking</title>
+        <meta name="description" content="Read the Stand Tall Booking Privacy Policy. Learn how we collect, use, and protect information for barbershop owners and their clients." />
+        <link rel="canonical" href="https://standtallbooking.com/privacy" />
+      </Helmet>
 
       <nav style={{position:"sticky", top:0, zIndex:50, background:BG, borderBottom:`1px solid ${BORDER}`, display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 2.5rem", height:"60px"}}>
         <span style={{fontFamily:"'Bebas Neue',sans-serif", fontSize:"20px", letterSpacing:"0.08em", color:G}}>STAND TALL BOOKING</span>
