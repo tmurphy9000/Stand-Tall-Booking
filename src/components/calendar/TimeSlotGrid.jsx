@@ -170,6 +170,15 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
       <div className="flex items-start justify-between gap-0.5">
         <p className="text-[10px] font-semibold truncate leading-tight flex-1">{booking.client_name}</p>
         <div className="flex items-center gap-0.5 flex-shrink-0">
+          {booking.is_new_client && (
+            <span
+              title="First-time client"
+              className="text-[8px] font-bold leading-tight mt-0.5 px-0.5 rounded"
+              style={{ color: "#92400e", background: "#fef08a" }}
+            >
+              NEW
+            </span>
+          )}
           {booking.deposit_amount_paid > 0 && (
             <span
               title={`Deposit paid: $${(booking.deposit_amount_paid / 100).toFixed(2)}`}

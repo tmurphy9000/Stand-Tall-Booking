@@ -411,7 +411,12 @@ export default function CalendarPage() {
                       onClick={(e) => handleBookingContext(e, b)}
                       className="bg-card dark:bg-card rounded-lg border border-border dark:border-border p-2 cursor-pointer hover:border-[#8B9A7E]/30 transition-all"
                     >
-                      <p className="text-[10px] font-semibold">{b.client_name}</p>
+                      <div className="flex items-center gap-1">
+                        <p className="text-[10px] font-semibold flex-1">{b.client_name}</p>
+                        {b.is_new_client && (
+                          <span className="text-[7px] font-bold px-0.5 rounded flex-shrink-0" style={{ color: "#92400e", background: "#fef08a" }}>NEW</span>
+                        )}
+                      </div>
                       <p className="text-[9px] text-muted-foreground">{b.barber_name} • {fmt12(b.start_time)} – {fmt12(b.end_time)}</p>
                       <p className="text-[9px] text-[#8B9A7E]">{b.service_name}</p>
                     </div>

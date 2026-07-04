@@ -603,7 +603,7 @@ function LegalModal({ title, sections, onClose }) {
   );
 }
 
-// ─── Welcome Step ─────────────────────────────────────────────────────────────
+// ─── Identity: Landing ────────────────────────────────────────────────────────
 
 const SOCIAL_ICONS = { instagram: Instagram, facebook: Facebook, tiktok: Globe };
 
@@ -612,6 +612,376 @@ function parseSocialLinks(raw) {
   if (typeof raw === "string") { try { return JSON.parse(raw); } catch { return {}; } }
   return raw;
 }
+
+function IdentityLandingStep({ onFirstTime, onReturning, onViewAppointments, shopName, logoUrl, shopAddress, businessPhone, businessEmail, socialLinks }) {
+  const [legalModal, setLegalModal] = useState(null);
+  const displayLogo = logoUrl || LOGO_URL;
+  const displayName = shopName || "Stand Tall Barbershop";
+  const enabledSocials = Object.entries(socialLinks || {}).filter(([, v]) => v?.enabled && v?.url);
+  const contactRows = [
+    shopAddress   && { label: shopAddress,   text: shopAddress   },
+    businessPhone && { label: businessPhone, text: businessPhone },
+    businessEmail && { label: businessEmail, text: businessEmail },
+  ].filter(Boolean);
+
+  return (
+    <motion.div {...fadeSlide} className="flex flex-col items-center justify-center min-h-screen px-6 text-center" style={{ background: "#0A0A0A" }}>
+      <img src={displayLogo} alt={displayName} className="w-28 h-28 rounded-2xl shadow-2xl mb-8 object-cover" />
+      <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">{displayName}</h1>
+      <p className="text-white/50 text-lg mb-10 max-w-sm">Book your next cut online — no calls, no waiting.</p>
+
+      <div className="w-full max-w-xs flex flex-col gap-3 mb-8">
+        <button
+          onClick={onFirstTime}
+          className="flex items-center justify-center gap-2 px-8 py-4 rounded-xl text-base font-semibold text-white transition-all"
+          style={{ background: "#8B9A7E" }}
+          onMouseEnter={e => (e.currentTarget.style.background = "#6B7A5E")}
+          onMouseLeave={e => (e.currentTarget.style.background = "#8B9A7E")}
+        >
+          First Time Client <ChevronRight className="w-5 h-5" />
+        </button>
+        <button
+          onClick={onReturning}
+          className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-base font-semibold transition-all"
+          style={{ background: "#141414", border: "1px solid #2a2a2a", color: "#aaa" }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#8B9A7E"; e.currentTarget.style.color = "#fff"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.color = "#aaa"; }}
+        >
+          Returning Client
+        </button>
+      </div>
+
+      {(contactRows.length > 0 || enabledSocials.length > 0) && (
+        <div className="flex flex-col items-center gap-3 w-full max-w-xs mb-6">
+          {contactRows.map(({ label, text }) => (
+            <div key={text} className="flex items-center justify-between w-full px-4 py-2.5 rounded-xl" style={{ background: "#141414" }}>
+              <span className="text-white/50 text-sm truncate">{label}</span>
+              <CopyButton text={text} />
+            </div>
+          ))}
+          {enabledSocials.length > 0 && (
+            <div className="flex items-center gap-3 mt-1">
+              {enabledSocials.map(([key, { url }]) => {
+                const Icon = SOCIAL_ICONS[key] || Globe;
+                return (
+                  <a key={key} href={url} target="_blank" rel="noopener noreferrer"
+                    className="p-2 rounded-lg text-white/30 hover:text-white transition-colors"
+                    style={{ background: "#141414" }}
+                  >
+                    <Icon className="w-5 h-5" />
+                  </a>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      <button
+        onClick={onViewAppointments}
+        className="flex items-center gap-1.5 text-white/30 hover:text-white/60 text-sm transition-colors mb-8"
+      >
+        <CalendarClock className="w-3.5 h-3.5" /> View my appointments
+      </button>
+
+      <p className="text-white/20 text-xs text-center max-w-xs leading-relaxed">
+        By booking an appointment you agree to our Terms &amp; Conditions and cancellation policy.
+      </p>
+      <p className="mt-3 text-white/20 text-xs text-center">
+        <button onClick={() => setLegalModal("terms")} className="hover:text-white/50 transition-colors underline underline-offset-2">Terms &amp; Conditions</button>
+        <span className="mx-2">·</span>
+        <button onClick={() => setLegalModal("privacy")} className="hover:text-white/50 transition-colors underline underline-offset-2">Privacy Policy</button>
+      </p>
+      {legalModal === "terms"   && <LegalModal title="Terms & Conditions" sections={TERMS_SECTIONS}  onClose={() => setLegalModal(null)} />}
+      {legalModal === "privacy" && <LegalModal title="Privacy Policy"     sections={PRIVACY_SECTIONS} onClose={() => setLegalModal(null)} />}
+    </motion.div>
+  );
+}
+
+// ─── Identity: First Time — account creation form ─────────────────────────────
+
+function FirstTimeFormStep({ onBack, onSubmit, submitting, error }) {
+  const [firstName, setFirstName] = useState("");
+  const [lastName,  setLastName]  = useState("");
+  const [email,     setEmail]     = useState("");
+  const [phone,     setPhone]     = useState("");
+  const [localError, setLocalError] = useState("");
+
+  const handleSubmit = () => {
+    if (!firstName.trim()) { setLocalError("Please enter your first name."); return; }
+    if (!lastName.trim())  { setLocalError("Please enter your last name.");  return; }
+    if (!email.trim() || !email.includes("@")) { setLocalError("Please enter a valid email address."); return; }
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 10) { setLocalError("Please enter a valid 10-digit phone number."); return; }
+    setLocalError("");
+    onSubmit({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), phone: digits });
+  };
+
+  const inp = {
+    width: "100%", background: "#141414", border: "1px solid #2a2a2a",
+    borderRadius: "12px", padding: "12px 16px", color: "#fff", fontSize: "15px", outline: "none",
+  };
+  const focus = e => (e.target.style.borderColor = "#8B9A7E");
+  const blur  = e => (e.target.style.borderColor = "#2a2a2a");
+
+  return (
+    <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A", color: "#FAFAF8" }}>
+      <div className="sticky top-0 z-10 flex items-center gap-4 px-6 py-4 border-b border-white/10" style={{ background: "#0A0A0A" }}>
+        <button onClick={onBack} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <p className="text-xs text-white/40 uppercase tracking-widest font-semibold">New Account</p>
+          <h2 className="text-white font-bold text-lg leading-tight">Create Your Account</h2>
+        </div>
+      </div>
+      <div className="h-0.5 bg-white/10"><div className="h-full bg-[#8B9A7E]" style={{ width: "14%" }} /></div>
+
+      <div className="px-6 py-8 max-w-md mx-auto">
+        <p className="text-white/40 text-sm mb-8">Tell us a bit about yourself — this creates your booking account and sends a verification code to your phone.</p>
+        <div className="flex flex-col gap-5">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs text-white/40 uppercase tracking-widest font-semibold mb-2">First Name <span style={{ color: "#8B9A7E" }}>*</span></label>
+              <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} placeholder="Jane" style={inp} onFocus={focus} onBlur={blur} autoFocus />
+            </div>
+            <div>
+              <label className="block text-xs text-white/40 uppercase tracking-widest font-semibold mb-2">Last Name <span style={{ color: "#8B9A7E" }}>*</span></label>
+              <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} placeholder="Smith" style={inp} onFocus={focus} onBlur={blur} />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-white/40 uppercase tracking-widest font-semibold mb-2">Email Address <span style={{ color: "#8B9A7E" }}>*</span></label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="jane@example.com" style={inp} onFocus={focus} onBlur={blur} />
+          </div>
+          <div>
+            <label className="block text-xs text-white/40 uppercase tracking-widest font-semibold mb-2">Phone Number <span style={{ color: "#8B9A7E" }}>*</span></label>
+            <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} onKeyDown={e => e.key === "Enter" && handleSubmit()} placeholder="(555) 000-0000" style={inp} onFocus={focus} onBlur={blur} />
+            <p className="text-xs text-white/30 mt-2">We'll text a 6-digit verification code to this number.</p>
+          </div>
+
+          {(localError || error) && (
+            <p className="text-sm px-4 py-3 rounded-xl" style={{ background: "#2D0A0A", color: "#F87171", border: "1px solid #7F1D1D" }}>
+              {localError || error}
+            </p>
+          )}
+
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="w-full py-4 rounded-xl font-semibold text-white text-base mt-2 transition-all flex items-center justify-center gap-2"
+            style={{ background: submitting ? "#4B5563" : "#8B9A7E", cursor: submitting ? "not-allowed" : "pointer" }}
+            onMouseEnter={e => { if (!submitting) e.currentTarget.style.background = "#6B7A5E"; }}
+            onMouseLeave={e => { if (!submitting) e.currentTarget.style.background = "#8B9A7E"; }}
+          >
+            {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            {submitting ? "Sending code…" : <><span>Send Verification Code</span><ChevronRight className="w-4 h-4" /></>}
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Identity: First Time — OTP verification ──────────────────────────────────
+
+function FirstTimeOtpStep({ phone, onBack, onVerified, submitting, error }) {
+  const [code, setCode]         = useState("");
+  const [verifying, setVerifying] = useState(false);
+  const [localError, setLocalError] = useState("");
+  const [resending, setResending] = useState(false);
+  const [resent, setResent]     = useState(false);
+  const [attempts, setAttempts] = useState(0);
+
+  const handleVerify = async () => {
+    if (code.length !== 6) { setLocalError("Enter the 6-digit code."); return; }
+    if (attempts >= 3) { setLocalError("Too many attempts — please request a new code."); return; }
+    setVerifying(true);
+    setLocalError("");
+    try {
+      const { data, error: fnErr } = await supabase.functions.invoke("verifyOTP", { body: { phone, code } });
+      if (fnErr || data?.error) {
+        const next = attempts + 1;
+        setAttempts(next);
+        setLocalError(next >= 3 ? "Too many failed attempts. Please request a new code." : (data?.error || "Incorrect code. Try again."));
+        return;
+      }
+      onVerified();
+    } catch {
+      setLocalError("Verification failed. Try again.");
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleResend = async () => {
+    setResending(true);
+    setLocalError("");
+    setAttempts(0);
+    await supabase.functions.invoke("sendOTP", { body: { phone } });
+    setResending(false);
+    setResent(true);
+    setTimeout(() => setResent(false), 4000);
+  };
+
+  const displayPhone = phone.length === 10
+    ? `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`
+    : phone;
+
+  const disabled = verifying || submitting || code.length !== 6 || attempts >= 3;
+
+  return (
+    <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A", color: "#FAFAF8" }}>
+      <div className="sticky top-0 z-10 flex items-center gap-4 px-6 py-4 border-b border-white/10" style={{ background: "#0A0A0A" }}>
+        <button onClick={onBack} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <p className="text-xs text-white/40 uppercase tracking-widest font-semibold">Verify Phone</p>
+          <h2 className="text-white font-bold text-lg leading-tight">Enter Your Code</h2>
+        </div>
+      </div>
+      <div className="h-0.5 bg-white/10"><div className="h-full bg-[#8B9A7E]" style={{ width: "28%" }} /></div>
+
+      <div className="flex flex-col items-center px-6 pt-16 max-w-sm mx-auto">
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6" style={{ background: "#1f2a1f" }}>
+          <Phone className="w-6 h-6" style={{ color: "#8B9A7E" }} />
+        </div>
+        <h2 className="text-2xl font-bold text-white mb-2 text-center">Check your texts</h2>
+        <p className="text-white/40 text-sm mb-8 text-center">
+          We sent a 6-digit code to <span className="text-white/70">{displayPhone}</span>.
+        </p>
+        <input
+          type="text" inputMode="numeric" maxLength={6}
+          value={code}
+          onChange={e => { setCode(e.target.value.replace(/\D/g, "")); setLocalError(""); }}
+          onKeyDown={e => e.key === "Enter" && handleVerify()}
+          placeholder="000000"
+          className="w-full px-4 py-3 rounded-xl text-white text-2xl text-center tracking-[0.5em] font-mono outline-none mb-3"
+          style={{ background: "#141414", border: "1px solid #2a2a2a" }}
+          autoFocus
+        />
+        {(localError || error) && <p className="text-red-400 text-xs mb-3 text-center">{localError || error}</p>}
+        <button
+          onClick={handleVerify}
+          disabled={disabled}
+          className="w-full py-3.5 rounded-xl font-semibold text-white transition-all flex items-center justify-center gap-2 mb-4"
+          style={{ background: disabled ? "#2e3a2e" : "#8B9A7E", opacity: (code.length !== 6 && !verifying && !submitting) ? 0.5 : 1 }}
+        >
+          {(verifying || submitting) && <Loader2 className="w-4 h-4 animate-spin" />}
+          {(verifying || submitting) ? "Verifying…" : "Verify & Continue"}
+        </button>
+        <p className="text-center text-white/30 text-sm">
+          Didn't get it?{" "}
+          <button onClick={handleResend} disabled={resending} className="text-[#8B9A7E] hover:underline">
+            {resending ? "Sending…" : resent ? "Sent!" : "Resend code"}
+          </button>
+        </p>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Identity: Returning client — phone lookup ────────────────────────────────
+
+function ReturningPhoneStep({ shopId, onBack, onFound, onNotFound }) {
+  const [phone, setPhone]       = useState("");
+  const [looking, setLooking]   = useState(false);
+  const [notFound, setNotFound] = useState(false);
+  const [welcomed, setWelcomed] = useState(null); // client object while showing "Welcome back"
+  const [error, setError]       = useState("");
+
+  const handleLookup = async () => {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 10) { setError("Enter a valid 10-digit phone number."); return; }
+    setLooking(true);
+    setError("");
+    setNotFound(false);
+    try {
+      const { data, error: rpcErr } = await supabase.rpc("lookup_verified_client", {
+        p_shop_id: shopId,
+        p_phone:   digits,
+      });
+      if (rpcErr) { setError("Something went wrong. Please try again."); return; }
+      if (!data || data.length === 0) { setNotFound(true); return; }
+      const client = data[0];
+      setWelcomed(client);
+      setTimeout(() => onFound(client, digits), 1400);
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLooking(false);
+    }
+  };
+
+  if (welcomed) {
+    const firstName = welcomed.first_name || welcomed.name?.split(" ")[0] || "there";
+    return (
+      <motion.div {...fadeSlide} className="flex flex-col items-center justify-center min-h-screen px-6 text-center" style={{ background: "#0A0A0A" }}>
+        <CheckCircle2 className="w-16 h-16 mb-6" style={{ color: "#8B9A7E" }} />
+        <h2 className="text-3xl font-bold text-white mb-3">Welcome back, {firstName}!</h2>
+        <p className="text-white/40 text-sm">Taking you to booking…</p>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A", color: "#FAFAF8" }}>
+      <div className="sticky top-0 z-10 flex items-center gap-4 px-6 py-4 border-b border-white/10" style={{ background: "#0A0A0A" }}>
+        <button onClick={onBack} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <p className="text-xs text-white/40 uppercase tracking-widest font-semibold">Returning Client</p>
+          <h2 className="text-white font-bold text-lg leading-tight">Find Your Account</h2>
+        </div>
+      </div>
+      <div className="h-0.5 bg-white/10"><div className="h-full bg-[#8B9A7E]" style={{ width: "14%" }} /></div>
+
+      <div className="flex flex-col items-center px-6 pt-16 max-w-sm mx-auto">
+        <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-6" style={{ background: "#1f2a1f" }}>
+          <Phone className="w-6 h-6" style={{ color: "#8B9A7E" }} />
+        </div>
+        <h2 className="text-2xl font-bold text-white mb-2 text-center">What's your number?</h2>
+        <p className="text-white/40 text-sm mb-8 text-center">Enter the phone number you booked with before.</p>
+        <input
+          type="tel"
+          value={phone}
+          onChange={e => { setPhone(e.target.value); setError(""); setNotFound(false); }}
+          onKeyDown={e => e.key === "Enter" && handleLookup()}
+          placeholder="(555) 000-0000"
+          className="w-full px-4 py-3 rounded-xl text-white text-base outline-none mb-3"
+          style={{ background: "#141414", border: "1px solid #2a2a2a" }}
+          autoFocus
+          onFocus={e => (e.currentTarget.style.borderColor = "#8B9A7E")}
+          onBlur={e =>  (e.currentTarget.style.borderColor = "#2a2a2a")}
+        />
+        {error && <p className="text-red-400 text-xs mb-3 text-center">{error}</p>}
+        {notFound && (
+          <div className="w-full rounded-xl p-4 mb-3 text-center" style={{ background: "#141414", border: "1px solid #2a2a2a" }}>
+            <p className="text-white/50 text-sm mb-3">We don't have an account with that number.</p>
+            <button onClick={onNotFound} className="text-[#8B9A7E] text-sm font-medium hover:underline">
+              First time client? Create an account →
+            </button>
+          </div>
+        )}
+        <button
+          onClick={handleLookup}
+          disabled={looking}
+          className="w-full py-3.5 rounded-xl font-semibold text-white transition-all flex items-center justify-center gap-2"
+          style={{ background: looking ? "#4a5a44" : "#8B9A7E" }}
+          onMouseEnter={e => { if (!looking) e.currentTarget.style.background = "#6B7A5E"; }}
+          onMouseLeave={e => { if (!looking) e.currentTarget.style.background = "#8B9A7E"; }}
+        >
+          {looking && <Loader2 className="w-4 h-4 animate-spin" />}
+          {looking ? "Looking up…" : "Continue"}
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+// ─── Welcome Step (kept for reference, replaced by IdentityLandingStep) ───────
 
 function WelcomeStep({ onStart, onViewAppointments, shopName, logoUrl, shopAddress, businessPhone, businessEmail, socialLinks }) {
   const [legalModal, setLegalModal] = useState(null); // "terms" | "privacy" | null
@@ -2021,6 +2391,17 @@ export default function ClientBooking() {
   const [guestTiming, setGuestTiming] = useState("back_to_back"); // "back_to_back" | "same_time"
   const [resolvedGuestBarber, setResolvedGuestBarber] = useState(null);
 
+  // ── Identity flow ──────────────────────────────────────────────────────────
+  // "landing" → "ft_form" → "ft_otp"  (first time path)
+  // "landing" → "rt_phone"             (returning path)
+  const [identityPhase, setIdentityPhase]       = useState("landing");
+  const [clientFirstName, setClientFirstName]   = useState("");
+  const [clientLastName, setClientLastName]     = useState("");
+  const [verifiedClientId, setVerifiedClientId] = useState(null);
+  const [otpSentPhone, setOtpSentPhone]         = useState("");
+  const [identitySubmitting, setIdentitySubmitting] = useState(false);
+  const [identityError, setIdentityError]       = useState("");
+
   useEffect(() => {
     const init = async () => {
       if (!shopSlug) { setShopNotFound(true); setLoading(false); return; }
@@ -2097,6 +2478,65 @@ export default function ClientBooking() {
     return allServices.filter((s) => ids.includes(s.id));
   }, [selectedBarber, allServices]);
 
+  // ── Identity handlers ──────────────────────────────────────────────────────
+
+  const handleFirstTimeSubmit = async ({ firstName, lastName, email, phone }) => {
+    setIdentitySubmitting(true);
+    setIdentityError("");
+    try {
+      const { error: fnErr } = await supabase.functions.invoke("sendOTP", { body: { phone } });
+      if (fnErr) { setIdentityError("Failed to send verification code. Please try again."); return; }
+      setClientFirstName(firstName);
+      setClientLastName(lastName);
+      setClientName(`${firstName} ${lastName}`);
+      setClientEmail(email);
+      setClientPhone(phone);
+      setOtpSentPhone(phone);
+      setIdentityPhase("ft_otp");
+    } catch {
+      setIdentityError("Failed to send verification code. Please try again.");
+    } finally {
+      setIdentitySubmitting(false);
+    }
+  };
+
+  const handleFirstTimeOtpVerified = async () => {
+    setIdentitySubmitting(true);
+    setIdentityError("");
+    try {
+      const { data, error: rpcErr } = await supabase.rpc("upsert_verified_client", {
+        p_shop_id:    shopId,
+        p_phone:      clientPhone,
+        p_first_name: clientFirstName,
+        p_last_name:  clientLastName,
+        p_email:      clientEmail,
+        p_sms_opt_in: true,
+      });
+      if (rpcErr || !data?.length) {
+        setIdentityError("Failed to create account. Please try again.");
+        return;
+      }
+      setVerifiedClientId(data[0].id);
+      setStep(1);
+    } catch {
+      setIdentityError("Failed to create account. Please try again.");
+    } finally {
+      setIdentitySubmitting(false);
+    }
+  };
+
+  const handleReturningFound = (client, phone) => {
+    setVerifiedClientId(client.id);
+    const firstName = client.first_name || client.name?.split(" ")[0] || "";
+    const lastName  = client.last_name  || client.name?.split(" ").slice(1).join(" ") || "";
+    setClientFirstName(firstName);
+    setClientLastName(lastName);
+    setClientName(client.name || `${firstName} ${lastName}`.trim());
+    setClientEmail(client.email || "");
+    setClientPhone(phone);
+    setStep(1);
+  };
+
   const handlePreConfirm = async (smsOptIn = false, promoCodeId = null) => {
     smsOptInRef.current    = smsOptIn;
     promoCodeIdRef.current = promoCodeId;
@@ -2137,9 +2577,10 @@ export default function ClientBooking() {
   const handleConfirm = async (depositPaymentIntentId = null, depositAmountPaid = null, smsOptIn = false, promoCodeId = null) => {
     setSubmitting(true);
     try {
-      // Find or create client (server-side, scoped to this shop)
-      let clientId = null;
-      if (clientPhone || clientEmail) {
+      // Use the clientId established during the identity flow.
+      // Fall back to find_or_create_client only if verifiedClientId is somehow absent.
+      let clientId = verifiedClientId;
+      if (!clientId && (clientPhone || clientEmail)) {
         const { data: clientRows, error: clientErr } = await supabase.rpc("find_or_create_client", {
           p_shop_id:    shopId,
           p_phone:      clientPhone || null,
@@ -2280,6 +2721,12 @@ export default function ClientBooking() {
 
   const handleReset = () => {
     setStep(0);
+    setIdentityPhase("landing");
+    setClientFirstName("");
+    setClientLastName("");
+    setVerifiedClientId(null);
+    setOtpSentPhone("");
+    setIdentityError("");
     setSelectedBarber(null);
     setSelectedService(null);
     setSelectedDate(null);
@@ -2372,18 +2819,47 @@ export default function ClientBooking() {
             onBack={() => setMyAppts(null)}
           />
         )}
-        {!myAppts && step === 0 && (
-          <WelcomeStep key="welcome" onStart={() => setStep(1)} onViewAppointments={() => setMyAppts("phone")}
+        {!myAppts && step === 0 && identityPhase === "landing" && (
+          <IdentityLandingStep key="id-landing"
+            onFirstTime={() => { setIdentityPhase("ft_form"); setIdentityError(""); }}
+            onReturning={() => { setIdentityPhase("rt_phone"); setIdentityError(""); }}
+            onViewAppointments={() => setMyAppts("phone")}
             shopName={shopName} logoUrl={logoUrl}
             shopAddress={shopAddress} businessPhone={businessPhone} businessEmail={businessEmail}
-            socialLinks={socialLinks} />
+            socialLinks={socialLinks}
+          />
+        )}
+        {!myAppts && step === 0 && identityPhase === "ft_form" && (
+          <FirstTimeFormStep key="ft-form"
+            onBack={() => { setIdentityPhase("landing"); setIdentityError(""); }}
+            onSubmit={handleFirstTimeSubmit}
+            submitting={identitySubmitting}
+            error={identityError}
+          />
+        )}
+        {!myAppts && step === 0 && identityPhase === "ft_otp" && (
+          <FirstTimeOtpStep key="ft-otp"
+            phone={otpSentPhone}
+            onBack={() => { setIdentityPhase("ft_form"); setIdentityError(""); }}
+            onVerified={handleFirstTimeOtpVerified}
+            submitting={identitySubmitting}
+            error={identityError}
+          />
+        )}
+        {!myAppts && step === 0 && identityPhase === "rt_phone" && (
+          <ReturningPhoneStep key="rt-phone"
+            shopId={shopId}
+            onBack={() => setIdentityPhase("landing")}
+            onFound={handleReturningFound}
+            onNotFound={() => { setIdentityPhase("ft_form"); setIdentityError(""); }}
+          />
         )}
         {step === 1 && (
           <BarberStep
             key="barber"
             barbers={barbers}
             onSelect={(barber) => { setSelectedBarber(barber); setSelectedService(null); setStep(2); }}
-            onBack={() => setStep(0)}
+            onBack={() => { setStep(0); setIdentityPhase("landing"); }}
           />
         )}
         {step === 2 && (
@@ -2435,24 +2911,8 @@ export default function ClientBooking() {
             guestService={hasGuest ? guestService : null}
             guestBarber={hasGuest ? guestBarber : null}
             guestTiming={hasGuest ? guestTiming : "back_to_back"}
-            onSelect={(date, time) => { setSelectedDate(date); setSelectedTime(time); setStep(6); }}
+            onSelect={(date, time) => { setSelectedDate(date); setSelectedTime(time); setStep(7); }}
             onBack={() => hasGuest ? setStep(4) : setStep(3)}
-          />
-        )}
-        {step === 6 && (
-          <ClientInfoStep
-            key="info"
-            barber={selectedBarber}
-            name={clientName}
-            phone={clientPhone}
-            email={clientEmail}
-            onChange={(field, val) => {
-              if (field === "name") setClientName(val);
-              if (field === "phone") setClientPhone(val);
-              if (field === "email") setClientEmail(val);
-            }}
-            onNext={() => setStep(7)}
-            onBack={() => setStep(5)}
           />
         )}
         {step === 7 && !depositPending && (
@@ -2467,7 +2927,7 @@ export default function ClientBooking() {
             clientEmail={clientEmail}
             shopId={shopId}
             onConfirm={handlePreConfirm}
-            onBack={() => setStep(6)}
+            onBack={() => setStep(5)}
             submitting={submitting}
             cancelPolicyEnabled={cancelPolicyEnabled}
             cancelPolicyText={cancelPolicyText}
