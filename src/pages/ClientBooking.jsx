@@ -2882,9 +2882,11 @@ export default function ClientBooking() {
           date:         selectedDate,
           start_time:   selectedTime,
           end_time:     endTime,
-          shop_name:    shopName    || undefined,
-          shop_address: shopAddress || undefined,
-          shop_phone:   businessPhone || undefined,
+          shop_name:           shopName      || undefined,
+          shop_address:        shopAddress   || undefined,
+          shop_phone:          businessPhone || undefined,
+          shop_slug:           shopSlug      || undefined,
+          cancellation_policy: shopSettings.cancellation_policy_text || undefined,
         };
         if (hasGuest && guestService && bookingGuestBarber) {
           confirmBody.guest_name         = guestName;

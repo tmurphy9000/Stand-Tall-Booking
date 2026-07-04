@@ -38,6 +38,8 @@ function buildHtml(booking: {
   shop_name?: string;
   shop_address?: string;
   shop_phone?: string;
+  shop_slug?: string;
+  cancellation_policy?: string;
   guest_name?: string;
   guest_barber_name?: string;
   guest_service_name?: string;
@@ -54,6 +56,8 @@ function buildHtml(booking: {
     shop_name = "Stand Tall Barbershop",
     shop_address,
     shop_phone,
+    shop_slug,
+    cancellation_policy,
     guest_name,
     guest_barber_name,
     guest_service_name,
@@ -129,12 +133,24 @@ function buildHtml(booking: {
 
         ${guestSection}
 
-        <!-- Footer note -->
+        <!-- Cancel / reschedule -->
+        ${shop_slug ? `
+        <tr><td style="padding-top:16px">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#141414;border-radius:16px;padding:20px 24px;border:1px solid #2a2a2a">
+            <tr><td>
+              <p style="margin:0 0 8px;color:#8B9A7E;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.5px">Need to make a change?</p>
+              <p style="margin:0 0 10px;color:#cccccc;font-size:13px;line-height:1.5">Cancel or reschedule at <a href="https://standtallbooking.com/book/${shop_slug}" style="color:#8B9A7E;text-decoration:underline">standtallbooking.com/book/${shop_slug}</a> — select &ldquo;View my appointments&rdquo; and verify your phone number.</p>
+              ${cancellation_policy
+                ? `<p style="margin:0;color:#666;font-size:12px;line-height:1.5"><strong style="color:#888">Please note:</strong> ${cancellation_policy}. Changes within the cancellation window may result in deposit forfeiture.</p>`
+                : `<p style="margin:0;color:#666;font-size:12px">Changes within the cancellation window may result in deposit forfeiture.</p>`
+              }
+            </td></tr>
+          </table>
+        </td></tr>` : ""}
+
+        <!-- Footer -->
         <tr><td style="padding:24px 0 0;text-align:center">
-          <p style="margin:0;color:#555;font-size:12px">
-            Need to reschedule? Contact us at ${shop_phone ?? shop_name}.
-          </p>
-          <p style="margin:8px 0 0;color:#333;font-size:11px">
+          <p style="margin:0;color:#333;font-size:11px">
             © ${new Date().getFullYear()} ${shop_name}. All rights reserved.
           </p>
         </td></tr>
@@ -164,6 +180,8 @@ Deno.serve(async (req) => {
     shop_name?: string;
     shop_address?: string;
     shop_phone?: string;
+    shop_slug?: string;
+    cancellation_policy?: string;
     guest_name?: string;
     guest_barber_name?: string;
     guest_service_name?: string;
@@ -212,14 +230,16 @@ Deno.serve(async (req) => {
         date,
         start_time,
         end_time,
-        shop_name:          body.shop_name,
-        shop_address:       body.shop_address,
-        shop_phone:         body.shop_phone,
-        guest_name:         body.guest_name,
-        guest_barber_name:  body.guest_barber_name,
-        guest_service_name: body.guest_service_name,
-        guest_start_time:   body.guest_start_time,
-        guest_end_time:     body.guest_end_time,
+        shop_name:            body.shop_name,
+        shop_address:         body.shop_address,
+        shop_phone:           body.shop_phone,
+        shop_slug:            body.shop_slug,
+        cancellation_policy:  body.cancellation_policy,
+        guest_name:           body.guest_name,
+        guest_barber_name:    body.guest_barber_name,
+        guest_service_name:   body.guest_service_name,
+        guest_start_time:     body.guest_start_time,
+        guest_end_time:       body.guest_end_time,
       });
 
       const res = await fetch("https://api.resend.com/emails", {
@@ -250,9 +270,13 @@ Deno.serve(async (req) => {
   // ── SMS confirmation ──────────────────────────────────────────────────────
   let smsResult: { ok: boolean; sid?: string; error?: string; twilioBody?: string } | null = null;
   if (willSms) {
+    const cancelUrl = body.shop_slug
+      ? `standtallbooking.com/book/${body.shop_slug}`
+      : null;
     const msg =
       `Your appointment at ${shopName} with ${barber_name} on ` +
       `${smsFormatDate(date)} at ${smsFormatTime(start_time)} is confirmed. ` +
+      (cancelUrl ? `To cancel or reschedule, visit ${cancelUrl}. ` : "") +
       `Reply STOP to opt out.`;
     smsResult = await sendSms(body.client_phone!, msg);
     if (!smsResult.ok) console.warn("[sendBookingConfirmation] SMS failed:", smsResult.error, smsResult.twilioBody);
