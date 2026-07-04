@@ -687,6 +687,67 @@ function SessionWelcomeStep({ firstName, onBook, onViewAppointments, onNotYou })
   );
 }
 
+// ─── Identity: Inline appointment summary ─────────────────────────────────────
+
+function ClientAppointmentsStep({ firstName, bookings, onBook, onBack }) {
+  const formatDate = (d) => format(new Date(d + "T12:00:00"), "EEE, MMM d");
+  const formatTime = (t) => format(parse(t, "HH:mm", new Date()), "h:mm a");
+
+  return (
+    <motion.div {...fadeSlide} className="min-h-screen" style={{ background: "#0A0A0A" }}>
+      <div className="sticky top-0 z-10 flex items-center gap-4 px-6 py-4 border-b border-white/10" style={{ background: "#0A0A0A" }}>
+        <button onClick={onBack} className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors">
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <p className="text-xs text-white/40 uppercase tracking-widest font-semibold">Welcome back, {firstName}</p>
+          <h2 className="text-white font-bold text-lg leading-tight">Upcoming Appointments</h2>
+        </div>
+        <CalendarClock className="w-5 h-5 ml-auto flex-shrink-0" style={{ color: "#8B9A7E" }} />
+      </div>
+
+      <div className="px-6 py-6 max-w-md mx-auto">
+        <div className="space-y-3 mb-6">
+          {bookings.map(b => (
+            <div key={b.id} className="rounded-2xl border p-4" style={{ background: "#111", borderColor: "#2a2a2a" }}>
+              <div className="mb-3">
+                <p className="text-white font-semibold text-sm">{b.service_name}</p>
+                <p className="text-white/50 text-xs mt-0.5">with {b.barber_name}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-[11px] px-2 py-0.5 rounded-full font-medium" style={{ background: "#1f2a1f", color: "#8B9A7E" }}>
+                    {formatDate(b.date)}
+                  </span>
+                  <span className="text-[11px] text-white/40">
+                    {formatTime(b.start_time)}{b.end_time ? ` – ${formatTime(b.end_time)}` : ""}
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button className="flex-1 py-2 rounded-lg text-xs font-medium border transition-colors" style={{ color: "rgba(255,255,255,0.4)", borderColor: "rgba(255,255,255,0.08)" }}>
+                  Reschedule
+                </button>
+                <button className="flex-1 py-2 rounded-lg text-xs font-medium border transition-colors" style={{ color: "rgba(248,113,113,0.7)", borderColor: "rgba(127,29,29,0.3)" }}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <button
+          onClick={onBook}
+          className="w-full flex items-center justify-center gap-2 py-4 rounded-xl font-semibold text-base text-white transition-all"
+          style={{ background: "#8B9A7E" }}
+          onMouseEnter={e => (e.currentTarget.style.background = "#6B7A5E")}
+          onMouseLeave={e => (e.currentTarget.style.background = "#8B9A7E")}
+        >
+          Book a new appointment <ChevronRight className="w-5 h-5" />
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── Identity: Landing ────────────────────────────────────────────────────────
 
 const SOCIAL_ICONS = { instagram: Instagram, facebook: Facebook, tiktok: Globe };
@@ -2479,13 +2540,16 @@ export default function ClientBooking() {
   // "landing" → "ft_form" → "ft_otp"  (first time path)
   // "landing" → "rt_phone"             (returning path)
   // "session"                           (valid localStorage session on load)
-  const [identityPhase, setIdentityPhase]       = useState("landing");
-  const [clientFirstName, setClientFirstName]   = useState("");
-  const [clientLastName, setClientLastName]     = useState("");
-  const [verifiedClientId, setVerifiedClientId] = useState(null);
-  const [otpSentPhone, setOtpSentPhone]         = useState("");
+  // any of the above → "client_appts"  (Phase 3: inline appointment summary)
+  const [identityPhase, setIdentityPhase]           = useState("landing");
+  const [clientFirstName, setClientFirstName]       = useState("");
+  const [clientLastName, setClientLastName]         = useState("");
+  const [verifiedClientId, setVerifiedClientId]     = useState(null);
+  const [otpSentPhone, setOtpSentPhone]             = useState("");
   const [identitySubmitting, setIdentitySubmitting] = useState(false);
-  const [identityError, setIdentityError]       = useState("");
+  const [identityError, setIdentityError]           = useState("");
+  const [clientUpcomingBookings, setClientUpcomingBookings] = useState([]);
+  const [clientApptsPrevPhase, setClientApptsPrevPhase]     = useState("landing");
 
   useEffect(() => {
     const init = async () => {
@@ -2629,6 +2693,29 @@ export default function ClientBooking() {
     }
   };
 
+  // Fetch upcoming bookings for a recognized client. If any exist, show the
+  // inline summary (client_appts phase). If none, skip straight to barber selection.
+  const handleShowAppointments = async (phone) => {
+    setIdentitySubmitting(true);
+    try {
+      const { data, error } = await supabase.rpc("get_client_upcoming_bookings", {
+        p_shop_id: shopId,
+        p_phone:   phone,
+      });
+      if (!error && data && data.length > 0) {
+        setClientUpcomingBookings(data);
+        setClientApptsPrevPhase(identityPhase);
+        setIdentityPhase("client_appts");
+      } else {
+        setStep(1);
+      }
+    } catch {
+      setStep(1);
+    } finally {
+      setIdentitySubmitting(false);
+    }
+  };
+
   const handleReturningFound = (client, phone) => {
     setVerifiedClientId(client.id);
     const firstName = client.first_name || client.name?.split(" ")[0] || "";
@@ -2639,7 +2726,7 @@ export default function ClientBooking() {
     setClientEmail(client.email || "");
     setClientPhone(phone);
     saveClientSession(shopSlug, { clientId: client.id, phone, firstName, lastName });
-    setStep(1);
+    handleShowAppointments(phone);
   };
 
   const handlePreConfirm = async (smsOptIn = false, promoCodeId = null) => {
@@ -2832,6 +2919,7 @@ export default function ClientBooking() {
     setVerifiedClientId(null);
     setOtpSentPhone("");
     setIdentityError("");
+    setClientUpcomingBookings([]);
     setSelectedBarber(null);
     setSelectedService(null);
     setSelectedDate(null);
@@ -2927,7 +3015,7 @@ export default function ClientBooking() {
         {!myAppts && step === 0 && identityPhase === "session" && (
           <SessionWelcomeStep key="session-welcome"
             firstName={clientFirstName}
-            onBook={() => setStep(1)}
+            onBook={() => handleShowAppointments(clientPhone)}
             onViewAppointments={() => setMyAppts("phone")}
             onNotYou={() => {
               clearClientSession(shopSlug);
@@ -2938,6 +3026,14 @@ export default function ClientBooking() {
               setClientPhone("");
               setVerifiedClientId(null);
             }}
+          />
+        )}
+        {!myAppts && step === 0 && identityPhase === "client_appts" && (
+          <ClientAppointmentsStep key="client-appts"
+            firstName={clientFirstName}
+            bookings={clientUpcomingBookings}
+            onBook={() => setStep(1)}
+            onBack={() => setIdentityPhase(clientApptsPrevPhase === "session" ? "session" : "landing")}
           />
         )}
         {!myAppts && step === 0 && identityPhase === "landing" && (
