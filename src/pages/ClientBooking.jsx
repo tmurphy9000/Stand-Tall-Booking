@@ -654,7 +654,7 @@ function SessionWelcomeStep({ firstName, onBook, onViewAppointments, onNotYou })
       <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ background: "#1f2a1f" }}>
         <CheckCircle2 className="w-8 h-8" style={{ color: "#8B9A7E" }} />
       </div>
-      <h1 className="text-3xl font-bold text-white mb-3 tracking-tight">Welcome back, {firstName}!</h1>
+      <h1 className="text-3xl font-bold text-white mb-3 tracking-tight">Welcome back, {firstName ? firstName.charAt(0).toUpperCase() + firstName.slice(1) : ""}!</h1>
       <p className="text-white/40 text-sm mb-10 max-w-xs">Good to see you again. What would you like to do?</p>
       <div className="w-full max-w-xs flex flex-col gap-3 mb-10">
         <button
@@ -681,7 +681,7 @@ function SessionWelcomeStep({ firstName, onBook, onViewAppointments, onNotYou })
         onClick={onNotYou}
         className="text-white/25 hover:text-white/50 text-sm transition-colors"
       >
-        Not {firstName}? Sign in differently
+        Not {firstName ? firstName.charAt(0).toUpperCase() + firstName.slice(1) : "you"}? Sign in differently
       </button>
     </motion.div>
   );
