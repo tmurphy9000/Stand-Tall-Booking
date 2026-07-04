@@ -845,7 +845,7 @@ function IdentityLandingStep({ onFirstTime, onReturning, onViewAppointments, sho
 
 // ─── Identity: First Time — account creation form ─────────────────────────────
 
-function FirstTimeFormStep({ onBack, onSubmit, submitting, error }) {
+function FirstTimeFormStep({ onBack, onSubmit, submitting, error, onSwitchToReturning }) {
   const [firstName, setFirstName] = useState("");
   const [lastName,  setLastName]  = useState("");
   const [email,     setEmail]     = useState("");
@@ -905,11 +905,25 @@ function FirstTimeFormStep({ onBack, onSubmit, submitting, error }) {
             <p className="text-xs text-white/30 mt-2">We'll text a 6-digit verification code to this number.</p>
           </div>
 
-          {(localError || error) && (
+          {error === "already_registered" ? (
+            <div className="rounded-xl p-4" style={{ background: "#141414", border: "1px solid #2a2a2a" }}>
+              <p className="text-sm text-white/80 mb-1 font-medium">Looks like you already have an account with that number.</p>
+              <p className="text-xs text-white/40 mb-3">Use <span className="text-white/60 font-medium">Returning Client</span> to book — no new account needed.</p>
+              <button
+                onClick={onSwitchToReturning}
+                className="w-full py-2.5 rounded-lg text-sm font-semibold text-white transition-all"
+                style={{ background: "#8B9A7E" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "#6B7A5E")}
+                onMouseLeave={e => (e.currentTarget.style.background = "#8B9A7E")}
+              >
+                Go to Returning Client →
+              </button>
+            </div>
+          ) : (localError || error) ? (
             <p className="text-sm px-4 py-3 rounded-xl" style={{ background: "#2D0A0A", color: "#F87171", border: "1px solid #7F1D1D" }}>
               {localError || error}
             </p>
-          )}
+          ) : null}
 
           <button
             onClick={handleSubmit}
@@ -2646,6 +2660,16 @@ export default function ClientBooking() {
     setIdentitySubmitting(true);
     setIdentityError("");
     try {
+      // Block if phone is already a verified client — prevents misleading OTP failure.
+      const { data: existing } = await supabase.rpc("lookup_verified_client", {
+        p_shop_id: shopId,
+        p_phone:   phone,
+      });
+      if (existing && existing.length > 0) {
+        setIdentityError("already_registered");
+        return;
+      }
+
       const { error: fnErr } = await supabase.functions.invoke("sendOTP", { body: { phone } });
       if (fnErr) { setIdentityError("Failed to send verification code. Please try again."); return; }
       setClientFirstName(firstName);
@@ -3054,6 +3078,7 @@ export default function ClientBooking() {
             onSubmit={handleFirstTimeSubmit}
             submitting={identitySubmitting}
             error={identityError}
+            onSwitchToReturning={() => { setIdentityPhase("rt_phone"); setIdentityError(""); }}
           />
         )}
         {!myAppts && step === 0 && identityPhase === "ft_otp" && (
