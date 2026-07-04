@@ -19,6 +19,7 @@ import PrivacyPolicy from './pages/PrivacyPolicy';
 import StripeCallback from './pages/StripeCallback';
 import KioskPage from './pages/KioskPage';
 import AffiliateDashboard from './pages/AffiliateDashboard';
+import ClientPortal from './pages/ClientPortal';
 
 const { Pages, Layout } = pagesConfig;
 
@@ -66,6 +67,7 @@ const AuthenticatedApp = () => {
       ))}
       <Route path="/barber-login" element={<BarberLogin />} />
       <Route path="/ChangePassword" element={<ChangePassword />} />
+      <Route path="/book/:shopSlug/appointments" element={<ClientPortal />} />
       <Route path="/book/:shopSlug" element={<ClientBooking />} />
       <Route path="/book" element={<ClientBooking />} />
       <Route path="/stripe/callback" element={<StripeCallback />} />

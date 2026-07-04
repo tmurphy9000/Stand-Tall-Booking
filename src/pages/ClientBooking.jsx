@@ -9,6 +9,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, CardElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import { format, addDays, parse, addMinutes } from "date-fns";
 import { sortBarbersForBooking } from "@/lib/scheduleOptimizer";
+import { saveClientSession, loadClientSession, clearClientSession, refreshClientSession } from "@/lib/clientSession";
 
 const LOGO_URL =
   "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6993eba91209ee0a1089f355/fd9cfe023_6f5fd5cc-8fc9-4041-9d87-c24e77a3bc58.png";
@@ -29,49 +30,6 @@ const fadeSlide = {
 // so it can include the shop's connected Stripe account ID.
 
 const DEPOSIT_TIP_PRESETS = [0, 15, 18, 20];
-
-// ─── Client session persistence ───────────────────────────────────────────────
-// Key: stb_client_<shopSlug>  Value: { clientId, phone, firstName, lastName, verifiedAt }
-// TTL: 30 days. All ops wrapped in try/catch — localStorage may be unavailable.
-
-const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
-
-function sessionKey(slug) { return `stb_client_${slug}`; }
-
-function saveClientSession(slug, { clientId, phone, firstName, lastName }) {
-  try {
-    localStorage.setItem(sessionKey(slug), JSON.stringify({
-      clientId, phone, firstName, lastName, verifiedAt: Date.now(),
-    }));
-  } catch {}
-}
-
-function loadClientSession(slug) {
-  try {
-    const raw = localStorage.getItem(sessionKey(slug));
-    if (!raw) return null;
-    const s = JSON.parse(raw);
-    if (!s.verifiedAt || Date.now() - s.verifiedAt > SESSION_TTL_MS) {
-      localStorage.removeItem(sessionKey(slug));
-      return null;
-    }
-    return s;
-  } catch { return null; }
-}
-
-function clearClientSession(slug) {
-  try { localStorage.removeItem(sessionKey(slug)); } catch {}
-}
-
-export function refreshClientSession(slug) {
-  try {
-    const raw = localStorage.getItem(sessionKey(slug));
-    if (!raw) return;
-    const s = JSON.parse(raw);
-    s.verifiedAt = Date.now();
-    localStorage.setItem(sessionKey(slug), JSON.stringify(s));
-  } catch {}
-}
 
 // Returns only slot-availability data (no client PII) for a given shop + date.
 // Replaces direct anon SELECT on the bookings table.
