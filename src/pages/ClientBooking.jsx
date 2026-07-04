@@ -30,6 +30,49 @@ const fadeSlide = {
 
 const DEPOSIT_TIP_PRESETS = [0, 15, 18, 20];
 
+// ─── Client session persistence ───────────────────────────────────────────────
+// Key: stb_client_<shopSlug>  Value: { clientId, phone, firstName, lastName, verifiedAt }
+// TTL: 30 days. All ops wrapped in try/catch — localStorage may be unavailable.
+
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+
+function sessionKey(slug) { return `stb_client_${slug}`; }
+
+function saveClientSession(slug, { clientId, phone, firstName, lastName }) {
+  try {
+    localStorage.setItem(sessionKey(slug), JSON.stringify({
+      clientId, phone, firstName, lastName, verifiedAt: Date.now(),
+    }));
+  } catch {}
+}
+
+function loadClientSession(slug) {
+  try {
+    const raw = localStorage.getItem(sessionKey(slug));
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (!s.verifiedAt || Date.now() - s.verifiedAt > SESSION_TTL_MS) {
+      localStorage.removeItem(sessionKey(slug));
+      return null;
+    }
+    return s;
+  } catch { return null; }
+}
+
+function clearClientSession(slug) {
+  try { localStorage.removeItem(sessionKey(slug)); } catch {}
+}
+
+export function refreshClientSession(slug) {
+  try {
+    const raw = localStorage.getItem(sessionKey(slug));
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    s.verifiedAt = Date.now();
+    localStorage.setItem(sessionKey(slug), JSON.stringify(s));
+  } catch {}
+}
+
 // Returns only slot-availability data (no client PII) for a given shop + date.
 // Replaces direct anon SELECT on the bookings table.
 async function getBookedSlots(shopId, dateStr) {
@@ -600,6 +643,47 @@ function LegalModal({ title, sections, onClose }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// ─── Identity: Session resume ─────────────────────────────────────────────────
+
+function SessionWelcomeStep({ firstName, onBook, onViewAppointments, onNotYou }) {
+  return (
+    <motion.div {...fadeSlide} className="flex flex-col items-center justify-center min-h-screen px-6 text-center" style={{ background: "#0A0A0A" }}>
+      <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6" style={{ background: "#1f2a1f" }}>
+        <CheckCircle2 className="w-8 h-8" style={{ color: "#8B9A7E" }} />
+      </div>
+      <h1 className="text-3xl font-bold text-white mb-3 tracking-tight">Welcome back, {firstName}!</h1>
+      <p className="text-white/40 text-sm mb-10 max-w-xs">Good to see you again. What would you like to do?</p>
+      <div className="w-full max-w-xs flex flex-col gap-3 mb-10">
+        <button
+          onClick={onBook}
+          className="flex items-center justify-center gap-2 px-8 py-4 rounded-xl text-base font-semibold text-white transition-all"
+          style={{ background: "#8B9A7E" }}
+          onMouseEnter={e => (e.currentTarget.style.background = "#6B7A5E")}
+          onMouseLeave={e => (e.currentTarget.style.background = "#8B9A7E")}
+        >
+          Book an appointment <ChevronRight className="w-5 h-5" />
+        </button>
+        <button
+          onClick={onViewAppointments}
+          className="flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl text-base font-semibold transition-all"
+          style={{ background: "#141414", border: "1px solid #2a2a2a", color: "#aaa" }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = "#8B9A7E"; e.currentTarget.style.color = "#fff"; }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = "#2a2a2a"; e.currentTarget.style.color = "#aaa"; }}
+        >
+          <CalendarClock className="w-4 h-4" />
+          View my appointments
+        </button>
+      </div>
+      <button
+        onClick={onNotYou}
+        className="text-white/25 hover:text-white/50 text-sm transition-colors"
+      >
+        Not {firstName}? Sign in differently
+      </button>
+    </motion.div>
   );
 }
 
@@ -2394,6 +2478,7 @@ export default function ClientBooking() {
   // ── Identity flow ──────────────────────────────────────────────────────────
   // "landing" → "ft_form" → "ft_otp"  (first time path)
   // "landing" → "rt_phone"             (returning path)
+  // "session"                           (valid localStorage session on load)
   const [identityPhase, setIdentityPhase]       = useState("landing");
   const [clientFirstName, setClientFirstName]   = useState("");
   const [clientLastName, setClientLastName]     = useState("");
@@ -2465,6 +2550,19 @@ export default function ClientBooking() {
       };
       console.log("[ClientBooking] resolved depositConfig:", resolvedDepositConfig);
       setDepositConfig(resolvedDepositConfig);
+
+      // Restore session after shop data is ready so the session welcome screen
+      // renders fully populated (barbers, services, etc. are all loaded).
+      const session = loadClientSession(shopSlug);
+      if (session) {
+        setClientFirstName(session.firstName);
+        setClientLastName(session.lastName);
+        setClientName(`${session.firstName} ${session.lastName}`.trim());
+        setClientPhone(session.phone);
+        setVerifiedClientId(session.clientId);
+        setIdentityPhase("session");
+      }
+
       setLoading(false);
     };
     init().catch(e => { console.error(e); setLoading(false); });
@@ -2517,6 +2615,12 @@ export default function ClientBooking() {
         return;
       }
       setVerifiedClientId(data[0].id);
+      saveClientSession(shopSlug, {
+        clientId: data[0].id,
+        phone: clientPhone,
+        firstName: clientFirstName,
+        lastName: clientLastName,
+      });
       setStep(1);
     } catch {
       setIdentityError("Failed to create account. Please try again.");
@@ -2534,6 +2638,7 @@ export default function ClientBooking() {
     setClientName(client.name || `${firstName} ${lastName}`.trim());
     setClientEmail(client.email || "");
     setClientPhone(phone);
+    saveClientSession(shopSlug, { clientId: client.id, phone, firstName, lastName });
     setStep(1);
   };
 
@@ -2819,6 +2924,22 @@ export default function ClientBooking() {
             onBack={() => setMyAppts(null)}
           />
         )}
+        {!myAppts && step === 0 && identityPhase === "session" && (
+          <SessionWelcomeStep key="session-welcome"
+            firstName={clientFirstName}
+            onBook={() => setStep(1)}
+            onViewAppointments={() => setMyAppts("phone")}
+            onNotYou={() => {
+              clearClientSession(shopSlug);
+              setIdentityPhase("landing");
+              setClientFirstName("");
+              setClientLastName("");
+              setClientName("");
+              setClientPhone("");
+              setVerifiedClientId(null);
+            }}
+          />
+        )}
         {!myAppts && step === 0 && identityPhase === "landing" && (
           <IdentityLandingStep key="id-landing"
             onFirstTime={() => { setIdentityPhase("ft_form"); setIdentityError(""); }}
@@ -2859,7 +2980,7 @@ export default function ClientBooking() {
             key="barber"
             barbers={barbers}
             onSelect={(barber) => { setSelectedBarber(barber); setSelectedService(null); setStep(2); }}
-            onBack={() => { setStep(0); setIdentityPhase("landing"); }}
+            onBack={() => { setStep(0); setIdentityPhase(identityPhase === "session" ? "session" : "landing"); }}
           />
         )}
         {step === 2 && (
