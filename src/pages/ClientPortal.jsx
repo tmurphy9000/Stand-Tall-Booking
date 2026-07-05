@@ -142,7 +142,7 @@ function ApptCard({ appt, cancPolicyHours, depositRefundHours, onCancel, onResch
         </button>
         <button
           onClick={() => onReschedule(appt)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-[#2a3a2a] text-[#8B9A7E] text-sm font-medium hover:bg-[#1a2a1a] transition-colors"
+          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#8B9A7E] text-[#0f0f0f] text-sm font-semibold hover:opacity-90 transition-opacity"
         >
           <RotateCcw className="w-4 h-4" /> Reschedule
         </button>
