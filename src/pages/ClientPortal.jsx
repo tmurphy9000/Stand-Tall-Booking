@@ -210,6 +210,9 @@ export default function ClientPortal() {
     const init = async () => {
       if (!shopSlug) { navigate("/"); return; }
 
+      // DEBUG — remove after confirming gate works
+      console.log("[portal-debug] raw session:", localStorage.getItem(`stb_client_${shopSlug}`));
+
       const { data: shopRow } = await supabase
         .from("shops").select("id").eq("url_slug", shopSlug).single();
       if (!shopRow) { navigate("/book"); return; }
@@ -231,16 +234,11 @@ export default function ClientPortal() {
         return;
       }
 
+      // OTP is always required for portal access — never skip based on session alone.
+      // Session is only used to pre-fill the phone number for convenience.
       const stored = loadClientSession(shopSlug);
-      if (stored?.otpVerifiedAt) {
-        setSession(stored);
-        await loadPortalData(shopRow.id, stored.phone);
-        setPhase("portal");
-      } else {
-        // Pre-fill phone if we have a non-OTP session (e.g. from booking page)
-        if (stored?.phone) setPhoneInput(stored.phone);
-        setPhase("phone_entry");
-      }
+      if (stored?.phone) setPhoneInput(stored.phone);
+      setPhase("phone_entry");
     };
     init().catch(() => setPhase("phone_entry"));
   }, [shopSlug]);
@@ -267,15 +265,10 @@ export default function ClientPortal() {
     setDisclaimerLoading(true);
     try {
       sessionStorage.setItem(DISCLAIMER_KEY, "1");
+      // OTP always required — session only used for phone pre-fill
       const stored = loadClientSession(shopSlug);
-      if (stored?.otpVerifiedAt) {
-        setSession(stored);
-        await loadPortalData(shopId, stored.phone);
-        setPhase("portal");
-      } else {
-        if (stored?.phone) setPhoneInput(stored.phone);
-        setPhase("phone_entry");
-      }
+      if (stored?.phone) setPhoneInput(stored.phone);
+      setPhase("phone_entry");
     } catch {
       setPhase("phone_entry");
     } finally {
