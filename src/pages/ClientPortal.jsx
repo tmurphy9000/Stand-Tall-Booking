@@ -172,6 +172,7 @@ export default function ClientPortal() {
   const [cancPolicyHours, setCancPolicyHours] = useState(null);
   const [cancPolicyText, setCancPolicyText] = useState("");
   const [depositRefundHours, setDepositRefundHours] = useState(24);
+  const [minNotice, setMinNotice] = useState(0);
   const [session, setSession] = useState(null);
   const [upcoming, setUpcoming] = useState([]);
   const [past, setPast] = useState([]);
@@ -209,9 +210,6 @@ export default function ClientPortal() {
     const init = async () => {
       if (!shopSlug) { navigate("/"); return; }
 
-      // DEBUG — remove after confirming gate works
-      console.log("[portal-debug] raw session:", localStorage.getItem(`stb_client_${shopSlug}`));
-
       const { data: shopRow } = await supabase
         .from("shops").select("id").eq("url_slug", shopSlug).single();
       if (!shopRow) { navigate("/book"); return; }
@@ -219,7 +217,7 @@ export default function ClientPortal() {
 
       const { data: settingsRows } = await supabase
         .from("shop_settings")
-        .select("shop_name, cancellation_policy_hours, cancellation_policy, deposit_refund_hours")
+        .select("shop_name, cancellation_policy_hours, cancellation_policy, deposit_refund_hours, min_booking_notice_minutes")
         .eq("shop_id", shopRow.id)
         .limit(1);
       const s = settingsRows?.[0] || {};
@@ -227,6 +225,7 @@ export default function ClientPortal() {
       if (s.cancellation_policy_hours != null) setCancPolicyHours(s.cancellation_policy_hours);
       if (s.cancellation_policy) setCancPolicyText(s.cancellation_policy);
       if (s.deposit_refund_hours != null) setDepositRefundHours(s.deposit_refund_hours);
+      if (s.min_booking_notice_minutes != null) setMinNotice(s.min_booking_notice_minutes);
 
       // Show privacy disclaimer once per browser session
       if (!sessionStorage.getItem(DISCLAIMER_KEY)) {
@@ -391,11 +390,28 @@ export default function ClientPortal() {
     setRescheduleEndTime("");
     try {
       const dayName = format(new Date(rescheduleDate + "T12:00:00"), "EEEE").toLowerCase();
-      const { data: barberData } = await supabase
-        .from("barbers")
-        .select("hours, service_durations")
-        .eq("id", rescheduleAppt.barber_id)
-        .single();
+      const [barberRes, timeOffRes] = await Promise.all([
+        supabase
+          .from("barbers")
+          .select("hours, service_durations")
+          .eq("id", rescheduleAppt.barber_id)
+          .single(),
+        supabase
+          .from("time_off_requests")
+          .select("start_date, end_date")
+          .eq("barber_id", rescheduleAppt.barber_id)
+          .eq("status", "approved"),
+      ]);
+
+      const barberData = barberRes.data;
+      const timeOff = timeOffRes.data ?? [];
+
+      // Barber is on approved leave for this date → no slots
+      const onTimeOff = timeOff.some(r => rescheduleDate >= r.start_date && rescheduleDate <= r.end_date);
+      if (onTimeOff) {
+        setRescheduleSlots([]);
+        return;
+      }
 
       const dh = barberData?.hours?.[dayName];
       if (!dh || dh.off || dh.closed) {
@@ -413,11 +429,19 @@ export default function ClientPortal() {
       );
 
       const today = format(new Date(), "yyyy-MM-dd");
-      const nowHHMM = format(new Date(), "HH:mm");
+      const cutoffHHMM = rescheduleDate === today
+        ? format(addMinutes(new Date(), minNotice), "HH:mm")
+        : null;
 
-      const allSlots = generateSlots(dh.start || "09:00", dh.end || "18:00", 15);
+      const closeStr = dh.end || "18:00";
+      const [eh, em] = closeStr.split(":").map(Number);
+      const closeMins = eh * 60 + em;
+
+      const allSlots = generateSlots(dh.start || "09:00", closeStr, 15);
       const available = allSlots.filter(time => {
-        if (rescheduleDate === today && time <= nowHHMM) return false;
+        if (cutoffHHMM !== null && time <= cutoffHHMM) return false;
+        const [sh, sm] = time.split(":").map(Number);
+        if (sh * 60 + sm + serviceDuration > closeMins) return false;
         return !isSlotTaken(time, serviceDuration, barberBooked);
       });
 
