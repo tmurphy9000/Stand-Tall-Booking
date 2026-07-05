@@ -2666,6 +2666,7 @@ export default function ClientBooking() {
         phone: clientPhone,
         firstName: clientFirstName,
         lastName: clientLastName,
+        otpVerifiedAt: Date.now(),
       });
       setStep(1);
     } catch {

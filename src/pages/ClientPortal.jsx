@@ -14,10 +14,10 @@ const LOGO_URL =
 
 const DISCLAIMER_KEY = "stb_portal_disclaimer_seen";
 
-// Capitalize first letter only — handles "sarah" → "Sarah", "SARAH" → "SARAH"
+// Capitalize first letter, lowercase the rest — handles "sarah"→"Sarah", "TANNER"→"Tanner"
 function cap(str) {
   if (!str) return "";
-  return str.charAt(0).toUpperCase() + str.slice(1);
+  return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 }
 
 function fmtDate(d) {
@@ -232,11 +232,13 @@ export default function ClientPortal() {
       }
 
       const stored = loadClientSession(shopSlug);
-      if (stored) {
+      if (stored?.otpVerifiedAt) {
         setSession(stored);
         await loadPortalData(shopRow.id, stored.phone);
         setPhase("portal");
       } else {
+        // Pre-fill phone if we have a non-OTP session (e.g. from booking page)
+        if (stored?.phone) setPhoneInput(stored.phone);
         setPhase("phone_entry");
       }
     };
@@ -266,11 +268,12 @@ export default function ClientPortal() {
     try {
       sessionStorage.setItem(DISCLAIMER_KEY, "1");
       const stored = loadClientSession(shopSlug);
-      if (stored) {
+      if (stored?.otpVerifiedAt) {
         setSession(stored);
         await loadPortalData(shopId, stored.phone);
         setPhase("portal");
       } else {
+        if (stored?.phone) setPhoneInput(stored.phone);
         setPhase("phone_entry");
       }
     } catch {
@@ -320,6 +323,7 @@ export default function ClientPortal() {
         phone: phoneInput.trim(),
         firstName: client.first_name || client.name?.split(" ")[0] || "",
         lastName: client.last_name || client.name?.split(" ").slice(1).join(" ") || "",
+        otpVerifiedAt: Date.now(),
       };
       saveClientSession(shopSlug, newSession);
       setSession(newSession);

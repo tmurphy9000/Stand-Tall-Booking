@@ -5,10 +5,10 @@ const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 function sessionKey(slug) { return `stb_client_${slug}`; }
 
-export function saveClientSession(slug, { clientId, phone, firstName, lastName }) {
+export function saveClientSession(slug, { clientId, phone, firstName, lastName, otpVerifiedAt = null }) {
   try {
     localStorage.setItem(sessionKey(slug), JSON.stringify({
-      clientId, phone, firstName, lastName, verifiedAt: Date.now(),
+      clientId, phone, firstName, lastName, verifiedAt: Date.now(), otpVerifiedAt,
     }));
   } catch {}
 }
