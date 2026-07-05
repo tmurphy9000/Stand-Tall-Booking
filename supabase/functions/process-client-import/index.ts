@@ -594,6 +594,7 @@ Deno.serve(async (req) => {
         email: c.email || null,
         phone: c.phone || null,
         shop_id: job.shop_id,
+        is_verified: true,
       }));
 
       const { error: insertError } = await supabase.from("clients").insert(batch);
