@@ -6,11 +6,19 @@ import { loadClientSession, saveClientSession, clearClientSession, refreshClient
 import { format, addDays, addMinutes, parse } from "date-fns";
 import {
   ArrowLeft, Loader2, CheckCircle2, X, AlertTriangle,
-  Calendar, Clock, Scissors, User, Phone, RotateCcw, Ban,
+  Calendar, Scissors, User, Phone, RotateCcw, Ban, ShieldCheck,
 } from "lucide-react";
 
 const LOGO_URL =
   "https://qtrypzzcjebvfcihiynt.supabase.co/storage/v1/object/public/base44-prod/public/6993eba91209ee0a1089f355/fd9cfe023_6f5fd5cc-8fc9-4041-9d87-c24e77a3bc58.png";
+
+const DISCLAIMER_KEY = "stb_portal_disclaimer_seen";
+
+// Capitalize first letter only — handles "sarah" → "Sarah", "SARAH" → "SARAH"
+function cap(str) {
+  if (!str) return "";
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
 
 function fmtDate(d) {
   const [y, m, day] = d.split("-").map(Number);
@@ -61,7 +69,7 @@ function isSlotTaken(slotTime, duration, bookings) {
   });
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────────────
 
 function Spinner() {
   return (
@@ -114,12 +122,8 @@ function ApptCard({ appt, cancPolicyHours, depositRefundHours, onCancel, onResch
 
   return (
     <div className="bg-[#1a1a1a] border border-[#2a2a2a] rounded-2xl p-4">
-      <div className="flex items-start justify-between mb-3">
-        <div>
-          <p className="text-white font-semibold">{fmtDate(appt.date)}</p>
-          <p className="text-[#8B9A7E] text-sm mt-0.5">{fmtTime(appt.start_time)} – {fmtTime(appt.end_time)}</p>
-        </div>
-      </div>
+      <p className="text-white font-semibold">{fmtDate(appt.date)}</p>
+      <p className="text-[#8B9A7E] text-sm mt-0.5 mb-2">{fmtTime(appt.start_time)} – {fmtTime(appt.end_time)}</p>
       <div className="flex gap-3 text-sm text-[#888] mb-3">
         <span className="flex items-center gap-1"><User className="w-3.5 h-3.5" />{appt.barber_name}</span>
         <span className="flex items-center gap-1"><Scissors className="w-3.5 h-3.5" />{appt.service_name}</span>
@@ -133,18 +137,23 @@ function ApptCard({ appt, cancPolicyHours, depositRefundHours, onCancel, onResch
           </p>
         </div>
       )}
-      <div className="flex gap-2 mt-2">
-        <button
-          onClick={() => onCancel(appt)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-[#3a2020] text-[#cc6666] text-sm font-medium hover:bg-[#2a1a1a] transition-colors"
-        >
-          <Ban className="w-4 h-4" /> Cancel
-        </button>
+      {/* Vertical stack: Reschedule on top (primary), Cancel below (secondary) */}
+      <div className="flex flex-col gap-2 mt-1">
         <button
           onClick={() => onReschedule(appt)}
-          className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#8B9A7E] text-[#0f0f0f] text-sm font-semibold hover:opacity-90 transition-opacity"
+          style={{ backgroundColor: "#8B9A7E", color: "#0f0f0f" }}
+          className="w-full py-2.5 rounded-xl text-sm font-semibold flex items-center justify-center gap-2"
         >
-          <RotateCcw className="w-4 h-4" /> Reschedule
+          <RotateCcw className="w-4 h-4" />
+          Reschedule
+        </button>
+        <button
+          onClick={() => onCancel(appt)}
+          style={{ color: "#cc6666", borderColor: "#3a2020", borderWidth: "1px", borderStyle: "solid" }}
+          className="w-full py-2 rounded-xl text-sm font-medium flex items-center justify-center gap-1.5"
+        >
+          <Ban className="w-4 h-4" />
+          Cancel
         </button>
       </div>
     </div>
@@ -157,7 +166,7 @@ export default function ClientPortal() {
   const { shopSlug } = useParams();
   const navigate = useNavigate();
 
-  const [phase, setPhase] = useState("loading");
+  const [phase, setPhase] = useState("loading"); // loading | disclaimer | phone_entry | portal
   const [shopId, setShopId] = useState(null);
   const [shopName, setShopName] = useState("Stand Tall Barbershop");
   const [cancPolicyHours, setCancPolicyHours] = useState(null);
@@ -165,6 +174,7 @@ export default function ClientPortal() {
   const [session, setSession] = useState(null);
   const [upcoming, setUpcoming] = useState([]);
   const [past, setPast] = useState([]);
+  const [disclaimerLoading, setDisclaimerLoading] = useState(false);
 
   // Phone entry
   const [phoneInput, setPhoneInput] = useState("");
@@ -202,8 +212,7 @@ export default function ClientPortal() {
 
       const { data: shopRow } = await supabase
         .from("shops").select("id").eq("url_slug", shopSlug).single();
-      if (!shopRow) { navigate(`/book`); return; }
-
+      if (!shopRow) { navigate("/book"); return; }
       setShopId(shopRow.id);
 
       const { data: settingsRows } = await supabase
@@ -215,6 +224,12 @@ export default function ClientPortal() {
       if (s.shop_name) setShopName(s.shop_name);
       if (s.cancellation_policy_hours != null) setCancPolicyHours(s.cancellation_policy_hours);
       if (s.deposit_refund_hours != null) setDepositRefundHours(s.deposit_refund_hours);
+
+      // Show privacy disclaimer once per browser session
+      if (!sessionStorage.getItem(DISCLAIMER_KEY)) {
+        setPhase("disclaimer");
+        return;
+      }
 
       const stored = loadClientSession(shopSlug);
       if (stored) {
@@ -245,6 +260,26 @@ export default function ClientPortal() {
     setPast(pastRes.data || []);
   };
 
+  // ── Disclaimer handler ────────────────────────────────────────────────────
+  const handleDisclaimerContinue = async () => {
+    setDisclaimerLoading(true);
+    try {
+      sessionStorage.setItem(DISCLAIMER_KEY, "1");
+      const stored = loadClientSession(shopSlug);
+      if (stored) {
+        setSession(stored);
+        await loadPortalData(shopId, stored.phone);
+        setPhase("portal");
+      } else {
+        setPhase("phone_entry");
+      }
+    } catch {
+      setPhase("phone_entry");
+    } finally {
+      setDisclaimerLoading(false);
+    }
+  };
+
   // ── Phone entry handlers ──────────────────────────────────────────────────
   const handlePhoneSend = async () => {
     const trimmed = phoneInput.trim();
@@ -271,7 +306,6 @@ export default function ClientPortal() {
         setPhoneError(data?.error || "Incorrect code. Please try again.");
         return;
       }
-      // Look up the verified client in this shop
       const { data: clientRows } = await supabase.rpc("lookup_verified_client", {
         p_shop_id: shopId,
         p_phone: phoneInput.trim(),
@@ -305,8 +339,9 @@ export default function ClientPortal() {
   };
 
   const closeCancelModal = () => {
+    const wasDone = cancelDone;
     setCancelAppt(null);
-    if (cancelDone) loadPortalData(shopId, session.phone);
+    if (wasDone) loadPortalData(shopId, session.phone);
   };
 
   const handleCancelSubmit = async () => {
@@ -349,8 +384,9 @@ export default function ClientPortal() {
   };
 
   const closeRescheduleModal = () => {
+    const wasDone = rescheduleDone;
     setRescheduleAppt(null);
-    if (rescheduleDone) loadPortalData(shopId, session.phone);
+    if (wasDone) loadPortalData(shopId, session.phone);
   };
 
   const handleRescheduleNext = () => {
@@ -397,8 +433,7 @@ export default function ClientPortal() {
       const allSlots = generateSlots(dh.start || "09:00", dh.end || "18:00", 15);
       const available = allSlots.filter(time => {
         if (rescheduleDate === today && time <= nowHHMM) return false;
-        if (isSlotTaken(time, serviceDuration, barberBooked)) return false;
-        return true;
+        return !isSlotTaken(time, serviceDuration, barberBooked);
       });
 
       setRescheduleSlots(available.map(time => ({
@@ -406,7 +441,7 @@ export default function ClientPortal() {
         endTime: format(addMinutes(parse(time, "HH:mm", new Date()), serviceDuration), "HH:mm"),
       })));
     } catch (e) {
-      console.error("[ClientPortal] Error loading slots:", e);
+      console.error("[ClientPortal] slot load error:", e);
     } finally {
       setRescheduleLoadingSlots(false);
     }
@@ -432,8 +467,7 @@ export default function ClientPortal() {
         },
       });
       if (error || !data?.success) {
-        const msg = data?.error || "Something went wrong. Please try again.";
-        setRescheduleError(msg);
+        setRescheduleError(data?.error || "Something went wrong. Please try again.");
         return;
       }
       refreshClientSession(shopSlug);
@@ -459,6 +493,41 @@ export default function ClientPortal() {
   // ── Render: loading ───────────────────────────────────────────────────────
   if (phase === "loading") return <Spinner />;
 
+  // ── Render: disclaimer ────────────────────────────────────────────────────
+  if (phase === "disclaimer") {
+    return (
+      <div className="min-h-screen bg-[#0f0f0f] flex flex-col items-center justify-center px-4 py-8">
+        <Helmet><title>My Appointments — {shopName}</title></Helmet>
+        <div className="max-w-sm w-full">
+          <div className="flex flex-col items-center mb-8">
+            <img src={LOGO_URL} alt={shopName} className="w-16 h-16 rounded-2xl mb-4" />
+            <p className="text-white text-lg font-bold">{shopName}</p>
+          </div>
+          <div className="bg-[#141414] border border-[#2a2a2a] rounded-2xl p-6">
+            <div className="flex justify-center mb-4">
+              <div className="w-12 h-12 rounded-full bg-[#1a2a1a] flex items-center justify-center">
+                <ShieldCheck className="w-6 h-6 text-[#8B9A7E]" />
+              </div>
+            </div>
+            <h2 className="text-white font-bold text-lg text-center mb-3">Privacy Notice</h2>
+            <p className="text-[#888] text-sm leading-relaxed text-center mb-6">
+              To protect your privacy and prevent unauthorized access, you'll need to verify your phone number to view or modify your appointments.
+            </p>
+            <button
+              onClick={handleDisclaimerContinue}
+              disabled={disclaimerLoading}
+              className="w-full py-3 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
+              style={{ backgroundColor: "#8B9A7E", color: "#0f0f0f" }}
+            >
+              {disclaimerLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              Got it, continue
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ── Render: phone entry ───────────────────────────────────────────────────
   if (phase === "phone_entry") {
     return (
@@ -482,7 +551,7 @@ export default function ClientPortal() {
             {phonePhase === "phone" ? (
               <>
                 <h2 className="text-white font-semibold text-lg mb-1">Verify your number</h2>
-                <p className="text-[#888] text-sm mb-5">We'll send a code to your phone to confirm your identity.</p>
+                <p className="text-[#888] text-sm mb-5">We'll send a code to confirm your identity.</p>
                 <label className="block text-[#888] text-sm mb-1.5">Phone number</label>
                 <input
                   type="tel"
@@ -496,7 +565,8 @@ export default function ClientPortal() {
                 <button
                   onClick={handlePhoneSend}
                   disabled={phoneSubmitting || !phoneInput.trim()}
-                  className="w-full bg-[#8B9A7E] text-[#0f0f0f] font-semibold py-3 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: "#8B9A7E", color: "#0f0f0f" }}
                 >
                   {phoneSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   Send Code
@@ -516,7 +586,8 @@ export default function ClientPortal() {
                 <button
                   onClick={handlePhoneVerify}
                   disabled={phoneSubmitting || phoneOtp.length < 6}
-                  className="w-full bg-[#8B9A7E] text-[#0f0f0f] font-semibold py-3 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
+                  className="w-full py-3 rounded-xl text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2 mt-4"
+                  style={{ backgroundColor: "#8B9A7E", color: "#0f0f0f" }}
                 >
                   {phoneSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   View My Appointments
@@ -536,7 +607,7 @@ export default function ClientPortal() {
   }
 
   // ── Render: portal ────────────────────────────────────────────────────────
-  const displayName = [session.firstName, session.lastName].filter(Boolean).join(" ") || "Client";
+  const displayName = cap(session?.firstName || "");
 
   return (
     <div className="min-h-screen bg-[#0f0f0f]">
@@ -551,9 +622,7 @@ export default function ClientPortal() {
           >
             <ArrowLeft className="w-4 h-4" /> Book new
           </button>
-          <div className="flex flex-col items-center">
-            <img src={LOGO_URL} alt={shopName} className="w-10 h-10 rounded-xl" />
-          </div>
+          <img src={LOGO_URL} alt={shopName} className="w-10 h-10 rounded-xl" />
           <button onClick={handleSignOut} className="text-[#666] text-sm hover:text-[#888] transition-colors">
             Sign out
           </button>
@@ -562,13 +631,11 @@ export default function ClientPortal() {
         {/* Client info */}
         <div className="mb-6">
           <h1 className="text-white text-2xl font-bold">
-            {session.firstName
-              ? `${session.firstName.charAt(0).toUpperCase()}${session.firstName.slice(1)}'s appointments`
-              : "My appointments"}
+            {displayName ? `${displayName}'s appointments` : "My appointments"}
           </h1>
           <p className="text-[#666] text-sm mt-1 flex items-center gap-1">
             <Phone className="w-3.5 h-3.5" />
-            {maskPhone(session.phone)}
+            {maskPhone(session?.phone || "")}
           </p>
         </div>
 
@@ -618,11 +685,13 @@ export default function ClientPortal() {
                       <p className="text-[#888] text-sm">{fmtDate(appt.date)}</p>
                       <p className="text-[#666] text-xs mt-0.5">{fmtTime(appt.start_time)}</p>
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full border ${
-                      appt.status === "cancelled"
-                        ? "text-[#cc6666] border-[#3a2020] bg-[#2a1a1a]"
-                        : "text-[#8B9A7E] border-[#2a3a2a] bg-[#1a2a1a]"
-                    }`}>
+                    <span
+                      className="text-xs px-2 py-0.5 rounded-full border"
+                      style={appt.status === "cancelled"
+                        ? { color: "#cc6666", borderColor: "#3a2020", backgroundColor: "#2a1a1a" }
+                        : { color: "#8B9A7E", borderColor: "#2a3a2a", backgroundColor: "#1a2a1a" }
+                      }
+                    >
                       {appt.status === "cancelled" ? "cancelled" : "completed"}
                     </span>
                   </div>
@@ -651,7 +720,8 @@ export default function ClientPortal() {
                 </p>
                 <button
                   onClick={closeCancelModal}
-                  className="mt-6 w-full bg-[#8B9A7E] text-[#0f0f0f] font-semibold py-3 rounded-xl"
+                  className="mt-6 w-full py-3 rounded-xl text-sm font-semibold"
+                  style={{ backgroundColor: "#8B9A7E", color: "#0f0f0f" }}
                 >
                   Done
                 </button>
@@ -667,8 +737,7 @@ export default function ClientPortal() {
 
                 {(() => {
                   const hoursUntil = (new Date(`${cancelAppt.date}T${cancelAppt.start_time}:00`) - new Date()) / 3_600_000;
-                  const withinDeposit = !!cancelAppt.deposit_payment_intent_id && hoursUntil < depositRefundHours;
-                  return withinDeposit ? (
+                  return !!cancelAppt.deposit_payment_intent_id && hoursUntil < depositRefundHours ? (
                     <div className="flex items-start gap-2 bg-[#2a2000] border border-[#443300] rounded-xl px-3 py-2 mb-4">
                       <AlertTriangle className="w-4 h-4 text-[#cc9900] mt-0.5 shrink-0" />
                       <p className="text-[#cc9900] text-xs leading-snug">
@@ -679,7 +748,7 @@ export default function ClientPortal() {
                 })()}
 
                 <p className="text-[#888] text-sm mb-3">
-                  We sent a verification code to {maskPhone(session.phone)}.
+                  We sent a verification code to {maskPhone(session?.phone || "")}.
                 </p>
                 <OtpInput
                   value={cancelOtp}
@@ -693,7 +762,8 @@ export default function ClientPortal() {
                   <button
                     onClick={handleCancelSubmit}
                     disabled={cancelSubmitting || cancelOtp.length < 6}
-                    className="w-full bg-[#cc4444] text-white font-semibold py-3 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
+                    className="w-full py-3 rounded-xl font-semibold text-sm disabled:opacity-50 flex items-center justify-center gap-2"
+                    style={{ backgroundColor: "#cc4444", color: "#fff" }}
                   >
                     {cancelSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                     Cancel Appointment
@@ -706,7 +776,7 @@ export default function ClientPortal() {
                   </button>
                 </div>
                 <button
-                  onClick={() => supabase.functions.invoke("sendOTP", { body: { phone: session.phone } })}
+                  onClick={() => supabase.functions.invoke("sendOTP", { body: { phone: session?.phone } })}
                   className="w-full text-[#666] text-xs mt-2 hover:text-[#888] transition-colors"
                 >
                   Resend code
@@ -731,7 +801,8 @@ export default function ClientPortal() {
                 </p>
                 <button
                   onClick={closeRescheduleModal}
-                  className="mt-6 w-full bg-[#8B9A7E] text-[#0f0f0f] font-semibold py-3 rounded-xl"
+                  className="mt-6 w-full py-3 rounded-xl text-sm font-semibold"
+                  style={{ backgroundColor: "#8B9A7E", color: "#0f0f0f" }}
                 >
                   Done
                 </button>
@@ -746,7 +817,7 @@ export default function ClientPortal() {
                   <p className="text-[#666] text-xs mt-1">{rescheduleAppt.barber_name} · {rescheduleAppt.service_name}</p>
                 </div>
                 <p className="text-[#888] text-sm mb-3">
-                  We sent a verification code to {maskPhone(session.phone)}.
+                  We sent a verification code to {maskPhone(session?.phone || "")}.
                 </p>
                 <OtpInput
                   value={rescheduleOtp}
@@ -758,12 +829,13 @@ export default function ClientPortal() {
                 <button
                   onClick={handleRescheduleNext}
                   disabled={rescheduleOtp.length < 6}
-                  className="w-full bg-[#8B9A7E] text-[#0f0f0f] font-semibold py-3 rounded-xl disabled:opacity-50 mt-4"
+                  className="w-full py-3 rounded-xl text-sm font-semibold disabled:opacity-50 mt-4"
+                  style={{ backgroundColor: "#8B9A7E", color: "#0f0f0f" }}
                 >
                   Next →
                 </button>
                 <button
-                  onClick={() => supabase.functions.invoke("sendOTP", { body: { phone: session.phone } })}
+                  onClick={() => supabase.functions.invoke("sendOTP", { body: { phone: session?.phone } })}
                   className="w-full text-[#666] text-xs mt-2 hover:text-[#888] transition-colors"
                 >
                   Resend code
@@ -803,11 +875,11 @@ export default function ClientPortal() {
                           <button
                             key={slot.time}
                             onClick={() => { setRescheduleTime(slot.time); setRescheduleEndTime(slot.endTime); }}
-                            className={`py-2 rounded-xl text-sm font-medium border transition-colors ${
-                              rescheduleTime === slot.time
-                                ? "bg-[#8B9A7E] text-[#0f0f0f] border-[#8B9A7E]"
-                                : "text-[#888] border-[#2a2a2a] hover:border-[#8B9A7E] hover:text-white"
-                            }`}
+                            className="py-2 rounded-xl text-sm font-medium border transition-colors"
+                            style={rescheduleTime === slot.time
+                              ? { backgroundColor: "#8B9A7E", color: "#0f0f0f", borderColor: "#8B9A7E" }
+                              : { color: "#888", borderColor: "#2a2a2a" }
+                            }
                           >
                             {fmtTime(slot.time)}
                           </button>
@@ -822,7 +894,8 @@ export default function ClientPortal() {
                 <button
                   onClick={handleRescheduleSubmit}
                   disabled={rescheduleSubmitting || !rescheduleDate || !rescheduleTime}
-                  className="w-full bg-[#8B9A7E] text-[#0f0f0f] font-semibold py-3 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-xl text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{ backgroundColor: "#8B9A7E", color: "#0f0f0f" }}
                 >
                   {rescheduleSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
                   Confirm Reschedule
