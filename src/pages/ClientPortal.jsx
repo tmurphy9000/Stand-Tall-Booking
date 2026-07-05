@@ -170,6 +170,7 @@ export default function ClientPortal() {
   const [shopId, setShopId] = useState(null);
   const [shopName, setShopName] = useState("Stand Tall Barbershop");
   const [cancPolicyHours, setCancPolicyHours] = useState(null);
+  const [cancPolicyText, setCancPolicyText] = useState("");
   const [depositRefundHours, setDepositRefundHours] = useState(24);
   const [session, setSession] = useState(null);
   const [upcoming, setUpcoming] = useState([]);
@@ -192,8 +193,6 @@ export default function ClientPortal() {
 
   // Reschedule modal
   const [rescheduleAppt, setRescheduleAppt] = useState(null);
-  const [rescheduleStep, setRescheduleStep] = useState("otp");
-  const [rescheduleOtp, setRescheduleOtp] = useState("");
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [rescheduleSlots, setRescheduleSlots] = useState([]);
   const [rescheduleTime, setRescheduleTime] = useState("");
@@ -220,12 +219,13 @@ export default function ClientPortal() {
 
       const { data: settingsRows } = await supabase
         .from("shop_settings")
-        .select("shop_name, cancellation_policy_hours, deposit_refund_hours")
+        .select("shop_name, cancellation_policy_hours, cancellation_policy, deposit_refund_hours")
         .eq("shop_id", shopRow.id)
         .limit(1);
       const s = settingsRows?.[0] || {};
       if (s.shop_name) setShopName(s.shop_name);
       if (s.cancellation_policy_hours != null) setCancPolicyHours(s.cancellation_policy_hours);
+      if (s.cancellation_policy) setCancPolicyText(s.cancellation_policy);
       if (s.deposit_refund_hours != null) setDepositRefundHours(s.deposit_refund_hours);
 
       // Show privacy disclaimer once per browser session
@@ -243,12 +243,12 @@ export default function ClientPortal() {
     init().catch(() => setPhase("phone_entry"));
   }, [shopSlug]);
 
-  // Reload slots when reschedule date changes in picker step
+  // Reload slots when reschedule date changes
   useEffect(() => {
-    if (rescheduleStep === "picker" && rescheduleDate && rescheduleAppt) {
+    if (rescheduleDate && rescheduleAppt) {
       loadRescheduleSlots();
     }
-  }, [rescheduleDate, rescheduleStep]);
+  }, [rescheduleDate]);
 
   // ── Data loading ──────────────────────────────────────────────────────────
   const loadPortalData = async (sid, phone) => {
@@ -365,10 +365,8 @@ export default function ClientPortal() {
   };
 
   // ── Reschedule handlers ───────────────────────────────────────────────────
-  const openRescheduleModal = async (appt) => {
+  const openRescheduleModal = (appt) => {
     setRescheduleAppt(appt);
-    setRescheduleStep("otp");
-    setRescheduleOtp("");
     setRescheduleDate("");
     setRescheduleSlots([]);
     setRescheduleTime("");
@@ -377,22 +375,12 @@ export default function ClientPortal() {
     setRescheduleNewStart("");
     setRescheduleError("");
     setRescheduleDone(false);
-    await supabase.functions.invoke("sendOTP", { body: { phone: session.phone } });
   };
 
   const closeRescheduleModal = () => {
     const wasDone = rescheduleDone;
     setRescheduleAppt(null);
     if (wasDone) loadPortalData(shopId, session.phone);
-  };
-
-  const handleRescheduleNext = () => {
-    if (rescheduleOtp.length < 6) {
-      setRescheduleError("Please enter your 6-digit verification code.");
-      return;
-    }
-    setRescheduleError("");
-    setRescheduleStep("picker");
   };
 
   const loadRescheduleSlots = async () => {
@@ -457,7 +445,6 @@ export default function ClientPortal() {
           bookingId: rescheduleAppt.id,
           clientId: session.clientId,
           phone: session.phone,
-          otpCode: rescheduleOtp,
           newDate: rescheduleDate,
           newStartTime: rescheduleTime,
           newEndTime: rescheduleEndTime,
@@ -636,6 +623,21 @@ export default function ClientPortal() {
           </p>
         </div>
 
+        {/* Cancellation policy notice */}
+        {(cancPolicyHours !== null || cancPolicyText) && (
+          <div
+            className="flex items-start gap-2 rounded-xl px-4 py-3 mb-6"
+            style={{ backgroundColor: "#141414", border: "1px solid #2a2a2a" }}
+          >
+            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" style={{ color: "#8B9A7E" }} />
+            <p className="text-[#888] text-sm leading-snug">
+              {cancPolicyHours !== null
+                ? `${shopName} requires ${cancPolicyHours} hours notice for cancellations or changes. Modifications within this window may result in deposit forfeiture.`
+                : cancPolicyText}
+            </p>
+          </div>
+        )}
+
         {/* Upcoming */}
         <div className="mb-8">
           <h2 className="text-[#8B9A7E] text-xs font-semibold uppercase tracking-widest mb-3">
@@ -804,40 +806,6 @@ export default function ClientPortal() {
                   Done
                 </button>
               </div>
-            ) : rescheduleStep === "otp" ? (
-              <>
-                <h2 className="text-white font-bold text-xl mb-1 pr-6">Reschedule</h2>
-                <div className="bg-[#1a1a1a] rounded-xl p-3 mb-4 mt-3">
-                  <p className="text-[#888] text-xs uppercase tracking-wide mb-1">Current appointment</p>
-                  <p className="text-white text-sm font-medium">{fmtDate(rescheduleAppt.date)}</p>
-                  <p className="text-[#8B9A7E] text-sm">{fmtTime(rescheduleAppt.start_time)}</p>
-                  <p className="text-[#666] text-xs mt-1">{rescheduleAppt.barber_name} · {rescheduleAppt.service_name}</p>
-                </div>
-                <p className="text-[#888] text-sm mb-3">
-                  We sent a verification code to {maskPhone(session?.phone || "")}.
-                </p>
-                <OtpInput
-                  value={rescheduleOtp}
-                  onChange={setRescheduleOtp}
-                  label="Verification code"
-                  disabled={rescheduleSubmitting}
-                />
-                {rescheduleError && <p className="text-red-400 text-sm mt-2">{rescheduleError}</p>}
-                <button
-                  onClick={handleRescheduleNext}
-                  disabled={rescheduleOtp.length < 6}
-                  className="w-full py-3 rounded-xl text-sm font-semibold disabled:opacity-50 mt-4"
-                  style={{ backgroundColor: "#8B9A7E", color: "#0f0f0f" }}
-                >
-                  Next →
-                </button>
-                <button
-                  onClick={() => supabase.functions.invoke("sendOTP", { body: { phone: session?.phone } })}
-                  className="w-full text-[#666] text-xs mt-2 hover:text-[#888] transition-colors"
-                >
-                  Resend code
-                </button>
-              </>
             ) : (
               <>
                 <h2 className="text-white font-bold text-xl mb-1 pr-6">Choose New Time</h2>
@@ -898,10 +866,10 @@ export default function ClientPortal() {
                   Confirm Reschedule
                 </button>
                 <button
-                  onClick={() => { setRescheduleStep("otp"); setRescheduleDate(""); setRescheduleSlots([]); setRescheduleTime(""); }}
+                  onClick={closeRescheduleModal}
                   className="w-full text-[#666] text-sm py-2 mt-1 hover:text-[#888] transition-colors"
                 >
-                  ← Back
+                  Cancel
                 </button>
               </>
             )}

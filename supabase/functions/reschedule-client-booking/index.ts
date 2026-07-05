@@ -35,43 +35,26 @@ Deno.serve(async (req) => {
     bookingId?: string;
     clientId?: string;
     phone?: string;
-    otpCode?: string;
     newDate?: string;
     newStartTime?: string;
     newEndTime?: string;
   };
   try { body = await req.json(); } catch { return json({ error: "Invalid request body" }, 400); }
 
-  const { bookingId, clientId, otpCode, newDate, newStartTime, newEndTime } = body;
-  const phone = normalizePhone(body.phone || "");
+  const { bookingId, clientId, newDate, newStartTime, newEndTime } = body;
 
-  if (!bookingId || !phone || !otpCode || !newDate || !newStartTime || !newEndTime) {
-    return json({ error: "bookingId, phone, otpCode, newDate, newStartTime, and newEndTime are required" }, 400);
+  if (!bookingId || !clientId || !newDate || !newStartTime || !newEndTime) {
+    return json({ error: "bookingId, clientId, newDate, newStartTime, and newEndTime are required" }, 400);
   }
 
-  // ── Verify OTP ────────────────────────────────────────────────────────────
-  const { data: otp } = await supabase
-    .from("otp_codes")
-    .select("id")
-    .eq("phone", phone)
-    .eq("code", otpCode)
-    .eq("used", false)
-    .gt("expires_at", new Date().toISOString())
-    .maybeSingle();
-
-  if (!otp) return json({ error: "Invalid or expired verification code" }, 400);
-
-  await supabase.from("otp_codes").update({ used: true }).eq("id", otp.id);
-
-  // ── Ownership check ───────────────────────────────────────────────────────
+  // ── Identity check via clientId (client already OTP-verified to access portal) ──
   const { data: client } = await supabase
     .from("clients")
     .select("id, name, phone, email, sms_opt_in")
-    .or(`phone.eq.${phone},phone.eq.+1${phone},phone.eq.1${phone}`)
+    .eq("id", clientId)
     .maybeSingle();
 
-  if (!client) return json({ error: "No account found for this phone number" }, 404);
-  if (clientId && client.id !== clientId) return json({ error: "Unauthorized" }, 401);
+  if (!client) return json({ error: "No account found" }, 404);
 
   const { data: oldBooking } = await supabase
     .from("bookings")
