@@ -66,15 +66,14 @@ function buildWalkInSlots(barbers, bookedSlots, approvedTimeOff, service, minNot
     if (onTimeOff) continue;
 
     const dh = barber.hours?.[dayName];
-    if (!dh || dh.off || dh.closed) continue;
+    if (!dh || dh.off || dh.closed || !dh.start || !dh.end) continue;
 
     const serviceDuration = barber.service_durations?.[service.id] ?? service.duration ?? 30;
-    const closeStr = dh.end || "18:00";
-    const [eh, em] = closeStr.split(":").map(Number);
+    const [eh, em] = dh.end.split(":").map(Number);
     const closeMins = eh * 60 + em;
 
     const barberBooked = bookedSlots.filter(b => b.barber_id === barber.id);
-    const allSlots = generateSlots(dh.start || "09:00", closeStr, 15);
+    const allSlots = generateSlots(dh.start, dh.end, 15);
 
     for (const time of allSlots) {
       if (time <= cutoffHHMM) continue;
@@ -108,15 +107,14 @@ function buildFullBookSlots(barbers, bookedSlots, approvedTimeOff, service, minN
     if (onTimeOff) continue;
 
     const dh = barber.hours?.[dayName];
-    if (!dh || dh.off || dh.closed) continue;
+    if (!dh || dh.off || dh.closed || !dh.start || !dh.end) continue;
 
     const serviceDuration = barber.service_durations?.[service.id] ?? service.duration ?? 30;
-    const closeStr = dh.end || "18:00";
-    const [eh, em] = closeStr.split(":").map(Number);
+    const [eh, em] = dh.end.split(":").map(Number);
     const closeMins = eh * 60 + em;
 
     const barberBooked = bookedSlots.filter(b => b.barber_id === barber.id);
-    const allSlots = generateSlots(dh.start || "09:00", closeStr, 15);
+    const allSlots = generateSlots(dh.start, dh.end, 15);
 
     for (const time of allSlots) {
       if (cutoffHHMM !== null && time <= cutoffHHMM) continue;
@@ -262,7 +260,7 @@ export default function KioskPage() {
           .order("start_time"),
         supabase
           .from("barbers")
-          .select("id, name, email, permission_level, hours, service_durations, available_services")
+          .select("id, name, email, permission_level, hours, service_durations, available_services, online_bookable, bookings_blocked")
           .eq("shop_id", shopId)
           .eq("is_active", true),
       ]);
@@ -273,10 +271,15 @@ export default function KioskPage() {
         return;
       }
 
+      // Match ClientBooking: exclude barbers blocked from bookings or not online-bookable
+      const activeBarbers = (barbersRes.data ?? []).filter(
+        b => !b.bookings_blocked && b.online_bookable !== false
+      );
+
       setShopData(shopRes.data);
       setShopSlug(shopRes.data.url_slug ?? "");
       setBookings(bookingsRes.data ?? []);
-      setBarbers(barbersRes.data ?? []);
+      setBarbers(activeBarbers);
       setScreen("landing");
     })();
   }, [kioskToken]);

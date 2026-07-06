@@ -10,7 +10,7 @@ import { entities } from "@/api/entities";
 import { supabase } from "@/lib/supabaseClient";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
 
 function generateSlots(start, end, intervalMins) {
   const slots = [];
@@ -75,6 +75,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
   const [repeatEndDate, setRepeatEndDate] = useState("");
   const [showOutsideHoursWarning, setShowOutsideHoursWarning] = useState(false);
   const [pendingSave, setPendingSave] = useState(null);
+  const [pendingSlotTime, setPendingSlotTime] = useState(null);
 
   const { data: clients = [], refetch: refetchClients } = useQuery({
     queryKey: ["clients"],
@@ -134,24 +135,28 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
   const finalPrice = servicePrice;
   const isBlockTime = form.client_name === "BLOCKED TIME";
 
-  // Build the slot grid: slots within the barber's working hours, marked taken/free.
+  // Build the slot grid: all slots 06:00–22:00, marked taken/outsideHours/free.
+  // outsideHours slots are greyed but clickable — admin gets a confirmation dialog.
   // null = barber or date not yet selected (show placeholder).
   const slots = useMemo(() => {
     if (!selectedBarber || !form.date) return null;
     const dayName = format(new Date(form.date + "T12:00:00"), "EEEE").toLowerCase();
     const dayHours = selectedBarber.hours?.[dayName];
-    if (!dayHours || dayHours.off || dayHours.closed) return [];
 
     const todayStr = format(new Date(), "yyyy-MM-dd");
     const cutoffHHMM = form.date === todayStr
       ? format(addMinutes(new Date(), minBookingNotice), "HH:mm")
       : null;
 
-    return generateSlots(dayHours.start || "09:00", dayHours.end || "18:00", 15).map(slot => ({
-      ...slot,
-      taken: isSlotTaken(slot.time, serviceDuration, bookedSlots) ||
-             (cutoffHHMM !== null && slot.time <= cutoffHHMM),
-    }));
+    const barberOff = !dayHours || dayHours.off || dayHours.closed || !dayHours.start || !dayHours.end;
+
+    return generateSlots("06:00", "22:00", 15).map(slot => {
+      const withinHours = !barberOff &&
+        slot.time >= dayHours.start && slot.time < dayHours.end;
+      const taken = isSlotTaken(slot.time, serviceDuration, bookedSlots) ||
+                    (cutoffHHMM !== null && slot.time <= cutoffHHMM);
+      return { ...slot, taken, outsideHours: !withinHours };
+    });
   }, [selectedBarber, form.date, bookedSlots, serviceDuration, minBookingNotice]);
 
   const handleClientSelect = (client) => {
@@ -438,24 +443,30 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
               <div className="flex justify-center py-4 border border-border rounded-md">
                 <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
               </div>
-            ) : slots.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-3 text-center border border-dashed border-border rounded-md">
-                No availability on this day.
-              </p>
             ) : (
               <div className="max-h-44 overflow-y-auto rounded-md border border-border p-2">
                 <div className="grid grid-cols-3 gap-1.5">
-                  {slots.map(({ time, label, taken }) => (
+                  {slots.map(({ time, label, taken, outsideHours }) => (
                     <button
                       key={time}
                       type="button"
-                      disabled={taken}
-                      onClick={() => set("start_time", time)}
+                      disabled={taken && !outsideHours}
+                      onClick={() => {
+                        if (taken) return;
+                        if (outsideHours) {
+                          setPendingSlotTime(time);
+                          setShowOutsideHoursWarning(true);
+                        } else {
+                          set("start_time", time);
+                        }
+                      }}
                       className={`py-2 rounded-md text-xs font-medium transition-colors border ${
                         form.start_time === time
                           ? "bg-[#B0BFA4] text-white border-[#8B9A7E]"
                           : taken
                           ? "opacity-40 cursor-not-allowed text-muted-foreground line-through border-border bg-muted/20"
+                          : outsideHours
+                          ? "opacity-50 border-dashed border-border bg-transparent text-muted-foreground hover:bg-amber-50 hover:border-amber-300 hover:opacity-80 cursor-pointer"
                           : "bg-card text-foreground border-border hover:bg-accent hover:border-[#B0BFA4] cursor-pointer"
                       }`}
                     >
@@ -540,21 +551,39 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
         </DialogFooter>
       </DialogContent>
 
-      {/* Outside Bookable Hours Warning */}
-      <Dialog open={showOutsideHoursWarning} onOpenChange={setShowOutsideHoursWarning}>
+      {/* Outside Working Hours Warning */}
+      <Dialog open={showOutsideHoursWarning} onOpenChange={(open) => {
+        if (!open) { setShowOutsideHoursWarning(false); setPendingSave(null); setPendingSlotTime(null); }
+      }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-base font-semibold">Outside Bookable Hours</DialogTitle>
+            <DialogTitle className="flex items-center gap-2 text-base font-semibold">
+              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+              Outside Working Hours
+            </DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground py-2">
-            This appointment is outside of bookable hours. Do you want to continue?
+            This time is outside <strong>{selectedBarber?.name}</strong>&apos;s normal working hours. Are you sure you want to book outside their scheduled hours?
           </p>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowOutsideHoursWarning(false); setPendingSave(null); }}>
-              No, Cancel
+            <Button variant="outline" onClick={() => {
+              setShowOutsideHoursWarning(false);
+              setPendingSave(null);
+              setPendingSlotTime(null);
+            }}>
+              Cancel
             </Button>
-            <Button className="bg-[#B0BFA4] hover:bg-[#8B9A7E] text-white" onClick={async () => { setShowOutsideHoursWarning(false); try { await doSave(pendingSave); } catch (err) { toast.error("Failed to save booking: " + (err.message || "Unknown error")); } setPendingSave(null); }}>
-              Continue
+            <Button className="bg-amber-500 hover:bg-amber-600 text-white" onClick={async () => {
+              setShowOutsideHoursWarning(false);
+              if (pendingSlotTime) {
+                set("start_time", pendingSlotTime);
+                setPendingSlotTime(null);
+              } else if (pendingSave) {
+                try { await doSave(pendingSave); } catch (err) { toast.error("Failed to save booking: " + (err.message || "Unknown error")); }
+                setPendingSave(null);
+              }
+            }}>
+              Book Anyway
             </Button>
           </DialogFooter>
         </DialogContent>
