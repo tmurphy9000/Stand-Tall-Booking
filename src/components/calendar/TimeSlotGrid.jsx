@@ -179,6 +179,15 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
               NEW
             </span>
           )}
+          {booking.source === "walk_in" && (
+            <span
+              title="Walk-in booking"
+              className="text-[8px] font-bold leading-tight mt-0.5 px-0.5 rounded"
+              style={{ color: "#1e40af", background: "#dbeafe" }}
+            >
+              WALK-IN
+            </span>
+          )}
           {booking.deposit_amount_paid > 0 && (
             <span
               title={`Deposit paid: $${(booking.deposit_amount_paid / 100).toFixed(2)}`}
