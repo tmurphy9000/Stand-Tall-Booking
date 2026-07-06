@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Copy, ExternalLink, RefreshCw, Tablet, AlertTriangle, Loader2, CheckCircle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 
 export default function KioskSettings() {
@@ -16,12 +17,34 @@ export default function KioskSettings() {
   const [regenerating, setRegenerating] = useState(false);
   const [showWarning, setShowWarning] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [walkInEnabled, setWalkInEnabled] = useState(false);
 
   const { data: settingsArr = [], isLoading } = useQuery({
     queryKey: ["shopSettings"],
     queryFn: () => entities.ShopSettings.list(),
   });
   const settings = settingsArr[0] || {};
+
+  // Sync toggle state whenever settings load
+  React.useEffect(() => {
+    setWalkInEnabled(!!settings.walk_in_enabled);
+  }, [settings.walk_in_enabled]);
+
+  const handleToggleWalkIn = async (enabled) => {
+    if (!settings.id) return;
+    setWalkInEnabled(enabled);
+    const { error } = await supabase
+      .from("shop_settings")
+      .update({ walk_in_enabled: enabled })
+      .eq("id", settings.id);
+    if (error) {
+      toast.error("Failed to save: " + error.message);
+      setWalkInEnabled(!enabled);
+    } else {
+      queryClient.invalidateQueries({ queryKey: ["shopSettings"] });
+      toast.success(enabled ? "Walk-in booking enabled." : "Walk-in booking disabled.");
+    }
+  };
 
   const kioskToken = settings.kiosk_token;
   const kioskUrl = kioskToken
@@ -181,6 +204,24 @@ export default function KioskSettings() {
           </p>
         </div>
       )}
+
+      {/* Walk-in toggle */}
+      <div className="border-t border-border dark:border-border pt-5 space-y-1.5">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-semibold">Enable walk-in booking</p>
+            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+              When enabled, a Walk In button appears on the kiosk for clients without an appointment.
+            </p>
+          </div>
+          <Switch
+            checked={walkInEnabled}
+            onCheckedChange={handleToggleWalkIn}
+            disabled={!settings.id}
+            className="ml-4 shrink-0"
+          />
+        </div>
+      </div>
     </div>
   );
 }

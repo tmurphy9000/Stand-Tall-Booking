@@ -203,16 +203,6 @@ export default function BookingPageSettings() {
     queryFn: () => entities.ShopSettings.list(),
   });
 
-  const { data: services = [] } = useQuery({
-    queryKey: ["services", shopId],
-    queryFn: async () => {
-      if (!shopId) return [];
-      const { data } = await supabase.from("services").select("id, name").eq("shop_id", shopId).eq("is_active", true).order("created_at");
-      return data ?? [];
-    },
-    enabled: !!shopId,
-  });
-
   const { data: shopData } = useQuery({
     queryKey: ["shopData", shopId],
     queryFn: async () => {
@@ -247,7 +237,6 @@ export default function BookingPageSettings() {
   const [cancelPolicyText, setCancelPolicyText]       = useState("");
   const [minNotice, setMinNotice]                     = useState(0);
   const [scheduleOptimizerEnabled, setScheduleOptimizerEnabled] = useState(true);
-  const [walkInServiceId, setWalkInServiceId]         = useState("none");
 
   useEffect(() => {
     if (!settings.id) return;
@@ -267,7 +256,6 @@ export default function BookingPageSettings() {
     setCancelPolicyText(settings.cancellation_policy_text || "");
     setMinNotice(settings.min_booking_notice_minutes ?? 0);
     setScheduleOptimizerEnabled(settings.schedule_optimizer_enabled !== false);
-    setWalkInServiceId(settings.walk_in_default_service_id ?? "none");
   }, [settings.id]);
 
   useEffect(() => {
@@ -353,7 +341,6 @@ export default function BookingPageSettings() {
       cancellation_policy_text:     cancelPolicyText || null,
       min_booking_notice_minutes:   Number(minNotice) || 0,
       schedule_optimizer_enabled:   scheduleOptimizerEnabled,
-      walk_in_default_service_id:   walkInServiceId === "none" ? null : walkInServiceId,
     });
   };
 
@@ -502,23 +489,6 @@ export default function BookingPageSettings() {
         </Select>
         <p className="text-xs text-muted-foreground">
           Clients cannot book a slot starting within this many minutes from now.
-        </p>
-      </section>
-
-      {/* ── Default walk-in service ── */}
-      <section className="space-y-3">
-        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Default Walk-In Service</h3>
-        <Select value={walkInServiceId} onValueChange={setWalkInServiceId}>
-          <SelectTrigger className="w-full h-9"><SelectValue placeholder="First active service (default)" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">First active service (default)</SelectItem>
-            {services.map(s => (
-              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground">
-          The service booked automatically for kiosk walk-ins. If not set, the first active service is used.
         </p>
       </section>
 

@@ -23,12 +23,6 @@ function normalizePhone(p) {
 
 // ── Slot helpers ─────────────────────────────────────────────────────────────
 
-async function getBookedSlots(shopId, dateStr) {
-  const { data, error } = await supabase.rpc("get_booked_slots", { p_shop_id: shopId, p_date: dateStr });
-  if (error) throw error;
-  return data ?? [];
-}
-
 function generateSlots(start, end, intervalMins) {
   const slots = [];
   const [eh, em] = end.split(":").map(Number);
@@ -62,6 +56,10 @@ function buildWalkInSlots(barbers, bookedSlots, approvedTimeOff, service, minNot
   const result = [];
 
   for (const barber of barbers) {
+    // Skip barbers that don't offer this service (when available_services is configured)
+    const available = barber.available_services;
+    if (available && available.length > 0 && !available.includes(service.id)) continue;
+
     const onTimeOff = approvedTimeOff.some(
       r => r.barber_id === barber.id && todayStr >= r.start_date && todayStr <= r.end_date
     );
@@ -133,7 +131,8 @@ function AppointmentRow({ booking, onSelect }) {
 export default function KioskPage() {
   const { kioskToken } = useParams();
 
-  // screen: loading | error | landing | browse | phone | confirm | success | wi_form | wi_slots | wi_done
+  // screen: loading | error | landing | browse | phone | confirm | success
+  //       | wi_form | wi_service | wi_slots | wi_done
   const [screen, setScreen] = useState("loading");
   const [errorMsg, setErrorMsg] = useState("");
   const [shopData, setShopData] = useState(null);
@@ -147,15 +146,20 @@ export default function KioskPage() {
   const [checkingIn, setCheckingIn] = useState(false);
   const [countdown, setCountdown] = useState(12);
 
-  // Walk-in shared config
+  // Walk-in config
+  const [walkInEnabled, setWalkInEnabled] = useState(false);
   const [minNotice, setMinNotice] = useState(0);
-  const [walkInService, setWalkInService] = useState(null);
 
   // Walk-in form
   const [wiFirstName, setWiFirstName] = useState("");
   const [wiLastName, setWiLastName] = useState("");
   const [wiPhone, setWiPhone] = useState("");
   const [wiError, setWiError] = useState("");
+
+  // Walk-in service selection
+  const [wiServices, setWiServices] = useState([]);
+  const [wiLoadingServices, setWiLoadingServices] = useState(false);
+  const [wiService, setWiService] = useState(null);
 
   // Walk-in slots
   const [wiLoadingSlots, setWiLoadingSlots] = useState(false);
@@ -179,7 +183,7 @@ export default function KioskPage() {
     (async () => {
       const { data: settingsRow, error: settingsErr } = await supabase
         .from("shop_settings")
-        .select("shop_id, min_booking_notice_minutes, walk_in_default_service_id")
+        .select("shop_id, min_booking_notice_minutes, walk_in_enabled")
         .eq("kiosk_token", kioskToken)
         .maybeSingle();
 
@@ -191,8 +195,9 @@ export default function KioskPage() {
 
       const shopId = settingsRow.shop_id;
       setMinNotice(settingsRow.min_booking_notice_minutes ?? 0);
+      setWalkInEnabled(settingsRow.walk_in_enabled ?? false);
 
-      const [shopRes, bookingsRes, barbersRes, servicesRes] = await Promise.all([
+      const [shopRes, bookingsRes, barbersRes] = await Promise.all([
         supabase.from("shops").select("id, name, url_slug").eq("id", shopId).single(),
         supabase
           .from("bookings")
@@ -204,15 +209,9 @@ export default function KioskPage() {
           .order("start_time"),
         supabase
           .from("barbers")
-          .select("id, name, email, permission_level, hours, service_durations")
+          .select("id, name, email, permission_level, hours, service_durations, available_services")
           .eq("shop_id", shopId)
           .eq("is_active", true),
-        supabase
-          .from("services")
-          .select("id, name, duration, price")
-          .eq("shop_id", shopId)
-          .eq("is_active", true)
-          .order("created_at"),
       ]);
 
       if (shopRes.error || !shopRes.data) {
@@ -225,12 +224,6 @@ export default function KioskPage() {
       setShopSlug(shopRes.data.url_slug ?? "");
       setBookings(bookingsRes.data ?? []);
       setBarbers(barbersRes.data ?? []);
-
-      const services = servicesRes.data ?? [];
-      const walkInSvcId = settingsRow.walk_in_default_service_id;
-      const resolvedService = services.find(s => s.id === walkInSvcId) ?? services[0] ?? null;
-      setWalkInService(resolvedService);
-
       setScreen("landing");
     })();
   }, [kioskToken]);
@@ -271,6 +264,8 @@ export default function KioskPage() {
     setWiLastName("");
     setWiPhone("");
     setWiError("");
+    setWiServices([]);
+    setWiService(null);
     setWiSlots([]);
     setWiBookingSlot(null);
     setWiBookError("");
@@ -362,7 +357,8 @@ export default function KioskPage() {
 
   // ── Walk-in actions ───────────────────────────────────────────────────
 
-  const handleWalkInFindSlots = useCallback(async () => {
+  // Step 1 → Step 2: validate form, fetch services, navigate to service picker
+  const handleWalkInFormSubmit = useCallback(async () => {
     const first = wiFirstName.trim();
     const last = wiLastName.trim();
     const phone = normalizePhone(wiPhone);
@@ -370,9 +366,34 @@ export default function KioskPage() {
     if (!first) { setWiError("Please enter your first name."); return; }
     if (!last) { setWiError("Please enter your last name."); return; }
     if (phone.length < 10) { setWiError("Please enter a valid 10-digit phone number."); return; }
-    if (!walkInService) { setWiError("No service is configured for walk-ins. Please see a staff member."); return; }
 
     setWiError("");
+    setWiService(null);
+    setWiSlots([]);
+    setWiBookError("");
+    setWiBookingSlot(null);
+    setWiLoadingServices(true);
+    setScreen("wi_service");
+
+    try {
+      const { data } = await supabase
+        .from("services")
+        .select("id, name, duration, price")
+        .eq("shop_id", shopData.id)
+        .eq("is_active", true)
+        .order("created_at");
+      setWiServices(data ?? []);
+    } catch (e) {
+      console.error("[kiosk] walk-in services load error:", e);
+      setWiServices([]);
+    } finally {
+      setWiLoadingServices(false);
+    }
+  }, [wiFirstName, wiLastName, wiPhone, shopData]);
+
+  // Step 2 → Step 3: select service, build slots
+  const handleWalkInSelectService = useCallback(async (service) => {
+    setWiService(service);
     setWiSlots([]);
     setWiBookError("");
     setWiBookingSlot(null);
@@ -390,7 +411,7 @@ export default function KioskPage() {
 
       const bookedSlots = bookedSlotsRes.data ?? [];
       const approvedTimeOff = timeOffRes.data ?? [];
-      const slots = buildWalkInSlots(barbers, bookedSlots, approvedTimeOff, walkInService, minNotice);
+      const slots = buildWalkInSlots(barbers, bookedSlots, approvedTimeOff, service, minNotice);
       setWiSlots(slots);
     } catch (e) {
       console.error("[kiosk] walk-in slot load error:", e);
@@ -398,8 +419,9 @@ export default function KioskPage() {
     } finally {
       setWiLoadingSlots(false);
     }
-  }, [wiFirstName, wiLastName, wiPhone, barbers, shopData, walkInService, minNotice]);
+  }, [barbers, shopData, minNotice]);
 
+  // Step 3: confirm slot → create booking
   const handleWalkInBook = useCallback(async (slot) => {
     if (wiBookingSlot) return;
     setWiBookingSlot(slot);
@@ -422,14 +444,14 @@ export default function KioskPage() {
           p_sms_opt_in: true,
         });
         clientId = clientData?.[0]?.id ?? null;
-      } catch { /* non-fatal — continue without clientId */ }
+      } catch { /* non-fatal */ }
 
       const { error: insertErr } = await supabase.from("bookings").insert({
         shop_id:      shopData.id,
         barber_id:    slot.barberId,
         barber_name:  slot.barberName,
-        service_id:   walkInService.id,
-        service_name: walkInService.name,
+        service_id:   wiService.id,
+        service_name: wiService.name,
         client_id:    clientId,
         client_name:  clientName,
         client_phone: phone,
@@ -437,8 +459,8 @@ export default function KioskPage() {
         start_time:   slot.time,
         end_time:     slot.endTime,
         duration:     slot.serviceDuration,
-        price:        walkInService.price ?? 0,
-        final_price:  walkInService.price ?? 0,
+        price:        wiService.price ?? 0,
+        final_price:  wiService.price ?? 0,
         status:       "scheduled",
         source:       "walk_in",
         visit_type:   "in_person",
@@ -450,14 +472,14 @@ export default function KioskPage() {
         return;
       }
 
-      // Send confirmation SMS — fire and forget
+      // Fire-and-forget SMS confirmation
       supabase.functions.invoke("sendBookingConfirmation", {
         body: {
           client_name:  clientName,
           client_phone: phone,
           sms_opt_in:   true,
           barber_name:  slot.barberName,
-          service_name: walkInService.name,
+          service_name: wiService.name,
           date:         todayStr,
           start_time:   slot.time,
           end_time:     slot.endTime,
@@ -473,7 +495,7 @@ export default function KioskPage() {
       setWiBookError("Something went wrong. Please try again.");
       setWiBookingSlot(null);
     }
-  }, [wiBookingSlot, wiFirstName, wiLastName, wiPhone, shopData, shopSlug, walkInService]);
+  }, [wiBookingSlot, wiFirstName, wiLastName, wiPhone, shopData, shopSlug, wiService]);
 
   // ── Shared header ─────────────────────────────────────────────────────
 
@@ -670,14 +692,14 @@ export default function KioskPage() {
   if (screen === "wi_slots") {
     return (
       <div className="min-h-screen flex flex-col bg-[#FAFAF8]">
-        <KioskHeader onBack={() => setScreen("wi_form")} />
+        <KioskHeader onBack={() => setScreen("wi_service")} />
 
         <div className="flex-1 overflow-auto">
           <div className="max-w-2xl mx-auto px-4 py-6">
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Available Times Today</h2>
-              {walkInService && (
-                <p className="text-gray-500 text-base mt-1">{walkInService.name} — select a time below</p>
+              {wiService && (
+                <p className="text-gray-500 text-base mt-1">{wiService.name} — select a time below</p>
               )}
             </div>
 
@@ -754,7 +776,56 @@ export default function KioskPage() {
     );
   }
 
-  // ── Walk-in form ────────────────────────────────────────────────────
+  // ── Walk-in service picker ──────────────────────────────────────────
+
+  if (screen === "wi_service") {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#FAFAF8]">
+        <KioskHeader onBack={() => setScreen("wi_form")} />
+
+        <div className="flex-1 overflow-auto">
+          <div className="max-w-2xl mx-auto px-4 py-6">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Choose a Service</h2>
+              <p className="text-gray-500 text-base mt-1">Select what you'd like done today.</p>
+            </div>
+
+            {wiLoadingServices ? (
+              <div className="flex items-center justify-center py-24">
+                <Loader2 className="w-10 h-10 animate-spin text-[#8B9A7E]" />
+              </div>
+            ) : wiServices.length === 0 ? (
+              <div className="text-center py-16">
+                <p className="text-xl text-gray-400">No services available.</p>
+                <p className="text-gray-400 mt-1">Please see a staff member.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {wiServices.map(service => (
+                  <button
+                    key={service.id}
+                    onClick={() => handleWalkInSelectService(service)}
+                    className="w-full bg-white rounded-2xl border border-gray-100 px-6 py-5 flex items-center justify-between text-left hover:border-[#8B9A7E]/50 hover:shadow-sm active:scale-[0.99] transition-all"
+                  >
+                    <div>
+                      <p className="text-xl font-semibold text-gray-900">{service.name}</p>
+                      <p className="text-base text-gray-400 mt-0.5">{service.duration} min</p>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                      <p className="text-xl font-semibold text-gray-900">${service.price ?? 0}</p>
+                      <ArrowRight className="w-5 h-5 text-[#8B9A7E]" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Walk-in form (Step 1) ───────────────────────────────────────────
 
   if (screen === "wi_form") {
     return (
@@ -768,7 +839,7 @@ export default function KioskPage() {
                 <Scissors className="w-8 h-8 text-[#8B9A7E]" />
               </div>
               <h1 className="text-3xl font-bold text-gray-900">Walk In</h1>
-              <p className="text-gray-500 text-base mt-1">Enter your info to find available times.</p>
+              <p className="text-gray-500 text-base mt-1">Enter your info to get started.</p>
             </div>
 
             <div className="flex gap-3">
@@ -793,7 +864,7 @@ export default function KioskPage() {
               placeholder="Phone number"
               value={wiPhone}
               onChange={e => setWiPhone(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleWalkInFindSlots()}
+              onKeyDown={e => e.key === "Enter" && handleWalkInFormSubmit()}
               className="w-full px-4 py-4 text-base rounded-2xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-[#8B9A7E]/40 focus:border-[#8B9A7E]"
             />
 
@@ -802,10 +873,10 @@ export default function KioskPage() {
             )}
 
             <button
-              onClick={handleWalkInFindSlots}
-              className="w-full bg-[#8B9A7E] hover:bg-[#6B7A5E] text-white rounded-2xl py-5 text-lg font-semibold flex items-center justify-center gap-2 transition-colors"
+              onClick={handleWalkInFormSubmit}
+              className="w-full bg-[#8B9A7E] hover:bg-[#6B7A5E] text-white rounded-2xl py-5 text-lg font-semibold transition-colors"
             >
-              Find Available Times
+              Next — Choose a Service
             </button>
 
             <button
@@ -843,10 +914,13 @@ export default function KioskPage() {
             <p className="text-gray-500 text-base mt-2">How can we help you today?</p>
           </div>
 
-          <div className="w-full max-w-md space-y-4">
+          <div className={cn("w-full max-w-md space-y-4", !walkInEnabled && "flex flex-col items-center")}>
             <button
               onClick={() => setScreen("browse")}
-              className="w-full bg-[#8B9A7E] hover:bg-[#6B7A5E] text-white rounded-2xl px-8 py-7 flex items-center gap-5 transition-colors active:scale-[0.99]"
+              className={cn(
+                "bg-[#8B9A7E] hover:bg-[#6B7A5E] text-white rounded-2xl px-8 py-7 flex items-center gap-5 transition-colors active:scale-[0.99]",
+                walkInEnabled ? "w-full" : "w-full max-w-sm"
+              )}
             >
               <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
                 <CheckCircle className="w-7 h-7" />
@@ -857,18 +931,20 @@ export default function KioskPage() {
               </div>
             </button>
 
-            <button
-              onClick={() => setScreen("wi_form")}
-              className="w-full bg-white border-2 border-[#8B9A7E] text-[#8B9A7E] hover:bg-[#8B9A7E]/5 rounded-2xl px-8 py-7 flex items-center gap-5 transition-colors active:scale-[0.99]"
-            >
-              <div className="w-14 h-14 rounded-full bg-[#8B9A7E]/10 flex items-center justify-center flex-shrink-0">
-                <Scissors className="w-7 h-7" />
-              </div>
-              <div className="text-left">
-                <p className="text-2xl font-bold">Walk In</p>
-                <p className="text-base opacity-70 mt-0.5">Book a spot right now</p>
-              </div>
-            </button>
+            {walkInEnabled && (
+              <button
+                onClick={() => setScreen("wi_form")}
+                className="w-full bg-white border-2 border-[#8B9A7E] text-[#8B9A7E] hover:bg-[#8B9A7E]/5 rounded-2xl px-8 py-7 flex items-center gap-5 transition-colors active:scale-[0.99]"
+              >
+                <div className="w-14 h-14 rounded-full bg-[#8B9A7E]/10 flex items-center justify-center flex-shrink-0">
+                  <Scissors className="w-7 h-7" />
+                </div>
+                <div className="text-left">
+                  <p className="text-2xl font-bold">Walk In</p>
+                  <p className="text-base opacity-70 mt-0.5">Book a spot right now</p>
+                </div>
+              </button>
+            )}
           </div>
         </div>
       </div>
