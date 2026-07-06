@@ -376,11 +376,13 @@ export default function KioskPage() {
     setScreen("wi_service");
 
     try {
-      const { data } = await supabase
+      console.log("[kiosk-diag] walk-in services fetch — shopData:", shopData, "shopData.id:", shopData?.id);
+      const { data, error } = await supabase
         .from("services")
         .select("id, name, duration, price, is_active")
         .eq("shop_id", shopData.id)
         .order("created_at");
+      console.log("[kiosk-diag] walk-in services result — data:", data, "error:", error);
       setWiServices((data ?? []).filter(s => s.is_active !== false));
     } catch (e) {
       console.error("[kiosk] walk-in services load error:", e);
