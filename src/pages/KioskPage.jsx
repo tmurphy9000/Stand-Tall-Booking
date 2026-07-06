@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
-import { format, addMinutes, parse } from "date-fns";
+import { format, addMinutes, parse, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
 import {
   Search, CheckCircle, Phone, ArrowLeft, ArrowRight,
-  Clock, User, Loader2, AlertCircle, Tablet, Scissors, ExternalLink,
+  Clock, User, Loader2, AlertCircle, Tablet, Scissors,
 } from "lucide-react";
 
 const todayStr = format(new Date(), "yyyy-MM-dd");
@@ -78,6 +78,48 @@ function buildWalkInSlots(barbers, bookedSlots, approvedTimeOff, service, minNot
 
     for (const time of allSlots) {
       if (time <= cutoffHHMM) continue;
+      const [sh, sm] = time.split(":").map(Number);
+      if (sh * 60 + sm + serviceDuration > closeMins) continue;
+      if (isSlotTaken(time, serviceDuration, barberBooked)) continue;
+
+      const endTime = format(addMinutes(parse(time, "HH:mm", new Date()), serviceDuration), "HH:mm");
+      result.push({ time, endTime, barberId: barber.id, barberName: barber.name, serviceDuration });
+    }
+  }
+
+  result.sort((a, b) => a.time.localeCompare(b.time) || a.barberName.localeCompare(b.barberName));
+  return result;
+}
+
+function buildFullBookSlots(barbers, bookedSlots, approvedTimeOff, service, minNotice, dateStr) {
+  const isToday = dateStr === todayStr;
+  const now = new Date();
+  const cutoffHHMM = isToday ? format(addMinutes(now, minNotice), "HH:mm") : null;
+  const dayName = format(new Date(dateStr + "T12:00:00"), "EEEE").toLowerCase();
+  const result = [];
+
+  for (const barber of barbers) {
+    const available = barber.available_services;
+    if (available && available.length > 0 && !available.includes(service.id)) continue;
+
+    const onTimeOff = approvedTimeOff.some(
+      r => r.barber_id === barber.id && dateStr >= r.start_date && dateStr <= r.end_date
+    );
+    if (onTimeOff) continue;
+
+    const dh = barber.hours?.[dayName];
+    if (!dh || dh.off || dh.closed) continue;
+
+    const serviceDuration = barber.service_durations?.[service.id] ?? service.duration ?? 30;
+    const closeStr = dh.end || "18:00";
+    const [eh, em] = closeStr.split(":").map(Number);
+    const closeMins = eh * 60 + em;
+
+    const barberBooked = bookedSlots.filter(b => b.barber_id === barber.id);
+    const allSlots = generateSlots(dh.start || "09:00", closeStr, 15);
+
+    for (const time of allSlots) {
+      if (cutoffHHMM !== null && time <= cutoffHHMM) continue;
       const [sh, sm] = time.split(":").map(Number);
       if (sh * 60 + sm + serviceDuration > closeMins) continue;
       if (isSlotTaken(time, serviceDuration, barberBooked)) continue;
@@ -171,6 +213,17 @@ export default function KioskPage() {
   const [wiBookedAppt, setWiBookedAppt] = useState(null);
   const [wiCountdown, setWiCountdown] = useState(12);
 
+  // Full booking flow (from "Book for a different day")
+  const [fbBarber, setFbBarber] = useState(null); // null = any
+  const [fbService, setFbService] = useState(null);
+  const [fbDate, setFbDate] = useState("");
+  const [fbSlots, setFbSlots] = useState([]);
+  const [fbLoadingSlots, setFbLoadingSlots] = useState(false);
+  const [fbBookingSlot, setFbBookingSlot] = useState(null);
+  const [fbBookError, setFbBookError] = useState("");
+  const [fbBookedAppt, setFbBookedAppt] = useState(null);
+  const [fbCountdown, setFbCountdown] = useState(12);
+
   // ── Bootstrap ────────────────────────────────────────────────────────────
 
   useEffect(() => {
@@ -254,6 +307,18 @@ export default function KioskPage() {
     return () => clearInterval(id);
   }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    if (screen !== "fb_done") return;
+    setFbCountdown(12);
+    const id = setInterval(() => {
+      setFbCountdown(prev => {
+        if (prev <= 1) { clearInterval(id); resetToHome(); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [screen]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const resetToHome = useCallback(() => {
     setScreen("landing");
     setSelectedBooking(null);
@@ -270,6 +335,14 @@ export default function KioskPage() {
     setWiBookingSlot(null);
     setWiBookError("");
     setWiBookedAppt(null);
+    setFbBarber(null);
+    setFbService(null);
+    setFbDate("");
+    setFbSlots([]);
+    setFbLoadingSlots(false);
+    setFbBookingSlot(null);
+    setFbBookError("");
+    setFbBookedAppt(null);
   }, []);
 
   // ── Derived data ──────────────────────────────────────────────────────
@@ -292,6 +365,19 @@ export default function KioskPage() {
     const totalMin = ahead.reduce((sum, b) => sum + (b.duration || 30), 0);
     return { isNext: false, minutes: totalMin, count: ahead.length };
   }, [selectedBooking, bookings]);
+
+  const fbDateOptions = useMemo(() => {
+    const dates = [];
+    for (let i = 0; i < 14; i++) {
+      const d = addDays(new Date(), i);
+      dates.push({
+        str: format(d, "yyyy-MM-dd"),
+        label: i === 0 ? "Today" : i === 1 ? "Tomorrow" : format(d, "EEEE"),
+        sub: format(d, "MMMM d"),
+      });
+    }
+    return dates;
+  }, []);
 
   // ── Check-in actions ─────────────────────────────────────────────────
 
@@ -496,6 +582,141 @@ export default function KioskPage() {
       setWiBookingSlot(null);
     }
   }, [wiBookingSlot, wiFirstName, wiLastName, wiPhone, shopData, shopSlug, wiService]);
+
+  // ── Full booking flow handlers ────────────────────────────────────────
+
+  const handleOpenFullBook = useCallback(() => {
+    setFbBarber(null);
+    setFbService(null);
+    setFbDate("");
+    setFbSlots([]);
+    setFbBookingSlot(null);
+    setFbBookError("");
+    setFbBookedAppt(null);
+    setScreen("fb_barber");
+  }, []);
+
+  const handleFbSelectBarber = useCallback((barber) => {
+    setFbBarber(barber);
+    setFbDate("");
+    setFbSlots([]);
+    setScreen("fb_service");
+  }, []);
+
+  const handleFbSelectService = useCallback((service) => {
+    setFbService(service);
+    setFbDate("");
+    setFbSlots([]);
+    setScreen("fb_date");
+  }, []);
+
+  const handleFbSelectDate = useCallback(async (dateStr) => {
+    setFbDate(dateStr);
+    setFbSlots([]);
+    setFbBookingSlot(null);
+    setFbBookError("");
+    setFbLoadingSlots(true);
+    setScreen("fb_slots");
+
+    try {
+      const targetBarbers = fbBarber ? [fbBarber] : barbers;
+      const barberIds = targetBarbers.map(b => b.id);
+      const [bookedSlotsRes, timeOffRes] = await Promise.all([
+        supabase.rpc("get_booked_slots", { p_shop_id: shopData.id, p_date: dateStr }),
+        barberIds.length > 0
+          ? supabase.from("time_off_requests").select("barber_id, start_date, end_date").eq("status", "approved").in("barber_id", barberIds)
+          : Promise.resolve({ data: [] }),
+      ]);
+      const slots = buildFullBookSlots(
+        targetBarbers,
+        bookedSlotsRes.data ?? [],
+        timeOffRes.data ?? [],
+        fbService,
+        minNotice,
+        dateStr
+      );
+      setFbSlots(slots);
+    } catch (e) {
+      console.error("[kiosk] full-book slot load error:", e);
+      setFbSlots([]);
+    } finally {
+      setFbLoadingSlots(false);
+    }
+  }, [fbBarber, fbService, barbers, shopData, minNotice]);
+
+  const handleFbBook = useCallback(async (slot) => {
+    if (fbBookingSlot) return;
+    setFbBookingSlot(slot);
+    setFbBookError("");
+
+    const first = wiFirstName.trim();
+    const last = wiLastName.trim();
+    const phone = normalizePhone(wiPhone);
+    const clientName = `${first} ${last}`;
+
+    try {
+      let clientId = null;
+      try {
+        const { data: clientData } = await supabase.rpc("upsert_verified_client", {
+          p_shop_id:    shopData.id,
+          p_phone:      phone,
+          p_first_name: first,
+          p_last_name:  last,
+          p_email:      null,
+          p_sms_opt_in: true,
+        });
+        clientId = clientData?.[0]?.id ?? null;
+      } catch { /* non-fatal */ }
+
+      const { error: insertErr } = await supabase.from("bookings").insert({
+        shop_id:      shopData.id,
+        barber_id:    slot.barberId,
+        barber_name:  slot.barberName,
+        service_id:   fbService.id,
+        service_name: fbService.name,
+        client_id:    clientId,
+        client_name:  clientName,
+        client_phone: phone,
+        date:         fbDate,
+        start_time:   slot.time,
+        end_time:     slot.endTime,
+        duration:     slot.serviceDuration,
+        price:        fbService.price ?? 0,
+        final_price:  fbService.price ?? 0,
+        status:       "scheduled",
+        source:       "walk_in",
+        visit_type:   "in_person",
+      });
+
+      if (insertErr) {
+        setFbBookError("That slot is no longer available. Please choose another time.");
+        setFbBookingSlot(null);
+        return;
+      }
+
+      supabase.functions.invoke("sendBookingConfirmation", {
+        body: {
+          client_name:  clientName,
+          client_phone: phone,
+          sms_opt_in:   true,
+          barber_name:  slot.barberName,
+          service_name: fbService.name,
+          date:         fbDate,
+          start_time:   slot.time,
+          end_time:     slot.endTime,
+          shop_name:    shopData?.name,
+          shop_slug:    shopSlug || undefined,
+        },
+      }).catch(() => {});
+
+      setFbBookedAppt({ clientName, time: slot.time, barberName: slot.barberName, date: fbDate });
+      setScreen("fb_done");
+    } catch (e) {
+      console.error("[kiosk] full-book error:", e);
+      setFbBookError("Something went wrong. Please try again.");
+      setFbBookingSlot(null);
+    }
+  }, [fbBookingSlot, fbDate, fbService, wiFirstName, wiLastName, wiPhone, shopData, shopSlug]);
 
   // ── Shared header ─────────────────────────────────────────────────────
 
@@ -713,62 +934,64 @@ export default function KioskPage() {
               <div className="flex items-center justify-center py-24">
                 <Loader2 className="w-10 h-10 animate-spin text-[#8B9A7E]" />
               </div>
-            ) : wiSlots.length === 0 ? (
-              <div className="text-center py-16 space-y-6">
-                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto">
-                  <Clock className="w-8 h-8 text-gray-300" />
-                </div>
-                <div>
-                  <p className="text-xl font-semibold text-gray-800 mb-2">No available slots today</p>
-                  <p className="text-gray-400 text-base">All barbers are fully booked for the rest of the day.</p>
-                </div>
-                {shopSlug && (
-                  <a
-                    href={`https://standtallbooking.com/book/${shopSlug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-7 py-4 rounded-2xl bg-[#8B9A7E] text-white text-base font-semibold hover:bg-[#6B7A5E] transition-colors"
-                  >
-                    Book a future appointment
-                    <ExternalLink className="w-5 h-5" />
-                  </a>
-                )}
-                <div>
-                  <button onClick={resetToHome} className="text-base text-gray-400 hover:text-gray-600 py-3">
-                    Return to home
-                  </button>
-                </div>
-              </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {wiSlots.map((slot, i) => {
-                  const isBooking = wiBookingSlot?.time === slot.time && wiBookingSlot?.barberId === slot.barberId;
-                  return (
+              <>
+                {wiSlots.length === 0 ? (
+                  <div className="text-center py-12 space-y-4">
+                    <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto">
+                      <Clock className="w-8 h-8 text-gray-300" />
+                    </div>
+                    <div>
+                      <p className="text-xl font-semibold text-gray-800 mb-1">No available slots today</p>
+                      <p className="text-gray-400 text-base">All barbers are fully booked for the rest of the day.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    {wiSlots.map((slot, i) => {
+                      const isBooking = wiBookingSlot?.time === slot.time && wiBookingSlot?.barberId === slot.barberId;
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => handleWalkInBook(slot)}
+                          disabled={!!wiBookingSlot}
+                          className={cn(
+                            "bg-white rounded-2xl border px-4 py-5 text-left transition-all",
+                            wiBookingSlot
+                              ? "opacity-50 cursor-not-allowed border-gray-100"
+                              : "border-gray-100 hover:border-[#8B9A7E]/50 hover:shadow-sm active:scale-[0.98] cursor-pointer"
+                          )}
+                        >
+                          {isBooking ? (
+                            <div className="flex items-center justify-center py-1">
+                              <Loader2 className="w-5 h-5 animate-spin text-[#8B9A7E]" />
+                            </div>
+                          ) : (
+                            <>
+                              <p className="text-xl font-bold text-gray-900">{fmt12(slot.time)}</p>
+                              <p className="text-base text-[#8B9A7E] font-medium mt-0.5">{slot.barberName}</p>
+                            </>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {!wiBookingSlot && (
+                  <div className="mt-6 pt-5 border-t border-gray-100 flex flex-col items-center gap-3">
                     <button
-                      key={i}
-                      onClick={() => handleWalkInBook(slot)}
-                      disabled={!!wiBookingSlot}
-                      className={cn(
-                        "bg-white rounded-2xl border px-4 py-5 text-left transition-all",
-                        wiBookingSlot
-                          ? "opacity-50 cursor-not-allowed border-gray-100"
-                          : "border-gray-100 hover:border-[#8B9A7E]/50 hover:shadow-sm active:scale-[0.98] cursor-pointer"
-                      )}
+                      onClick={handleOpenFullBook}
+                      className="inline-flex items-center gap-2 px-7 py-4 rounded-2xl bg-white border-2 border-[#8B9A7E] text-[#8B9A7E] text-base font-semibold hover:bg-[#8B9A7E]/5 transition-colors"
                     >
-                      {isBooking ? (
-                        <div className="flex items-center justify-center py-1">
-                          <Loader2 className="w-5 h-5 animate-spin text-[#8B9A7E]" />
-                        </div>
-                      ) : (
-                        <>
-                          <p className="text-xl font-bold text-gray-900">{fmt12(slot.time)}</p>
-                          <p className="text-base text-[#8B9A7E] font-medium mt-0.5">{slot.barberName}</p>
-                        </>
-                      )}
+                      Book for a different day →
                     </button>
-                  );
-                })}
-              </div>
+                    <button onClick={resetToHome} className="text-base text-gray-400 hover:text-gray-600 py-2">
+                      Return to home
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -885,6 +1108,245 @@ export default function KioskPage() {
             >
               Back to home
             </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Full booking: done ──────────────────────────────────────────────
+
+  if (screen === "fb_done" && fbBookedAppt) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#8B9A7E] text-white p-8 text-center">
+        <CheckCircle className="w-24 h-24 mb-6" strokeWidth={1.5} />
+        <h1 className="text-4xl font-bold mb-2">You're booked!</h1>
+        <p className="text-2xl font-semibold opacity-90 mb-1">{fbBookedAppt.clientName}</p>
+        <div className="bg-white/20 rounded-2xl px-8 py-5 mb-6">
+          <p className="text-xl font-semibold">
+            {format(new Date(fbBookedAppt.date + "T12:00:00"), "EEEE, MMM d")} at {fmt12(fbBookedAppt.time)}
+          </p>
+          <p className="text-base opacity-80 mt-1">with {fbBookedAppt.barberName}</p>
+          <p className="text-base opacity-75 mt-0.5">A confirmation text is on its way.</p>
+        </div>
+        <button onClick={resetToHome} className="mt-2 px-8 py-4 rounded-2xl bg-white/15 hover:bg-white/25 text-base opacity-80 hover:opacity-100 transition-all">
+          Done — returning in {fbCountdown}s
+        </button>
+      </div>
+    );
+  }
+
+  // ── Full booking: slots ─────────────────────────────────────────────
+
+  if (screen === "fb_slots") {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#FAFAF8]">
+        <KioskHeader onBack={() => setScreen("fb_date")} />
+
+        <div className="flex-1 overflow-auto">
+          <div className="max-w-2xl mx-auto px-4 py-6">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Available Times</h2>
+              {fbDate && (
+                <p className="text-gray-500 text-base mt-1">
+                  {format(new Date(fbDate + "T12:00:00"), "EEEE, MMMM d")}
+                  {fbBarber ? ` · ${fbBarber.name}` : ""}
+                </p>
+              )}
+            </div>
+
+            {fbBookError && (
+              <div className="mb-4 px-4 py-3 rounded-2xl bg-red-50 border border-red-100 text-red-600 text-sm text-center">
+                {fbBookError}
+              </div>
+            )}
+
+            {fbLoadingSlots ? (
+              <div className="flex items-center justify-center py-24">
+                <Loader2 className="w-10 h-10 animate-spin text-[#8B9A7E]" />
+              </div>
+            ) : fbSlots.length === 0 ? (
+              <div className="text-center py-16 space-y-6">
+                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto">
+                  <Clock className="w-8 h-8 text-gray-300" />
+                </div>
+                <div>
+                  <p className="text-xl font-semibold text-gray-800 mb-2">No slots available</p>
+                  <p className="text-gray-400 text-base">Try a different date or barber.</p>
+                </div>
+                <button
+                  onClick={() => setScreen("fb_date")}
+                  className="inline-flex items-center gap-2 px-7 py-4 rounded-2xl bg-[#8B9A7E] text-white text-base font-semibold hover:bg-[#6B7A5E] transition-colors"
+                >
+                  Choose a different date
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {fbSlots.map((slot, i) => {
+                  const isBooking = fbBookingSlot?.time === slot.time && fbBookingSlot?.barberId === slot.barberId;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => handleFbBook(slot)}
+                      disabled={!!fbBookingSlot}
+                      className={cn(
+                        "bg-white rounded-2xl border px-4 py-5 text-left transition-all",
+                        fbBookingSlot
+                          ? "opacity-50 cursor-not-allowed border-gray-100"
+                          : "border-gray-100 hover:border-[#8B9A7E]/50 hover:shadow-sm active:scale-[0.98] cursor-pointer"
+                      )}
+                    >
+                      {isBooking ? (
+                        <div className="flex items-center justify-center py-1">
+                          <Loader2 className="w-5 h-5 animate-spin text-[#8B9A7E]" />
+                        </div>
+                      ) : (
+                        <>
+                          <p className="text-xl font-bold text-gray-900">{fmt12(slot.time)}</p>
+                          <p className="text-base text-[#8B9A7E] font-medium mt-0.5">{slot.barberName}</p>
+                        </>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Full booking: date picker ───────────────────────────────────────
+
+  if (screen === "fb_date") {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#FAFAF8]">
+        <KioskHeader onBack={() => setScreen("fb_service")} />
+
+        <div className="flex-1 overflow-auto">
+          <div className="max-w-2xl mx-auto px-4 py-6">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Choose a Date</h2>
+              <p className="text-gray-500 text-base mt-1">
+                {fbBarber ? `with ${fbBarber.name}` : "Any available barber"}{fbService ? ` · ${fbService.name}` : ""}
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              {fbDateOptions.map(({ str, label, sub }) => (
+                <button
+                  key={str}
+                  onClick={() => handleFbSelectDate(str)}
+                  className="w-full bg-white rounded-2xl border border-gray-100 px-6 py-5 flex items-center justify-between text-left hover:border-[#8B9A7E]/50 hover:shadow-sm active:scale-[0.99] transition-all"
+                >
+                  <div>
+                    <p className="text-xl font-semibold text-gray-900">{label}</p>
+                    <p className="text-base text-gray-400 mt-0.5">{sub}</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-[#8B9A7E] flex-shrink-0" />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Full booking: service picker ────────────────────────────────────
+
+  if (screen === "fb_service") {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#FAFAF8]">
+        <KioskHeader onBack={() => setScreen("fb_barber")} />
+
+        <div className="flex-1 overflow-auto">
+          <div className="max-w-2xl mx-auto px-4 py-6">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Choose a Service</h2>
+              <p className="text-gray-500 text-base mt-1">Select what you'd like done.</p>
+            </div>
+
+            {wiServices.length === 0 ? (
+              <div className="text-center py-16">
+                <p className="text-xl text-gray-400">No services available.</p>
+                <p className="text-gray-400 mt-1">Please see a staff member.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {wiServices.map(service => (
+                  <button
+                    key={service.id}
+                    onClick={() => handleFbSelectService(service)}
+                    className="w-full bg-white rounded-2xl border border-gray-100 px-6 py-5 flex items-center justify-between text-left hover:border-[#8B9A7E]/50 hover:shadow-sm active:scale-[0.99] transition-all"
+                  >
+                    <div>
+                      <p className="text-xl font-semibold text-gray-900">{service.name}</p>
+                      <p className="text-base text-gray-400 mt-0.5">{service.duration} min</p>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0 ml-4">
+                      <p className="text-xl font-semibold text-gray-900">${service.price ?? 0}</p>
+                      <ArrowRight className="w-5 h-5 text-[#8B9A7E]" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Full booking: barber picker ─────────────────────────────────────
+
+  if (screen === "fb_barber") {
+    return (
+      <div className="min-h-screen flex flex-col bg-[#FAFAF8]">
+        <KioskHeader onBack={() => setScreen("wi_slots")} />
+
+        <div className="flex-1 overflow-auto">
+          <div className="max-w-2xl mx-auto px-4 py-6">
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-bold text-gray-900">Choose a Barber</h2>
+              <p className="text-gray-500 text-base mt-1">Select who you'd like to book with.</p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                onClick={() => handleFbSelectBarber(null)}
+                className="w-full bg-white rounded-2xl border border-gray-100 px-6 py-5 flex items-center justify-between text-left hover:border-[#8B9A7E]/50 hover:shadow-sm active:scale-[0.99] transition-all"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-full bg-[#8B9A7E]/10 flex items-center justify-center flex-shrink-0">
+                    <User className="w-6 h-6 text-[#8B9A7E]" />
+                  </div>
+                  <div>
+                    <p className="text-xl font-semibold text-gray-900">No preference</p>
+                    <p className="text-base text-gray-400 mt-0.5">Show all available times</p>
+                  </div>
+                </div>
+                <ArrowRight className="w-5 h-5 text-[#8B9A7E] flex-shrink-0" />
+              </button>
+
+              {barbers.map(barber => (
+                <button
+                  key={barber.id}
+                  onClick={() => handleFbSelectBarber(barber)}
+                  className="w-full bg-white rounded-2xl border border-gray-100 px-6 py-5 flex items-center justify-between text-left hover:border-[#8B9A7E]/50 hover:shadow-sm active:scale-[0.99] transition-all"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-full bg-[#8B9A7E]/10 flex items-center justify-center flex-shrink-0">
+                      <User className="w-6 h-6 text-[#8B9A7E]" />
+                    </div>
+                    <p className="text-xl font-semibold text-gray-900">{barber.name}</p>
+                  </div>
+                  <ArrowRight className="w-5 h-5 text-[#8B9A7E] flex-shrink-0" />
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
