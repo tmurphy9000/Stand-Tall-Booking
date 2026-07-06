@@ -8,8 +8,8 @@ import {
   Clock, User, Loader2, AlertCircle, Tablet, Scissors,
 } from "lucide-react";
 
-const todayStr = format(new Date(), "yyyy-MM-dd");
-const todayDisplay = format(new Date(), "EEEE, MMMM d, yyyy");
+const getTodayStr = () => format(new Date(), "yyyy-MM-dd");
+const getTodayDisplay = () => format(new Date(), "EEEE, MMMM d, yyyy");
 
 const fmt12 = (hhmm) => {
   if (!hhmm) return "";
@@ -50,6 +50,7 @@ function isSlotTaken(slotTime, duration, bookings) {
 }
 
 function buildWalkInSlots(barbers, bookedSlots, approvedTimeOff, service, minNotice) {
+  const todayStr = getTodayStr();
   const now = new Date();
   const cutoffHHMM = format(addMinutes(now, minNotice), "HH:mm");
   const dayName = format(now, "EEEE").toLowerCase();
@@ -91,6 +92,7 @@ function buildWalkInSlots(barbers, bookedSlots, approvedTimeOff, service, minNot
 }
 
 function buildFullBookSlots(barbers, bookedSlots, approvedTimeOff, service, minNotice, dateStr) {
+  const todayStr = getTodayStr();
   const isToday = dateStr === todayStr;
   const now = new Date();
   const cutoffHHMM = isToday ? format(addMinutes(now, minNotice), "HH:mm") : null;
@@ -254,7 +256,7 @@ export default function KioskPage() {
           .from("bookings")
           .select("id, client_name, client_phone, barber_id, barber_name, service_name, start_time, end_time, duration, status, checked_in_at")
           .eq("shop_id", shopId)
-          .eq("date", todayStr)
+          .eq("date", getTodayStr())
           .or("status.eq.scheduled,status.eq.confirmed,status.eq.checked_in,status.eq.late")
           .not("client_name", "in", '("Walk-in","Call-in")')
           .order("start_time"),
@@ -369,18 +371,7 @@ export default function KioskPage() {
     return { isNext: false, minutes: totalMin, count: ahead.length };
   }, [selectedBooking, bookings]);
 
-  const fbDateOptions = useMemo(() => {
-    const dates = [];
-    for (let i = 0; i < 14; i++) {
-      const d = addDays(new Date(), i);
-      dates.push({
-        str: format(d, "yyyy-MM-dd"),
-        label: i === 0 ? "Today" : i === 1 ? "Tomorrow" : format(d, "EEEE"),
-        sub: format(d, "MMMM d"),
-      });
-    }
-    return dates;
-  }, []);
+  const [fbDateOptions, setFbDateOptions] = useState([]);
 
   // ── Check-in actions ─────────────────────────────────────────────────
 
@@ -433,7 +424,7 @@ export default function KioskPage() {
       booking_id: selectedBooking.id,
       is_read: false,
       created_date: now,
-      date: todayStr,
+      date: getTodayStr(),
     }));
 
     if (notifications.length > 0) {
@@ -492,7 +483,7 @@ export default function KioskPage() {
     try {
       const barberIds = barbers.map(b => b.id);
       const [bookedSlotsRes, timeOffRes] = await Promise.all([
-        supabase.rpc("get_booked_slots", { p_shop_id: shopData.id, p_date: todayStr }),
+        supabase.rpc("get_booked_slots", { p_shop_id: shopData.id, p_date: getTodayStr() }),
         barberIds.length > 0
           ? supabase.from("time_off_requests").select("barber_id, start_date, end_date").eq("status", "approved").in("barber_id", barberIds)
           : Promise.resolve({ data: [] }),
@@ -544,7 +535,7 @@ export default function KioskPage() {
         client_id:    clientId,
         client_name:  clientName,
         client_phone: phone,
-        date:         todayStr,
+        date:         getTodayStr(),
         start_time:   slot.time,
         end_time:     slot.endTime,
         duration:     slot.serviceDuration,
@@ -569,7 +560,7 @@ export default function KioskPage() {
           sms_opt_in:   true,
           barber_name:  slot.barberName,
           service_name: wiService.name,
-          date:         todayStr,
+          date:         getTodayStr(),
           start_time:   slot.time,
           end_time:     slot.endTime,
           shop_name:    shopData?.name,
@@ -589,6 +580,16 @@ export default function KioskPage() {
   // ── Full booking flow handlers ────────────────────────────────────────
 
   const handleOpenFullBook = useCallback(() => {
+    const dates = [];
+    for (let i = 0; i < 14; i++) {
+      const d = addDays(new Date(), i);
+      dates.push({
+        str: format(d, "yyyy-MM-dd"),
+        label: i === 0 ? "Today" : i === 1 ? "Tomorrow" : format(d, "EEEE"),
+        sub: format(d, "MMMM d"),
+      });
+    }
+    setFbDateOptions(dates);
     setFbBarber(null);
     setFbService(wiService);
     setFbDate("");
@@ -737,7 +738,7 @@ export default function KioskPage() {
         ) : (
           <div>
             <h1 className="text-2xl font-bold text-gray-900">{shopData?.name}</h1>
-            <p className="text-sm text-gray-400">{todayDisplay}</p>
+            <p className="text-sm text-gray-400">{getTodayDisplay()}</p>
           </div>
         )}
         {onBack ? (
@@ -1365,7 +1366,7 @@ export default function KioskPage() {
           <div className="flex items-center justify-between max-w-2xl mx-auto">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{shopData?.name}</h1>
-              <p className="text-sm text-gray-400">{todayDisplay}</p>
+              <p className="text-sm text-gray-400">{getTodayDisplay()}</p>
             </div>
             <div className="bg-[#8B9A7E]/10 rounded-full p-2.5">
               <Tablet className="w-5 h-5 text-[#8B9A7E]" />
