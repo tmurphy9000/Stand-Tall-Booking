@@ -452,11 +452,10 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
                       type="button"
                       disabled={taken && !outsideHours}
                       onClick={() => {
-                        if (taken) return;
                         if (outsideHours) {
                           setPendingSlotTime(time);
                           setShowOutsideHoursWarning(true);
-                        } else {
+                        } else if (!taken) {
                           set("start_time", time);
                         }
                       }}

@@ -590,20 +590,20 @@ export default function KioskPage() {
 
   const handleOpenFullBook = useCallback(() => {
     setFbBarber(null);
-    setFbService(null);
+    setFbService(wiService);
     setFbDate("");
     setFbSlots([]);
     setFbBookingSlot(null);
     setFbBookError("");
     setFbBookedAppt(null);
     setScreen("fb_barber");
-  }, []);
+  }, [wiService]);
 
   const handleFbSelectBarber = useCallback((barber) => {
     setFbBarber(barber);
     setFbDate("");
     setFbSlots([]);
-    setScreen("fb_service");
+    setScreen("fb_date");
   }, []);
 
   const handleFbSelectService = useCallback((service) => {
@@ -1226,7 +1226,7 @@ export default function KioskPage() {
   if (screen === "fb_date") {
     return (
       <div className="min-h-screen flex flex-col bg-[#FAFAF8]">
-        <KioskHeader onBack={() => setScreen("fb_service")} />
+        <KioskHeader onBack={() => setScreen("fb_barber")} />
 
         <div className="flex-1 overflow-auto">
           <div className="max-w-2xl mx-auto px-4 py-6">
