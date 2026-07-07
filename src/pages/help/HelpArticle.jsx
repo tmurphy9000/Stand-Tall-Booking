@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, useParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import ReactMarkdown from "react-markdown";
 import { getArticle, getCategory } from "@/lib/helpContent";
 import { ChevronRight, ArrowLeft, ArrowRight } from "lucide-react";
@@ -105,8 +106,20 @@ export default function HelpArticle() {
   const prevArticle = currentIndex > 0 ? cat.articles[currentIndex - 1] : null;
   const nextArticle = currentIndex < cat.articles.length - 1 ? cat.articles[currentIndex + 1] : null;
 
+  const canonicalUrl = `https://standtallbooking.com/help/${category}/${slug}`;
+  const pageTitle = `${article.title} — Stand Tall Booking Help`;
+  const pageDescription = article.description || `Learn how to ${article.title.toLowerCase()} in Stand Tall Booking.`;
+
   return (
     <div className="min-h-screen bg-[#FAFAF8]">
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:url" content={canonicalUrl} />
+        <link rel="canonical" href={canonicalUrl} />
+      </Helmet>
       {/* Header */}
       <div className="bg-[#0A0A0A] text-white">
         <div className="max-w-5xl mx-auto px-6 py-8">

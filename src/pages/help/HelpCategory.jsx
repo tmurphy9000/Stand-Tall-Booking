@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, useParams } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { getCategory } from "@/lib/helpContent";
 import { ChevronRight, BookOpen, ArrowLeft } from "lucide-react";
 
@@ -18,8 +19,19 @@ export default function HelpCategory() {
     );
   }
 
+  const canonicalUrl = `https://standtallbooking.com/help/${cat.slug}`;
+  const categoryDescription = `${cat.articles.length} articles covering ${cat.title.toLowerCase()} on Stand Tall Booking — step-by-step guides for barbershop owners.`;
+
   return (
     <div className="min-h-screen bg-[#FAFAF8]">
+      <Helmet>
+        <title>{cat.title} — Stand Tall Booking Help</title>
+        <meta name="description" content={categoryDescription} />
+        <meta property="og:title" content={`${cat.title} — Stand Tall Booking Help`} />
+        <meta property="og:description" content={categoryDescription} />
+        <meta property="og:url" content={canonicalUrl} />
+        <link rel="canonical" href={canonicalUrl} />
+      </Helmet>
       {/* Header */}
       <div className="bg-[#0A0A0A] text-white">
         <div className="max-w-4xl mx-auto px-6 py-10">

@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { categories } from "@/lib/helpContent";
 import { BookOpen, ChevronRight, ArrowLeft } from "lucide-react";
 
@@ -10,6 +11,14 @@ const CATEGORY_ICONS = {
 export default function HelpHome() {
   return (
     <div className="min-h-screen bg-[#FAFAF8]">
+      <Helmet>
+        <title>Help Center — Stand Tall Booking</title>
+        <meta name="description" content="Guides and step-by-step articles for setting up and running your barbershop on Stand Tall Booking." />
+        <meta property="og:title" content="Help Center — Stand Tall Booking" />
+        <meta property="og:description" content="Guides and step-by-step articles for setting up and running your barbershop on Stand Tall Booking." />
+        <meta property="og:url" content="https://standtallbooking.com/help" />
+        <link rel="canonical" href="https://standtallbooking.com/help" />
+      </Helmet>
       {/* Header */}
       <div className="bg-[#0A0A0A] text-white">
         <div className="max-w-4xl mx-auto px-6 py-12">
