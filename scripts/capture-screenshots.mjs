@@ -310,14 +310,63 @@ async function run() {
   await page.screenshot({ path: outPath('settings', 'calloff'), fullPage: false });
   console.log('  ✓ calloff.png');
 
-  // ── 13. Calendar sync — Settings page (feature not yet built) ─────────────
-  // Calendar sync/Integrations doesn't exist yet; capture the Settings page
-  // to show there is no Integrations tab — illustrates the "not yet available" status.
-  console.log('→ Calendar sync (Settings — no Integrations tab)');
-  await page.goto(`${BASE_URL}/Settings`, { waitUntil: 'domcontentloaded' });
-  await waitForPageLoad(page);
-  await page.screenshot({ path: outPath('settings', 'calendar-sync'), fullPage: false });
-  console.log('  ✓ calendar-sync.png');
+  // ── 13. Client booking confirmation — "Add to Calendar" buttons ───────────
+  // Navigates to the public booking page and uses React fiber dispatch to jump
+  // directly to the SuccessStep (step 8) with real barber data + a plausible
+  // service, avoiding OTP and without creating a real appointment record.
+  console.log('→ Add to Calendar (booking confirmation screen)');
+  await page.goto(`${BASE_URL}/book/demo-barbershop`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(4000); // Let Supabase data fully load
+
+  await page.evaluate(() => {
+    const rootEl = document.getElementById('root');
+    const containerKey = Object.keys(rootEl).find(k => k.startsWith('__reactContainer'));
+    const containerFiber = rootEl[containerKey];
+
+    function walkFiber(fiber, depth = 0) {
+      if (!fiber || depth > 50) return null;
+      if (fiber.type?.name === 'ClientBooking') return fiber;
+      const fromChild = walkFiber(fiber.child, depth + 1);
+      if (fromChild) return fromChild;
+      return walkFiber(fiber.sibling, depth + 1);
+    }
+
+    const cbFiber = walkFiber(containerFiber);
+    if (!cbFiber) return;
+
+    function getHook(n) {
+      let h = cbFiber.memoizedState;
+      for (let i = 0; i < n; i++) { if (!h?.next) return null; h = h.next; }
+      return h;
+    }
+
+    const barbers = getHook(12)?.memoizedState;
+    const firstBarber = Array.isArray(barbers) && barbers[0];
+    if (!firstBarber) return;
+
+    const services = getHook(13)?.memoizedState;
+    const firstService = Array.isArray(services) && services[0]
+      ? services[0]
+      : { name: "Haircut", id: "mock", duration: 30 };
+
+    // Dispatch state: barber (26), service (27), date (28), time (29), clientName (30), step (7)
+    getHook(26)?.queue?.dispatch?.(firstBarber);
+    getHook(27)?.queue?.dispatch?.(firstService);
+    getHook(28)?.queue?.dispatch?.("2026-07-14");
+    getHook(29)?.queue?.dispatch?.("10:00");
+    getHook(30)?.queue?.dispatch?.("Alex Johnson");
+    getHook(7)?.queue?.dispatch?.(8);
+  });
+
+  await page.waitForTimeout(1500);
+  const addCalBtn = page.locator('a').filter({ hasText: /add to google calendar/i }).first();
+  if (await addCalBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    await page.screenshot({ path: outPath('booking', 'add-to-calendar'), fullPage: false });
+    console.log('  ✓ add-to-calendar.png');
+  } else {
+    console.log('  ⚠ Add to Calendar screen not reached, skipping');
+  }
 
   await browser.close();
 
@@ -338,7 +387,8 @@ async function run() {
    settings/
      settings.png
      calloff.png                [NEW]
-     calendar-sync.png          [NEW]
+   booking/
+     add-to-calendar.png        [NEW]
    checkout/
      checkout.png
 `);
