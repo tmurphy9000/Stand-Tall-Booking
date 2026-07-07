@@ -60,6 +60,9 @@ export default function PrivacyPolicy() {
       <Helmet>
         <title>Privacy Policy — Stand Tall Booking</title>
         <meta name="description" content="Read the Stand Tall Booking Privacy Policy. Learn how we collect, use, and protect information for barbershop owners and their clients." />
+        <meta property="og:title" content="Privacy Policy — Stand Tall Booking" />
+        <meta property="og:description" content="Read the Stand Tall Booking Privacy Policy. Learn how we collect, use, and protect information for barbershop owners and their clients." />
+        <meta property="og:url" content="https://standtallbooking.com/privacy" />
         <link rel="canonical" href="https://standtallbooking.com/privacy" />
       </Helmet>
 

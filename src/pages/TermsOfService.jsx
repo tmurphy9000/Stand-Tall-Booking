@@ -64,6 +64,9 @@ export default function TermsOfService() {
       <Helmet>
         <title>Terms of Service — Stand Tall Booking</title>
         <meta name="description" content="Read the Stand Tall Booking Terms of Service, including subscription billing, communications consent, and acceptable use." />
+        <meta property="og:title" content="Terms of Service — Stand Tall Booking" />
+        <meta property="og:description" content="Read the Stand Tall Booking Terms of Service, including subscription billing, communications consent, and acceptable use." />
+        <meta property="og:url" content="https://standtallbooking.com/terms" />
         <link rel="canonical" href="https://standtallbooking.com/terms" />
       </Helmet>
 

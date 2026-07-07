@@ -13,7 +13,14 @@ Stand Tall Booking is scheduling and management software built specifically for 
 - **Run checkout.** Process payments, split tips, apply discounts, sell retail products, and log cash — all from the Quick Checkout screen.
 - **Track clients.** Every client gets a profile with their booking history, total spend, no-show count, and your private notes.
 - **Handle payroll.** Run a payroll report for any date range, broken down by barber, service commissions, product commissions, and tips.
-- **See your numbers.** The Reporting section shows revenue by barber, by service, and over time — no spreadsheets required.
+- **See numbers most platforms don't show you.** The Reporting section breaks down revenue by barber, by service, and over time, with tracking depth built specifically for barbershops — no spreadsheets required.
+- **Market to your clients.** Send email campaigns with AI-drafted copy, automate win-back and reminder sequences, and track opens and clicks — all built in, no extra software needed.
+- **Ask your AI assistant.** Get instant answers and manage your shop just by asking — right from the dashboard.
+- **Import your client list in minutes.** Bring your entire client history over from Vagaro, Square, Booksy, and other platforms with AI-powered import — no manual data entry.
+- **Collect deposits your way.** Require prepayment shop-wide, or set it per client for those prone to no-shows, with a percentage-based deposit and your own refund window.
+- **Embed booking on your own website.** Add a booking widget directly to your existing site so clients can book without ever leaving it.
+- **Handle call-offs instantly.** If a barber calls off last-minute, automatically text and email every client booked that day with a link to reschedule — no phone tag required.
+- **Control exactly who can see what.** Create custom roles with granular permissions, deciding exactly which screens, data, and actions each team member can access.
 
 ## The dashboard at a glance
 
