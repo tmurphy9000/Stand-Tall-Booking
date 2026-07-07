@@ -191,6 +191,32 @@ async function run() {
   await page.screenshot({ path: outPath('clients', 'client-profile'), fullPage: false });
   console.log('  ✓ client-profile.png');
 
+  // ── 6b. Import Clients dialog ─────────────────────────────────────────────
+  console.log('→ Import Clients dialog');
+  await page.goto(`${BASE_URL}/ClientList`, { waitUntil: 'domcontentloaded' });
+  await waitForPageLoad(page);
+  {
+    // The header Import button is the topmost one (y < 100); the onboarding
+    // checklist also has an "Import your existing clients" item further down.
+    const importBtns = await page.locator('button').filter({ hasText: 'Import' }).all();
+    let topBtn = null, minY = Infinity;
+    for (const btn of importBtns) {
+      const box = await btn.boundingBox();
+      if (box && box.y < minY) { minY = box.y; topBtn = btn; }
+    }
+    if (topBtn) {
+      await topBtn.click();
+      await page.waitForSelector('[role="dialog"]', { timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(SETTLE);
+      await page.screenshot({ path: outPath('clients', 'import-dialog'), fullPage: false });
+      console.log('  ✓ import-dialog.png');
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(SETTLE);
+    } else {
+      console.log('  ⚠ Import button not found, skipping');
+    }
+  }
+
   // ── 7. Settings ───────────────────────────────────────────────────────────
   console.log('→ Settings');
   await page.goto(`${BASE_URL}/Settings`, { waitUntil: 'domcontentloaded' });
@@ -705,6 +731,7 @@ async function run() {
    clients/
      client-list.png
      client-profile.png
+     import-dialog.png
    settings/
      settings.png
      calloff.png

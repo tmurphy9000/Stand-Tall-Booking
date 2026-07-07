@@ -21,6 +21,7 @@ Stand Tall Booking is scheduling and management software built specifically for 
 - **Embed booking on your own website.** Add a booking widget directly to your existing site so clients can book without ever leaving it.
 - **Handle call-offs instantly.** If a barber calls off last-minute, automatically text and email every client booked that day with a link to reschedule — no phone tag required.
 - **Control exactly who can see what.** Create custom roles with granular permissions, deciding exactly which screens, data, and actions each team member can access.
+- **Export your client list anytime.** Download your full client roster whenever you need it — your data is always yours to take with you.
 
 ## The dashboard at a glance
 

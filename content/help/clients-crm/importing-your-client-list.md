@@ -6,6 +6,8 @@ order: 2
 
 If you're moving to Stand Tall Booking from another platform, you don't need to re-enter every client by hand. The import tool accepts an export file from your previous software and extracts client records automatically.
 
+![Import Clients dialog showing file upload area](/help-assets/screenshots/clients/import-dialog.png)
+
 ## Who can import
 
 Only users with the **clients.management** permission (owners and managers by default) see the **Import** button on the Clients page. Barbers with standard access cannot import.
