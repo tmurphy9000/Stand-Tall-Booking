@@ -434,28 +434,36 @@ async function run() {
   }
 
   // ── 15. Time slot picker (Step 3 of 5) ───────────────────────────────────
+  // Goal: show the date strip with a date selected and time slots loaded.
+  // Strategy: dispatch to step 5, click the 3rd available date (a few days
+  // out to avoid today's limited slots), wait for time slot buttons to appear.
   console.log('→ Time slot picker (booking page)');
   await page.goto(`${BASE_URL}/book/demo-barbershop`, { waitUntil: 'domcontentloaded' });
   await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
   await page.waitForTimeout(4000);
   await dispatchBookingState(page, { barber: true, service: true, identityPhase: 'session', step: 5 });
   {
-    // DateTimeStep renders a date strip and "Next Available" button when barber+service are set
-    const dateStrip = page.locator('button, div').filter({ hasText: /next available/i }).first();
-    if (await dateStrip.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await page.screenshot({ path: outPath('booking', 'time-slot-picker'), fullPage: false });
-      console.log('  ✓ time-slot-picker.png');
+    // Date buttons have the class pattern: flex-shrink-0 flex flex-col items-center
+    // Find all enabled date buttons and click the 3rd one (0-indexed: skip today+tomorrow)
+    const dateBtns = page.locator('button.flex-shrink-0').filter({ hasNot: page.locator('[disabled]') });
+    const count = await dateBtns.count().catch(() => 0);
+    if (count >= 3) {
+      const targetDate = dateBtns.nth(2); // 3rd enabled date = a few days out
+      const dateText = await targetDate.textContent().catch(() => '');
+      console.log(`  clicking date: ${dateText.trim()}`);
+      await targetDate.click();
+      // Wait for time slot buttons (contain AM/PM) to appear
+      await page.waitForFunction(
+        () => document.querySelectorAll('button').length > 5 &&
+              Array.from(document.querySelectorAll('button')).some(b => /\d+:\d+\s*(AM|PM)/i.test(b.textContent)),
+        { timeout: 8000 }
+      ).catch(() => {});
+      await page.waitForTimeout(800);
     } else {
-      const stepHeading = page.locator('h2, h3, p').filter({ hasText: /step 3|pick a date|choose.*time/i }).first();
-      if (await stepHeading.isVisible({ timeout: 3000 }).catch(() => false)) {
-        await page.screenshot({ path: outPath('booking', 'time-slot-picker'), fullPage: false });
-        console.log('  ✓ time-slot-picker.png');
-      } else {
-        // Fallback: just take a screenshot of whatever is showing
-        await page.screenshot({ path: outPath('booking', 'time-slot-picker'), fullPage: false });
-        console.log('  ✓ time-slot-picker.png (fallback)');
-      }
+      console.log(`  ⚠ Only ${count} date buttons found, proceeding without date selection`);
     }
+    await page.screenshot({ path: outPath('booking', 'time-slot-picker'), fullPage: false });
+    console.log('  ✓ time-slot-picker.png');
   }
 
   // ── 16. OTP verification screen ───────────────────────────────────────────
