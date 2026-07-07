@@ -4,6 +4,16 @@
       "source": "/help/booking-calendar/google-apple-calendar-sync",
       "destination": "/help/booking-calendar/add-to-calendar",
       "permanent": true
+    },
+    {
+      "source": "/help/walk-in-kiosk",
+      "destination": "/help/check-in-kiosk",
+      "permanent": true
+    },
+    {
+      "source": "/help/walk-in-kiosk/:path*",
+      "destination": "/help/check-in-kiosk/:path*",
+      "permanent": true
     }
   ],
   "rewrites": [{ "source": "/(.*)", "destination": "/" }]

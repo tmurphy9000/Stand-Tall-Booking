@@ -16,7 +16,12 @@ function parseFrontmatter(raw) {
   return { meta, content: match[2] };
 }
 
+const CATEGORY_TITLE_OVERRIDES = {
+  'check-in-kiosk': 'Check-In Kiosk',
+};
+
 function categoryTitle(slug) {
+  if (CATEGORY_TITLE_OVERRIDES[slug]) return CATEGORY_TITLE_OVERRIDES[slug];
   return slug.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 

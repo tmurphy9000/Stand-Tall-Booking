@@ -39,7 +39,7 @@ The client sees all services available at your shop, each showing the service na
 
 ### Step 3 — Available Times Today
 
-The client sees available time slots for today, shown in a 2-column grid. Each tile shows the start time and the barber's name. Only times that are genuinely open are shown — the kiosk enforces working hours, minimum booking notice, and existing bookings (see [How Kiosk Availability Works](/help/walk-in-kiosk/how-kiosk-availability-works)).
+The client sees available time slots for today, shown in a 2-column grid. Each tile shows the start time and the barber's name. Only times that are genuinely open are shown — the kiosk enforces working hours, minimum booking notice, and existing bookings (see [How Kiosk Availability Works](/help/check-in-kiosk/how-kiosk-availability-works)).
 
 ![Walk-in slot selection screen](/help-assets/screenshots/kiosk/kiosk-walk-in-slots.png)
 
