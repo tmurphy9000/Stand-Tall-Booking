@@ -5,7 +5,7 @@
 // these are already present in Vercel since they're baked into the browser bundle.
 
 import { createClient } from "@supabase/supabase-js";
-import { writeFileSync } from "fs";
+import { writeFileSync, readdirSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -50,12 +50,35 @@ function urlTag({ url, priority, changefreq, lastmod }) {
   ].filter(Boolean).join("\n");
 }
 
+function getHelpUrls() {
+  const helpDir = resolve(__dirname, "../content/help");
+  const urls = [{ url: "/help", priority: "0.8", changefreq: "weekly" }];
+  try {
+    const categories = readdirSync(helpDir, { withFileTypes: true })
+      .filter(d => d.isDirectory())
+      .map(d => d.name);
+    for (const cat of categories) {
+      urls.push({ url: `/help/${cat}`, priority: "0.7", changefreq: "monthly" });
+      const articles = readdirSync(resolve(helpDir, cat))
+        .filter(f => f.endsWith(".md"))
+        .map(f => f.replace(".md", ""));
+      for (const slug of articles) {
+        urls.push({ url: `/help/${cat}/${slug}`, priority: "0.6", changefreq: "monthly" });
+      }
+    }
+  } catch (e) {
+    console.warn("[sitemap] Could not read help content:", e.message);
+  }
+  return urls;
+}
+
 async function main() {
   const shops = await getShopSlugs();
   const today = new Date().toISOString().split("T")[0];
 
   const allUrls = [
     ...STATIC_PAGES.map(p => urlTag({ ...p, lastmod: today })),
+    ...getHelpUrls().map(p => urlTag({ ...p, lastmod: today })),
     ...shops.map(s => urlTag({
       url: `/book/${s.url_slug}`,
       priority: "0.7",

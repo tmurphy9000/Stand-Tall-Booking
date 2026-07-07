@@ -1,3 +1,10 @@
 {
+  "redirects": [
+    {
+      "source": "/help/booking-calendar/google-apple-calendar-sync",
+      "destination": "/help/booking-calendar/add-to-calendar",
+      "permanent": true
+    }
+  ],
   "rewrites": [{ "source": "/(.*)", "destination": "/" }]
 }
