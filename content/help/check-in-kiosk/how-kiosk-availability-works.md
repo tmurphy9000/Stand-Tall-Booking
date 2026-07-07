@@ -40,7 +40,7 @@ If another booking (in any non-cancelled status) overlaps with the proposed slot
 
 | What the client sees | Likely cause |
 |---|---|
-| No barbers shown at all | All barbers have `bookings_blocked` set, or no barbers have online-bookable turned on |
+| No barbers shown at all | All barbers have bookings blocked, or none have online booking enabled |
 | "No available slots today" | The shop is at capacity, the barbers' working hours have ended, or minimum notice excludes remaining slots |
 | A specific barber doesn't appear | That barber's hours aren't configured for today, they're on time off, or they're not online-bookable |
 | Gaps in the time slot list | Existing bookings are filling those windows |

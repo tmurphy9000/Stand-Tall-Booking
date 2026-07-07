@@ -16,7 +16,7 @@ Tapping **Check In** shows today's appointment list with a search box at the top
 - **Search by name** using the search field
 - **Switch to phone search** — a "Search by phone number" option at the bottom lets clients enter their phone number if they can't find their name in the list
 
-After selecting an appointment, the client sees a confirmation screen with their service, time, and barber name, plus an estimated wait time if other clients are booked ahead of them. They tap **Confirm Check-In** to complete it. The appointment status changes to **checked_in** in your dashboard immediately. On the admin calendar, the appointment tile switches to a yellow background with a yellow border, and a small green dot with the label **ARRIVED** appears at the bottom of the tile.
+After selecting an appointment, the client sees a confirmation screen with their service, time, and barber name, plus an estimated wait time if other clients are booked ahead of them. They tap **Confirm Check-In** to complete it. The appointment is marked as **Checked In** in your dashboard immediately. On the admin calendar, the appointment tile switches to a yellow background with a yellow border, and a small green dot with the label **ARRIVED** appears at the bottom of the tile.
 
 After checking in, the screen shows a full-page green confirmation ("You're checked in!") with the wait estimate. It auto-returns to the landing screen after 12 seconds, or the client can tap **Done**.
 
@@ -60,4 +60,4 @@ From the walk-in slots screen (today's view), a **Book for a different day →**
 3. **Available Times** — the slot grid for the chosen date and barber
 4. **Confirmation** — same green success screen, shows date and time
 
-The booking inserts into your calendar with the same `source: walk_in` tag as a same-day walk-in, so it shows the WALK-IN badge in the admin calendar view.
+The booking is tagged as a walk-in just like a same-day booking, so it shows the WALK-IN badge in the admin calendar view.

@@ -12,11 +12,11 @@ Any appointment created through the kiosk walk-in flow shows a small **WALK-IN**
 
 ![Calendar showing WALK-IN badge on an appointment](/help-assets/screenshots/kiosk/calendar-walk-in-badge.png)
 
-The badge indicates the booking's `source` field is `walk_in` — set automatically when a client books through the kiosk. Appointments booked through your regular booking page, manually by staff, or via call-in do not show this badge.
+The badge is applied automatically when a client books through the kiosk. Appointments made through your regular booking page, added manually by staff, or taken via call-in do not show this badge.
 
 ## Check-in status
 
-When a client taps **Confirm Check-In** on the kiosk, the appointment status changes to `checked_in` and an **Arrived** indicator (a green dot next to the word "Arrived") appears on the calendar tile. This happens in real time — the calendar refreshes and reflects the new status without needing a page reload.
+When a client taps **Confirm Check-In** on the kiosk, the appointment is marked as arrived and an **Arrived** indicator (a green dot next to the word "Arrived") appears on the calendar tile. This happens in real time — the calendar refreshes and reflects the new status without needing a page reload.
 
 A checked-in appointment tile is also displayed with a green tint in the appointments list on the kiosk itself, with "Already checked in" shown and the button disabled so the client can't accidentally check in twice.
 

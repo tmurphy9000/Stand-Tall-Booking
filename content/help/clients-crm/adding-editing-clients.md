@@ -28,8 +28,8 @@ Open the **Clients** page and click a client's row to open their profile. From t
 
 The client's **name, email, and phone** are not directly editable from the profile page. To correct a name or contact detail, create a new booking for that client and update the fields in the booking form — if the phone or email matches the existing record, you'll be offered a merge that updates the stored contact info.
 
-**Staff notes** are displayed read-only on the profile when present. To set or update staff notes, use the CSV import workflow: export your client list, add or edit the `staff_notes` column in the exported file, and re-import it.
+**Staff notes** are displayed read-only on the profile when present. To set or update staff notes, use the CSV import workflow: export your client list, add or edit the **Staff Notes** column in the exported file, and re-import it.
 
 ## Barber-level access
 
-Staff members without the `clients.management` permission can view the client list and click profiles, but cannot see email addresses or phone numbers, cannot toggle the deposit or SMS settings, and cannot access the birthday field. Their view of the client list is name-only.
+Staff members without client management access can view the client list and click profiles, but cannot see email addresses or phone numbers, cannot toggle the deposit or SMS settings, and cannot access the birthday field. Their view of the client list is name-only.

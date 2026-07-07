@@ -19,7 +19,7 @@ Four tiles appear at the top of the profile:
 | Tile | What it tracks |
 |---|---|
 | **Total Visits** | Count of all bookings in any non-cancelled status |
-| **Total Spent** | Sum of `final_price` (or `price` if not set) across completed bookings |
+| **Total Spent** | Total amount paid across all completed bookings |
 | **No Shows** | Count of bookings marked no-show |
 | **Late** | Count of bookings marked late |
 
@@ -39,7 +39,7 @@ Owners and managers can set a client's birthday using the date field on the prof
 
 ## Staff Notes
 
-If a client record has a `staff_notes` value, it appears as a read-only block on the profile under the label **Staff Notes**. This field is populated via the CSV import (see [Importing Your Client List](/help/clients-crm/importing-your-client-list)) or the CSV export/re-import workflow; there is no in-app text editor for it on the profile page. If staff_notes is empty, the section is hidden entirely.
+If a staff note has been added for this client, it appears as a read-only block on the profile under the label **Staff Notes**. Notes are added via the CSV import (see [Importing Your Client List](/help/clients-crm/importing-your-client-list)) or the CSV export/re-import workflow; there is no in-app text editor for staff notes on the profile page. If no note exists, the section is hidden entirely.
 
 ## Booking History
 
@@ -47,7 +47,7 @@ Below the settings cards is the full booking history for that client. Each entry
 
 - **Service name**
 - **Barber name and date/time**
-- **Price paid** (`final_price` if set, otherwise `price`)
-- **Status badge** — completed (green), cancelled (red), no_show (orange), or the raw status for anything else
+- **Price paid** (the checkout price if recorded, otherwise the service list price)
+- **Status badge** — Completed (green), Cancelled (red), No Show (orange), or the appointment status for anything else
 
 Bookings are listed most-recent-first. This history is read-only on the profile page; individual bookings can be managed from the Calendar.

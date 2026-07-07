@@ -13,7 +13,7 @@ The **Clients** page lists every client record for your shop. It loads 20 client
 The search bar at the top filters the list as you type. The search is case-insensitive and matches partial strings:
 
 - **Owners and managers** can search by name, email address, or phone number.
-- **Barbers** (and roles without `clients.management` access) can search by name only — email and phone are not visible to them.
+- **Barbers** (and roles without client management access) can search by name only — email and phone are not visible to them.
 
 There are no separate filter controls. Search is the only way to narrow the list beyond the default alphabetical view.
 
