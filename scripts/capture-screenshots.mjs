@@ -368,6 +368,137 @@ async function run() {
     console.log('  ⚠ Add to Calendar screen not reached, skipping');
   }
 
+  // ── Helper: dispatch fiber state on the booking page ─────────────────────
+  async function dispatchBookingState(pg, patches) {
+    await pg.evaluate((patchMap) => {
+      const rootEl = document.getElementById('root');
+      const containerKey = Object.keys(rootEl).find(k => k.startsWith('__reactContainer'));
+      const containerFiber = rootEl[containerKey];
+
+      function walkFiber(fiber, depth = 0) {
+        if (!fiber || depth > 60) return null;
+        if (fiber.type?.name === 'ClientBooking') return fiber;
+        const fromChild = walkFiber(fiber.child, depth + 1);
+        if (fromChild) return fromChild;
+        return walkFiber(fiber.sibling, depth + 1);
+      }
+
+      const cbFiber = walkFiber(containerFiber);
+      if (!cbFiber) return;
+
+      function getHook(n) {
+        let h = cbFiber.memoizedState;
+        for (let i = 0; i < n; i++) { if (!h?.next) return null; h = h.next; }
+        return h;
+      }
+
+      const barbers = getHook(12)?.memoizedState;
+      const firstBarber = Array.isArray(barbers) && barbers[0];
+      const services = getHook(13)?.memoizedState;
+      const firstService = (Array.isArray(services) && services[0])
+        ? services[0]
+        : { id: 'mock', name: 'Haircut', duration: 30, price: 35 };
+
+      if (patchMap.barber && firstBarber) getHook(26)?.queue?.dispatch?.(firstBarber);
+      if (patchMap.service) getHook(27)?.queue?.dispatch?.(firstService);
+      if (patchMap.step !== undefined) getHook(7)?.queue?.dispatch?.(patchMap.step);
+      if (patchMap.identityPhase) getHook(42)?.queue?.dispatch?.(patchMap.identityPhase);
+      if (patchMap.otpSentPhone) getHook(46)?.queue?.dispatch?.(patchMap.otpSentPhone);
+      if (patchMap.myAppts !== undefined) getHook(21)?.queue?.dispatch?.(patchMap.myAppts);
+      if (patchMap.clientFirstName) getHook(43)?.queue?.dispatch?.(patchMap.clientFirstName);
+    }, patches);
+    await pg.waitForTimeout(1500);
+  }
+
+  // ── 14. Service selection (Step 2 of 5) ──────────────────────────────────
+  console.log('→ Service selection (booking page)');
+  await page.goto(`${BASE_URL}/book/demo-barbershop`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(4000);
+  await dispatchBookingState(page, { barber: true, identityPhase: 'session', step: 2 });
+  {
+    const serviceCards = page.locator('button').filter({ hasText: /haircut|fade|trim|beard/i }).first();
+    if (await serviceCards.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await page.screenshot({ path: outPath('booking', 'service-selection'), fullPage: false });
+      console.log('  ✓ service-selection.png');
+    } else {
+      // Step may be off by 1 — try step index 2 again, or check actual content
+      const stepHeading = page.locator('h2, h3').filter({ hasText: /service|step 2/i }).first();
+      if (await stepHeading.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await page.screenshot({ path: outPath('booking', 'service-selection'), fullPage: false });
+        console.log('  ✓ service-selection.png');
+      } else {
+        console.log('  ⚠ Service selection step not visible, skipping');
+      }
+    }
+  }
+
+  // ── 15. Time slot picker (Step 3 of 5) ───────────────────────────────────
+  console.log('→ Time slot picker (booking page)');
+  await page.goto(`${BASE_URL}/book/demo-barbershop`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(4000);
+  await dispatchBookingState(page, { barber: true, service: true, identityPhase: 'session', step: 5 });
+  {
+    // DateTimeStep renders a date strip and "Next Available" button when barber+service are set
+    const dateStrip = page.locator('button, div').filter({ hasText: /next available/i }).first();
+    if (await dateStrip.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await page.screenshot({ path: outPath('booking', 'time-slot-picker'), fullPage: false });
+      console.log('  ✓ time-slot-picker.png');
+    } else {
+      const stepHeading = page.locator('h2, h3, p').filter({ hasText: /step 3|pick a date|choose.*time/i }).first();
+      if (await stepHeading.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await page.screenshot({ path: outPath('booking', 'time-slot-picker'), fullPage: false });
+        console.log('  ✓ time-slot-picker.png');
+      } else {
+        // Fallback: just take a screenshot of whatever is showing
+        await page.screenshot({ path: outPath('booking', 'time-slot-picker'), fullPage: false });
+        console.log('  ✓ time-slot-picker.png (fallback)');
+      }
+    }
+  }
+
+  // ── 16. OTP verification screen ───────────────────────────────────────────
+  console.log('→ OTP verification (booking page)');
+  await page.goto(`${BASE_URL}/book/demo-barbershop`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(4000);
+  await dispatchBookingState(page, {
+    identityPhase: 'ft_otp',
+    otpSentPhone: '(555) 867-5309',
+    step: 0,
+  });
+  {
+    const otpHeading = page.locator('h2, h3, p').filter({ hasText: /check your text|verify|6-digit|code/i }).first();
+    if (await otpHeading.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await page.screenshot({ path: outPath('booking', 'otp-verification'), fullPage: false });
+      console.log('  ✓ otp-verification.png');
+    } else {
+      console.log('  ⚠ OTP verification screen not visible, skipping');
+    }
+  }
+
+  // ── 17. Client portal (appointment list) ─────────────────────────────────
+  console.log('→ Client portal — appointment list (booking page)');
+  await page.goto(`${BASE_URL}/book/demo-barbershop`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(4000);
+  await dispatchBookingState(page, {
+    identityPhase: 'session',
+    clientFirstName: 'Alex',
+    myAppts: 'list',
+    step: 0,
+  });
+  {
+    const apptHeading = page.locator('h2, h3').filter({ hasText: /appointment|upcoming|booking/i }).first();
+    if (await apptHeading.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await page.screenshot({ path: outPath('booking', 'client-portal'), fullPage: false });
+      console.log('  ✓ client-portal.png');
+    } else {
+      console.log('  ⚠ Client portal list not visible, skipping');
+    }
+  }
+
   await browser.close();
 
   console.log(`
@@ -389,6 +520,10 @@ async function run() {
      calloff.png                [NEW]
    booking/
      add-to-calendar.png        [NEW]
+     service-selection.png      [NEW]
+     time-slot-picker.png       [NEW]
+     otp-verification.png       [NEW]
+     client-portal.png          [NEW]
    checkout/
      checkout.png
 `);
