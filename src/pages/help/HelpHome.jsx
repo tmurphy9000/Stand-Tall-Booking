@@ -6,6 +6,7 @@ import { BookOpen, ChevronRight, ArrowLeft } from "lucide-react";
 
 const CATEGORY_ICONS = {
   "getting-started": "🚀",
+  "booking-calendar": "📅",
 };
 
 export default function HelpHome() {

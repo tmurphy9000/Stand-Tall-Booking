@@ -212,6 +212,104 @@ async function run() {
   await page.screenshot({ path: outPath('calendar', 'dashboard'), fullPage: false });
   console.log('  ✓ dashboard.png');
 
+  // ── 10. Outside-hours warning dialog ─────────────────────────────────────
+  console.log('→ Outside-hours warning dialog');
+  await page.goto(`${BASE_URL}/Calendar`, { waitUntil: 'domcontentloaded' });
+  await waitForPageLoad(page);
+  // Switch to day view
+  const dayBtn2 = page.locator('button').filter({ hasText: /^day$/i }).first();
+  if (await dayBtn2.isVisible()) { await dayBtn2.click(); await page.waitForTimeout(SETTLE); }
+  // Open New Booking modal
+  const bookBtn2 = page.locator('button').filter({ hasText: /^book$/i }).first();
+  if (await bookBtn2.isVisible()) {
+    await bookBtn2.click({ force: true });
+    await page.waitForSelector('[role="dialog"]', { timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(SETTLE);
+    // Select the first barber
+    const barberTrigger = page.locator('[role="dialog"] button[role="combobox"]').first();
+    if (await barberTrigger.isVisible()) {
+      await barberTrigger.click();
+      await page.waitForTimeout(300);
+      const firstOption = page.locator('[role="option"]').first();
+      if (await firstOption.isVisible()) { await firstOption.click(); await page.waitForTimeout(300); }
+    }
+    // Select the first service
+    const serviceTrigger = page.locator('[role="dialog"] button[role="combobox"]').nth(1);
+    if (await serviceTrigger.isVisible()) {
+      await serviceTrigger.click();
+      await page.waitForTimeout(300);
+      const serviceOption = page.locator('[role="option"]').first();
+      if (await serviceOption.isVisible()) { await serviceOption.click(); await page.waitForTimeout(500); }
+    }
+    // Click an outside-hours slot (dashed border)
+    const outsideSlot = page.locator('[role="dialog"] button.border-dashed').first();
+    if (await outsideSlot.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await outsideSlot.click();
+      await page.waitForTimeout(800);
+      await page.screenshot({ path: outPath('calendar', 'outside-hours-warning'), fullPage: false });
+      console.log('  ✓ outside-hours-warning.png');
+      // Dismiss
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(400);
+      await page.keyboard.press('Escape');
+    } else {
+      console.log('  ⚠ No outside-hours slot found, skipping');
+    }
+    await page.waitForTimeout(SETTLE);
+  }
+
+  // ── 11. Block Time modal ──────────────────────────────────────────────────
+  console.log('→ Block Time modal');
+  await page.goto(`${BASE_URL}/Calendar`, { waitUntil: 'domcontentloaded' });
+  await waitForPageLoad(page);
+  if (await dayBtn2.isVisible()) { await dayBtn2.click(); await page.waitForTimeout(SETTLE); }
+  // Click a bookable slot (calendar-slot divs with cursor-pointer = bookable)
+  // Try clicking at a mid-morning time position in the grid
+  const slotOpened = await page.evaluate(async () => {
+    const slots = document.querySelectorAll('.calendar-slot');
+    for (const slot of slots) {
+      if (slot.classList.contains('cursor-pointer')) {
+        slot.click();
+        return true;
+      }
+    }
+    return false;
+  });
+  await page.waitForTimeout(600);
+  if (slotOpened) {
+    const blockBtn = page.locator('button, div[role="menuitem"]').filter({ hasText: /block time/i }).first();
+    if (await blockBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
+      await blockBtn.click({ force: true });
+      await page.waitForSelector('[role="dialog"]', { timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(SETTLE);
+      await page.screenshot({ path: outPath('calendar', 'block-time-modal'), fullPage: false });
+      console.log('  ✓ block-time-modal.png');
+      await page.keyboard.press('Escape');
+    } else {
+      // Slot menu might say "Block Time" in a plain button
+      const blockBtnAny = page.locator('button').filter({ hasText: /block/i }).first();
+      if (await blockBtnAny.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await blockBtnAny.click({ force: true });
+        await page.waitForSelector('[role="dialog"]', { timeout: 5000 }).catch(() => {});
+        await page.waitForTimeout(SETTLE);
+        await page.screenshot({ path: outPath('calendar', 'block-time-modal'), fullPage: false });
+        console.log('  ✓ block-time-modal.png');
+        await page.keyboard.press('Escape');
+      } else {
+        console.log('  ⚠ Block Time button not found, skipping');
+      }
+    }
+  } else {
+    console.log('  ⚠ No bookable slot found for block-time screenshot, skipping');
+  }
+
+  // ── 12. Call-Off settings ─────────────────────────────────────────────────
+  console.log('→ Call-Off settings');
+  await page.goto(`${BASE_URL}/Settings?tab=calloff`, { waitUntil: 'domcontentloaded' });
+  await waitForPageLoad(page);
+  await page.screenshot({ path: outPath('settings', 'calloff'), fullPage: false });
+  console.log('  ✓ calloff.png');
+
   await browser.close();
 
   console.log(`
@@ -223,11 +321,14 @@ async function run() {
      calendar-week.png
      new-booking-modal.png
      dashboard.png
+     outside-hours-warning.png  [NEW]
+     block-time-modal.png       [NEW]
    clients/
      client-list.png
      client-profile.png
    settings/
      settings.png
+     calloff.png                [NEW]
    checkout/
      checkout.png
 `);
