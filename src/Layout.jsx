@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { createPageUrl } from "./utils";
-import { Calendar, Package, BarChart3, Settings, DollarSign, ChevronLeft, ChevronRight, Users, Lock, LogOut, Megaphone } from "lucide-react";
+import { Calendar, Package, BarChart3, Settings, DollarSign, ChevronLeft, ChevronRight, Users, Lock, LogOut, Megaphone, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import NotificationBell from "./components/notifications/NotificationBell";
 import { Button } from "@/components/ui/button";
@@ -112,6 +112,15 @@ export default function Layout({ children, currentPageName }) {
             {user && (
               <NotificationBell userEmail={user.email} userType="staff" navStyle />
             )}
+            <a
+              href="/help"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center gap-1 py-2 px-2 transition-all relative text-[#FAFAF8]/60 hover:text-[#FAFAF8]/90 w-full"
+            >
+              <HelpCircle className="w-5 h-5" />
+              <span className="text-[9px] font-medium text-center leading-tight">Help</span>
+            </a>
             {!hasPermission('settings.general', 'modify') ? (
               <button
                 onClick={() => toast.error("Access Denied", {
@@ -225,6 +234,15 @@ export default function Layout({ children, currentPageName }) {
                   <span className="text-[9px] font-medium">Settings</span>
                 </Link>
               )}
+              <a
+                href="/help"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex flex-col items-center gap-0.5 py-2 px-3 min-w-[56px] flex-shrink-0 text-[#FAFAF8]/60 hover:text-[#FAFAF8]/90 transition-colors"
+              >
+                <HelpCircle className="w-5 h-5" />
+                <span className="text-[9px] font-medium">Help</span>
+              </a>
             </div>
             {/* Right-fade gradient hints that more items are reachable by scrolling */}
             <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0A0A0A] to-transparent pointer-events-none" aria-hidden="true" />

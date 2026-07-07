@@ -20,10 +20,13 @@ import StripeCallback from './pages/StripeCallback';
 import KioskPage from './pages/KioskPage';
 import AffiliateDashboard from './pages/AffiliateDashboard';
 import ClientPortal from './pages/ClientPortal';
+import HelpHome from './pages/help/HelpHome';
+import HelpCategory from './pages/help/HelpCategory';
+import HelpArticle from './pages/help/HelpArticle';
 
 const { Pages, Layout } = pagesConfig;
 
-const PUBLIC_PATHS = ['/', '/pricing', '/affiliates', '/barber-login', '/book', '/checkin', '/ChangePassword', '/terms', '/privacy', '/stripe/callback', '/embed.js', '/affiliate/dashboard'];
+const PUBLIC_PATHS = ['/', '/pricing', '/affiliates', '/barber-login', '/book', '/checkin', '/ChangePassword', '/terms', '/privacy', '/stripe/callback', '/embed.js', '/affiliate/dashboard', '/help'];
 
 const LayoutWrapper = ({ children, currentPageName }) => Layout ?
   <Layout currentPageName={currentPageName}>{children}</Layout>
@@ -73,6 +76,9 @@ const AuthenticatedApp = () => {
       <Route path="/stripe/callback" element={<StripeCallback />} />
       <Route path="/checkin/:kioskToken" element={<KioskPage />} />
       <Route path="/affiliate/dashboard" element={<AffiliateDashboard />} />
+      <Route path="/help" element={<HelpHome />} />
+      <Route path="/help/:category" element={<HelpCategory />} />
+      <Route path="/help/:category/:slug" element={<HelpArticle />} />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );
