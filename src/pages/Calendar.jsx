@@ -210,12 +210,17 @@ export default function CalendarPage() {
     : activeBarbers;
 
   const handleSlotClick = (e, barber, time, date) => {
-    setSlotMenu({ 
-      barber, 
-      time, 
-      date, 
-      position: { x: Math.min(e.clientX, window.innerWidth - 200), y: Math.min(e.clientY, window.innerHeight - 180) } 
+    setSlotMenu({
+      barber,
+      time,
+      date,
+      position: { x: Math.min(e.clientX, window.innerWidth - 200), y: Math.min(e.clientY, window.innerHeight - 180) }
     });
+  };
+
+  const handleOutsideHoursSlotClick = (e, barber, time, date) => {
+    setBookingPrefill({ barber_id: barber.id, start_time: time, date, _outsideHours: true });
+    setShowBookingForm(true);
   };
 
   const handleBookingContext = (e, booking) => {
@@ -389,6 +394,7 @@ export default function CalendarPage() {
           date={currentDate}
           shopHours={shopSettings.operating_hours}
           onSlotClick={handleSlotClick}
+          onOutsideHoursClick={handleOutsideHoursSlotClick}
           onBookingContext={handleBookingContext}
           onDrop={handleDrop}
           onBookingResize={handleBookingResize}

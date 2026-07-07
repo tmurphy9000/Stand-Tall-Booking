@@ -97,8 +97,27 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
   };
 
   useEffect(() => {
+    if (!open) {
+      setShowOutsideHoursWarning(false);
+      setPendingSlotTime(null);
+      setPendingSave(null);
+    }
+  }, [open]);
+
+  useEffect(() => {
+    console.log("[BFM] outside-hours warning:", { showOutsideHoursWarning, pendingSlotTime });
+  }, [showOutsideHoursWarning, pendingSlotTime]);
+
+  useEffect(() => {
     if (prefill) {
-      setForm(prev => ({ ...prev, ...prefill }));
+      const { _outsideHours, ...formPrefill } = prefill;
+      setForm(prev => ({ ...prev, ...formPrefill }));
+      setShowOutsideHoursWarning(false);
+      setPendingSlotTime(null);
+      if (_outsideHours && prefill.start_time) {
+        setPendingSlotTime(prefill.start_time);
+        setShowOutsideHoursWarning(true);
+      }
     }
   }, [prefill]);
 

@@ -28,6 +28,15 @@ function generateTimeSlots(startHour = 8, endHour = 21) {
   return slots;
 }
 
+function isWorkingDay(barberHours, dayName) {
+  if (!barberHours || Object.keys(barberHours).length === 0) return false;
+  const dayHours = barberHours[dayName];
+  if (!dayHours) return false;
+  if (dayHours.off || dayHours.closed) return false;
+  if (!dayHours.start || !dayHours.end) return false;
+  return true;
+}
+
 function isSlotBookable(time, barberHours, shopHours, dayName) {
   // No hours configured → barber is unavailable
   if (!barberHours || Object.keys(barberHours).length === 0) return false;
@@ -224,7 +233,7 @@ function BookingBlock({ booking, slotIndex, totalSlots, onContextMenu, onDragSta
 
 const MIN_COLUMN_WIDTH = 60;
 
-export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlotClick, onBookingContext, onDrop, onBookingResize, zoomLevel = 1, approvedTimeOff = [] }) {
+export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlotClick, onOutsideHoursClick, onBookingContext, onDrop, onBookingResize, zoomLevel = 1, approvedTimeOff = [] }) {
   const containerRef = React.useRef(null);
   const [containerWidth, setContainerWidth] = React.useState(0);
   const [columnZoom, setColumnZoom] = useState(0.625);
@@ -429,6 +438,7 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
             <div key={barber.id} style={{ width: `${COLUMN_WIDTH}px`, minWidth: `${COLUMN_WIDTH}px` }}>
               {timeSlots.map((slot, i) => {
                 const bookable = !barberOnTimeOff && isSlotBookable(slot.time, barber.hours, shopHours, dayName);
+                const outsideHoursClickable = !barberOnTimeOff && !bookable && isWorkingDay(barber.hours, dayName);
                 const slotBookings = getBookingsForBarberSlot(barber.id, slot.time);
                 const isDragOver = dragOverSlot === `${barber.id}-${slot.time}`;
                 return (
@@ -439,11 +449,15 @@ export default function TimeSlotGrid({ barbers, bookings, date, shopHours, onSlo
                       barberOnTimeOff && "bg-orange-50/70 dark:bg-orange-900/20",
                       !barberOnTimeOff && !bookable && "bg-gray-200/80 dark:bg-muted/60",
                       bookable && "hover:bg-[#8B9A7E]/5 cursor-pointer",
+                      outsideHoursClickable && "hover:bg-gray-300/60 dark:hover:bg-muted/80 cursor-pointer",
                       slot.minute === 0 && "border-t border-border/50 dark:border-border/40",
                       isDragOver && bookable && "bg-[#8B9A7E]/10"
                     )}
                     style={{ height: `${slotHeight}px` }}
-                    onClick={(e) => bookable && onSlotClick(e, barber, slot.time, dateStr)}
+                    onClick={(e) => {
+                      if (bookable) onSlotClick(e, barber, slot.time, dateStr);
+                      else if (outsideHoursClickable && onOutsideHoursClick) onOutsideHoursClick(e, barber, slot.time, dateStr);
+                    }}
                     onDragOver={(e) => bookable && handleDragOver(e, barber.id, slot.time)}
                     onDragLeave={() => setDragOverSlot(null)}
                     onDrop={(e) => bookable && handleDrop(e, barber.id, slot.time)}
