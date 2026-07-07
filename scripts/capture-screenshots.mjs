@@ -499,6 +499,62 @@ async function run() {
     }
   }
 
+  // ── 18. Booking confirmation / success screen ────────────────────────────
+  // Same SuccessStep (step 8) as add-to-calendar.png but named for the
+  // booking-flow article where context is the completion of the booking.
+  console.log('→ Booking confirmation screen (You\'re booked!)');
+  await page.goto(`${BASE_URL}/book/demo-barbershop`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(4000);
+  await page.evaluate(() => {
+    const rootEl = document.getElementById('root');
+    const containerKey = Object.keys(rootEl).find(k => k.startsWith('__reactContainer'));
+    const containerFiber = rootEl[containerKey];
+
+    function walkFiber(fiber, depth = 0) {
+      if (!fiber || depth > 60) return null;
+      if (fiber.type?.name === 'ClientBooking') return fiber;
+      const fromChild = walkFiber(fiber.child, depth + 1);
+      if (fromChild) return fromChild;
+      return walkFiber(fiber.sibling, depth + 1);
+    }
+
+    const cbFiber = walkFiber(containerFiber);
+    if (!cbFiber) return;
+
+    function getHook(n) {
+      let h = cbFiber.memoizedState;
+      for (let i = 0; i < n; i++) { if (!h?.next) return null; h = h.next; }
+      return h;
+    }
+
+    const barbers = getHook(12)?.memoizedState;
+    const firstBarber = Array.isArray(barbers) && barbers[0];
+    const services = getHook(13)?.memoizedState;
+    const firstService = (Array.isArray(services) && services[0])
+      ? services[0]
+      : { name: 'Haircut', id: 'mock', duration: 30, price: 35 };
+
+    if (firstBarber) {
+      getHook(26)?.queue?.dispatch?.(firstBarber);
+      getHook(27)?.queue?.dispatch?.(firstService);
+      getHook(28)?.queue?.dispatch?.('2026-07-14');
+      getHook(29)?.queue?.dispatch?.('10:00');
+      getHook(30)?.queue?.dispatch?.('Alex Johnson');
+      getHook(7)?.queue?.dispatch?.(8);
+    }
+  });
+  await page.waitForTimeout(1500);
+  {
+    const bodyText = await page.evaluate(() => document.body.innerText);
+    if (bodyText.toLowerCase().includes("you're booked") || bodyText.toLowerCase().includes('booking summary')) {
+      await page.screenshot({ path: outPath('booking', 'booking-confirmation'), fullPage: false });
+      console.log('  ✓ booking-confirmation.png');
+    } else {
+      console.log('  ⚠ Booking confirmation screen not visible, skipping');
+    }
+  }
+
   await browser.close();
 
   console.log(`
@@ -510,20 +566,21 @@ async function run() {
      calendar-week.png
      new-booking-modal.png
      dashboard.png
-     outside-hours-warning.png  [NEW]
-     block-time-modal.png       [NEW]
+     outside-hours-warning.png
+     block-time-modal.png
    clients/
      client-list.png
      client-profile.png
    settings/
      settings.png
-     calloff.png                [NEW]
+     calloff.png
    booking/
-     add-to-calendar.png        [NEW]
-     service-selection.png      [NEW]
-     time-slot-picker.png       [NEW]
-     otp-verification.png       [NEW]
-     client-portal.png          [NEW]
+     add-to-calendar.png
+     service-selection.png
+     time-slot-picker.png
+     otp-verification.png
+     client-portal.png
+     booking-confirmation.png
    checkout/
      checkout.png
 `);

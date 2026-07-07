@@ -59,3 +59,5 @@ If the shop requires a deposit or the client has a per-client deposit flag set, 
 ## "You're booked!"
 
 After successful submission, the confirmation screen shows the booking summary and two buttons to save the appointment to Google Calendar or Apple Calendar. The booking now appears in your dashboard with status **Scheduled**.
+
+![Booking confirmation screen showing appointment summary and calendar buttons](/help-assets/screenshots/booking/booking-confirmation.png)
