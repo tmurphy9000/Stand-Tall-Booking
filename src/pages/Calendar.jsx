@@ -219,6 +219,7 @@ export default function CalendarPage() {
   };
 
   const handleOutsideHoursSlotClick = (e, barber, time, date) => {
+    console.log("[CAL] outside-hours grid click:", { barber: barber.name, time, date });
     setBookingPrefill({ barber_id: barber.id, start_time: time, date, _outsideHours: true });
     setShowBookingForm(true);
   };

@@ -76,6 +76,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
   const [showOutsideHoursWarning, setShowOutsideHoursWarning] = useState(false);
   const [pendingSave, setPendingSave] = useState(null);
   const [pendingSlotTime, setPendingSlotTime] = useState(null);
+  const [outsideHoursLockedTime, setOutsideHoursLockedTime] = useState(null);
 
   const { data: clients = [], refetch: refetchClients } = useQuery({
     queryKey: ["clients"],
@@ -101,6 +102,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
       setShowOutsideHoursWarning(false);
       setPendingSlotTime(null);
       setPendingSave(null);
+      setOutsideHoursLockedTime(null);
     }
   }, [open]);
 
@@ -111,12 +113,19 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
   useEffect(() => {
     if (prefill) {
       const { _outsideHours, ...formPrefill } = prefill;
-      setForm(prev => ({ ...prev, ...formPrefill }));
-      setShowOutsideHoursWarning(false);
-      setPendingSlotTime(null);
       if (_outsideHours && prefill.start_time) {
-        setPendingSlotTime(prefill.start_time);
+        // Keep start_time out of form until the user confirms "Book Anyway"
+        const { start_time, ...formPrefillWithoutTime } = formPrefill;
+        console.log("[BFM] outside-hours prefill: locked time =", start_time, "form prefill =", formPrefillWithoutTime);
+        setForm(prev => ({ ...prev, ...formPrefillWithoutTime }));
+        setOutsideHoursLockedTime(start_time);
+        setPendingSlotTime(start_time);
         setShowOutsideHoursWarning(true);
+      } else {
+        setForm(prev => ({ ...prev, ...formPrefill }));
+        setOutsideHoursLockedTime(null);
+        setShowOutsideHoursWarning(false);
+        setPendingSlotTime(null);
       }
     }
   }, [prefill]);
@@ -454,7 +463,17 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
 
           <div>
             <Label className="text-xs text-muted-foreground mb-1.5 block">Time</Label>
-            {slots === null ? (
+            {outsideHoursLockedTime ? (
+              <div className="flex items-center gap-2.5 rounded-md border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 px-3 py-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+                <div className="flex flex-col">
+                  <span className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                    {format(parse(outsideHoursLockedTime, "HH:mm", new Date()), "h:mm a")}
+                  </span>
+                  <span className="text-[11px] text-amber-600 dark:text-amber-400">Outside working hours — confirm below</span>
+                </div>
+              </div>
+            ) : slots === null ? (
               <p className="text-xs text-muted-foreground py-3 text-center border border-dashed border-border rounded-md">
                 Select a barber and date to see available times
               </p>
@@ -572,7 +591,7 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
 
       {/* Outside Working Hours Warning */}
       <Dialog open={showOutsideHoursWarning} onOpenChange={(open) => {
-        if (!open) { setShowOutsideHoursWarning(false); setPendingSave(null); setPendingSlotTime(null); }
+        if (!open) { setShowOutsideHoursWarning(false); setPendingSave(null); setPendingSlotTime(null); setOutsideHoursLockedTime(null); }
       }}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -589,14 +608,17 @@ export default function BookingFormModal({ open, onClose, onSave, barbers, servi
               setShowOutsideHoursWarning(false);
               setPendingSave(null);
               setPendingSlotTime(null);
+              setOutsideHoursLockedTime(null);
             }}>
               Cancel
             </Button>
             <Button className="bg-amber-500 hover:bg-amber-600 text-white" onClick={async () => {
               setShowOutsideHoursWarning(false);
               if (pendingSlotTime) {
+                console.log("[BFM] Book Anyway: committing start_time =", pendingSlotTime);
                 set("start_time", pendingSlotTime);
                 setPendingSlotTime(null);
+                setOutsideHoursLockedTime(null);
               } else if (pendingSave) {
                 try { await doSave(pendingSave); } catch (err) { toast.error("Failed to save booking: " + (err.message || "Unknown error")); }
                 setPendingSave(null);
