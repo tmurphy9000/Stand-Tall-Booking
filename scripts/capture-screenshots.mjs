@@ -715,6 +715,53 @@ async function run() {
     }
   }
 
+  // ── 23. Transactions page ─────────────────────────────────────────────────
+  console.log('→ Transactions page');
+  await page.goto(`${BASE_URL}/Transactions`, { waitUntil: 'domcontentloaded' });
+  await waitForPageLoad(page);
+  await page.screenshot({ path: outPath('checkout', 'transactions'), fullPage: false });
+  console.log('  ✓ transactions.png');
+
+  // ── 24. Refund dialog (only appears on Stripe card transactions) ──────────
+  console.log('→ Refund dialog');
+  {
+    const refundBtn = page.locator('button').filter({ hasText: /^Refund$/i }).first();
+    if (await refundBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await refundBtn.click();
+      await page.waitForSelector('[role="dialog"]', { timeout: 5000 }).catch(() => {});
+      await page.waitForTimeout(SETTLE);
+      await page.screenshot({ path: outPath('checkout', 'refund-dialog'), fullPage: false });
+      console.log('  ✓ refund-dialog.png');
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(SETTLE);
+    } else {
+      console.log('  ⚠ No Refund button visible — demo shop may have no Stripe card transactions; skipping refund-dialog.png');
+    }
+  }
+
+  // ── 25. Cash Drawer Log (scroll to bottom of Transactions page) ───────────
+  console.log('→ Cash Drawer Log section');
+  await page.goto(`${BASE_URL}/Transactions`, { waitUntil: 'domcontentloaded' });
+  await waitForPageLoad(page);
+  {
+    // Scroll to Cash Drawer Log heading
+    await page.evaluate(() => {
+      const els = Array.from(document.querySelectorAll('h1, h2, h3, [class*="CardTitle"]'));
+      const cashLog = els.find(el => el.textContent?.includes('Cash Drawer Log'));
+      if (cashLog) cashLog.scrollIntoView({ behavior: 'instant', block: 'start' });
+    });
+    await page.waitForTimeout(SETTLE);
+    await page.screenshot({ path: outPath('checkout', 'cash-drawer-log'), fullPage: false });
+    console.log('  ✓ cash-drawer-log.png');
+  }
+
+  // ── 26. Deposit settings (Settings → Payments) ────────────────────────────
+  console.log('→ Deposit settings');
+  await page.goto(`${BASE_URL}/Settings?tab=payments`, { waitUntil: 'domcontentloaded' });
+  await waitForPageLoad(page);
+  await page.screenshot({ path: outPath('checkout', 'deposit-settings'), fullPage: false });
+  console.log('  ✓ deposit-settings.png');
+
   await browser.close();
 
   console.log(`
@@ -749,6 +796,10 @@ async function run() {
      booking-confirmation.png
    checkout/
      checkout.png
+     transactions.png
+     refund-dialog.png (skipped if no Stripe card transactions in demo shop)
+     cash-drawer-log.png
+     deposit-settings.png
 `);
 }
 
