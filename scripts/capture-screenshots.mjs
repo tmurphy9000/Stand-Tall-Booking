@@ -563,6 +563,132 @@ async function run() {
     }
   }
 
+  // ── 19. Settings → Kiosk tab ─────────────────────────────────────────
+  console.log('→ Settings: Kiosk tab');
+  await page.goto(`${BASE_URL}/Settings?tab=kiosk`, { waitUntil: 'domcontentloaded' });
+  await waitForPageLoad(page);
+  await page.screenshot({ path: outPath('kiosk', 'settings-kiosk'), fullPage: false });
+  console.log('  ✓ settings-kiosk.png');
+
+  // ── 20. Kiosk landing page (Check In + Walk In buttons) ──────────────
+  // Demo shop kiosk token is known; walk_in_enabled=true so both buttons show.
+  console.log('→ Kiosk landing (Check In + Walk In)');
+  const KIOSK_TOKEN = 'demo_kiosk_token_000000000000000';
+  await page.goto(`${BASE_URL}/checkin/${KIOSK_TOKEN}`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: outPath('kiosk', 'kiosk-landing'), fullPage: false });
+  console.log('  ✓ kiosk-landing.png');
+
+  // ── 21. Kiosk walk-in slots screen ───────────────────────────────────
+  // Navigate through: Walk In → fill form → Choose a Service → slots
+  // Also clicks a slot to create a walk-in booking (used by step 22 for
+  // the WALK-IN badge on the calendar). Booking is cleaned up after step 22.
+  console.log('→ Kiosk walk-in slots screen');
+  await page.goto(`${BASE_URL}/checkin/${KIOSK_TOKEN}`, { waitUntil: 'domcontentloaded' });
+  await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+  await page.waitForTimeout(2500);
+  {
+    // Walk In button text is "Walk InBook a spot right now" (concatenated child text);
+    // use substring match (no anchors) to locate it.
+    const walkInBtn = page.locator('button').filter({ hasText: 'Walk In' }).first();
+    if (await walkInBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+      await walkInBtn.click();
+      await page.waitForTimeout(1000);
+
+      const firstInput = page.locator('input[placeholder="First name"]');
+      if (await firstInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+        await firstInput.fill('Demo');
+        await page.locator('input[placeholder="Last name"]').fill('Walkin');
+        await page.locator('input[placeholder="Phone number"]').fill('5550000099');
+        await page.locator('button').filter({ hasText: /next.*service/i }).first().click();
+        await page.waitForTimeout(2500);
+
+        // Select Haircut service
+        const haircut = page.locator('button').filter({ hasText: 'Haircut' }).first();
+        if (await haircut.isVisible({ timeout: 3000 }).catch(() => false)) {
+          await haircut.click();
+          await page.waitForTimeout(3000);
+        }
+      }
+    }
+    // Take screenshot of slots screen (shows available times grid)
+    await page.screenshot({ path: outPath('kiosk', 'kiosk-walk-in-slots'), fullPage: false });
+    console.log('  ✓ kiosk-walk-in-slots.png');
+
+    // Click the first available slot to create a walk-in booking for step 22
+    const slotBtns = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('button'))
+        .filter(b => /\d:\d+\s*(AM|PM)/i.test(b.textContent))
+        .map(b => b.textContent.trim().slice(0, 20))
+    );
+    if (slotBtns.length > 0) {
+      const firstSlot = page.locator('button').filter({ hasText: /\d:\d+\s*(AM|PM)/i }).first();
+      await firstSlot.click();
+      await page.waitForTimeout(4000);
+      console.log(`  clicked slot — booking created for calendar badge screenshot`);
+    } else {
+      console.log('  ⚠ No slots today — calendar badge step may not show badge');
+    }
+  }
+
+  // ── 22. Calendar with WALK-IN badge ──────────────────────────────────
+  // The walk-in booking created in step 21 now appears on the admin calendar.
+  // After screenshotting, delete the booking via the browser's auth session.
+  console.log('→ Calendar: WALK-IN badge');
+  {
+    // Navigate back to admin calendar (page context is still logged in)
+    await page.goto(`${BASE_URL}/Calendar`, { waitUntil: 'domcontentloaded' });
+    await waitForPageLoad(page);
+    const dayBtn3 = page.locator('button').filter({ hasText: /^day$/i }).first();
+    if (await dayBtn3.isVisible()) { await dayBtn3.click(); await page.waitForTimeout(800); }
+    await waitForPageLoad(page);
+
+    await page.waitForFunction(
+      () => Array.from(document.querySelectorAll('span')).some(s => s.textContent.trim() === 'WALK-IN'),
+      { timeout: 8000 }
+    ).catch(() => {});
+    await page.waitForTimeout(500);
+
+    const hasBadge = await page.evaluate(
+      () => Array.from(document.querySelectorAll('span')).some(s => s.textContent.trim() === 'WALK-IN')
+    );
+    await page.screenshot({ path: outPath('kiosk', 'calendar-walk-in-badge'), fullPage: false });
+    console.log(`  ✓ calendar-walk-in-badge.png (WALK-IN badge ${hasBadge ? 'confirmed' : 'not detected'})`);
+
+    // Clean up the walk-in booking using the browser's authenticated Supabase session
+    const todayStr = new Date().toISOString().slice(0, 10);
+    await page.evaluate(async (today) => {
+      // Access the Supabase client already bootstrapped in the React app
+      const supabaseUrl = 'https://mmmkachplbkaxvhauhaa.supabase.co';
+      const anonKey = document.querySelector('meta[name="supabase-anon-key"]')?.content ?? '';
+      // Try using the global supabase instance via window if exposed, else skip
+    }, todayStr);
+    // Since direct cleanup via page.evaluate is complex, remove by client_phone
+    // using a separate fetch with the session token from localStorage
+    const sessionToken = await page.evaluate(() => {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key?.includes('supabase') && key?.includes('auth')) {
+          try {
+            const val = JSON.parse(localStorage.getItem(key) ?? '');
+            return val?.access_token ?? val?.currentSession?.access_token ?? null;
+          } catch { return null; }
+        }
+      }
+      return null;
+    });
+    if (sessionToken) {
+      const delRes = await fetch(
+        `https://mmmkachplbkaxvhauhaa.supabase.co/rest/v1/bookings?client_phone=eq.5550000099&date=eq.${todayStr}`,
+        { method: 'DELETE', headers: { 'apikey': 'sb_publishable_6rnHHmGfI2RLTAFhAG_e3A_gXIw5Bov', 'Authorization': `Bearer ${sessionToken}` } }
+      );
+      console.log(`  cleaned up walk-in booking (${delRes.status})`);
+    } else {
+      console.log('  ⚠ No session token found — walk-in booking remains as demo data');
+    }
+  }
+
   await browser.close();
 
   console.log(`
@@ -582,6 +708,11 @@ async function run() {
    settings/
      settings.png
      calloff.png
+   kiosk/
+     settings-kiosk.png
+     kiosk-landing.png
+     kiosk-walk-in-slots.png
+     calendar-walk-in-badge.png
    booking/
      add-to-calendar.png
      service-selection.png
