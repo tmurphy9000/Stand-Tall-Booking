@@ -310,6 +310,15 @@ async function run() {
   await page.screenshot({ path: outPath('settings', 'calloff'), fullPage: false });
   console.log('  ✓ calloff.png');
 
+  // ── 13. Calendar sync — Settings page (feature not yet built) ─────────────
+  // Calendar sync/Integrations doesn't exist yet; capture the Settings page
+  // to show there is no Integrations tab — illustrates the "not yet available" status.
+  console.log('→ Calendar sync (Settings — no Integrations tab)');
+  await page.goto(`${BASE_URL}/Settings`, { waitUntil: 'domcontentloaded' });
+  await waitForPageLoad(page);
+  await page.screenshot({ path: outPath('settings', 'calendar-sync'), fullPage: false });
+  console.log('  ✓ calendar-sync.png');
+
   await browser.close();
 
   console.log(`
@@ -329,6 +338,7 @@ async function run() {
    settings/
      settings.png
      calloff.png                [NEW]
+     calendar-sync.png          [NEW]
    checkout/
      checkout.png
 `);

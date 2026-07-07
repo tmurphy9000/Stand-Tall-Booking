@@ -31,3 +31,5 @@ Once Google/Apple Calendar sync is released, the setup will look something like 
 5. The calendar updates automatically as bookings are created or changed
 
 We'll update this article with exact steps when the feature ships.
+
+![Stand Tall Booking Settings — no Integrations tab yet](/help-assets/screenshots/settings/calendar-sync.png)
