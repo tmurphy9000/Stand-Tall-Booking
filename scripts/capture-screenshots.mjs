@@ -723,10 +723,19 @@ async function run() {
   console.log('  ✓ transactions.png');
 
   // ── 24. Refund dialog (only appears on Stripe card transactions) ──────────
+  // Widen the date range to 2026-01-01 → today so historical card bookings
+  // (including the one backfilled by the demo payments seed migration) are visible.
   console.log('→ Refund dialog');
   {
+    const startInputs = await page.locator('input[type="date"]').all();
+    if (startInputs.length >= 2) {
+      await startInputs[0].fill('2026-01-01');
+      await startInputs[0].dispatchEvent('change');
+      await page.waitForTimeout(NAV_WAIT);
+      await waitForPageLoad(page);
+    }
     const refundBtn = page.locator('button').filter({ hasText: /^Refund$/i }).first();
-    if (await refundBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+    if (await refundBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
       await refundBtn.click();
       await page.waitForSelector('[role="dialog"]', { timeout: 5000 }).catch(() => {});
       await page.waitForTimeout(SETTLE);
@@ -735,7 +744,7 @@ async function run() {
       await page.keyboard.press('Escape');
       await page.waitForTimeout(SETTLE);
     } else {
-      console.log('  ⚠ No Refund button visible — demo shop may have no Stripe card transactions; skipping refund-dialog.png');
+      console.log('  ⚠ No Refund button visible even with widened date range; skipping refund-dialog.png');
     }
   }
 

@@ -18,6 +18,8 @@ Deposits require Stripe to be connected to your shop. The deposit section only a
 2. Under **Deposits**, toggle on **Require deposit for all online bookings**.
 3. Set your options (see below), then click **Save deposit settings**.
 
+![Deposit settings in Settings → Payments showing the shop-wide toggle, deposit percentage, refund window, and pre-tip option](/help-assets/screenshots/checkout/deposit-settings.png)
+
 Once enabled, every client booking through your public booking page will be required to pay the deposit before their booking is confirmed.
 
 ## Deposit percentage

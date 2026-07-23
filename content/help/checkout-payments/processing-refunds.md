@@ -14,6 +14,8 @@ Refunds in Stand Tall Booking go through Stripe and are initiated from the **Tra
 
 ## The refund dialog
 
+![Refund Checkout dialog showing client name, service, original total, refund amount field, optional reason, and Issue Refund button](/help-assets/screenshots/checkout/refund-dialog.png)
+
 The dialog shows a summary of the original transaction:
 
 - **Client** name
