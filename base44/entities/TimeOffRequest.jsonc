@@ -1,0 +1,57 @@
+{
+  "name": "TimeOffRequest",
+  "type": "object",
+  "properties": {
+    "barber_id": {
+      "type": "string",
+      "description": "Reference to Barber entity"
+    },
+    "barber_name": {
+      "type": "string",
+      "description": "Barber's name"
+    },
+    "start_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Start date of time off"
+    },
+    "end_date": {
+      "type": "string",
+      "format": "date",
+      "description": "End date of time off"
+    },
+    "reason": {
+      "type": "string",
+      "description": "Reason for time off request"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "denied"
+      ],
+      "default": "pending",
+      "description": "Request status"
+    },
+    "reviewed_by": {
+      "type": "string",
+      "description": "Admin/manager who reviewed the request"
+    },
+    "reviewed_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date when request was reviewed"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes from admin/manager"
+    }
+  },
+  "required": [
+    "barber_id",
+    "barber_name",
+    "start_date",
+    "end_date"
+  ]
+}

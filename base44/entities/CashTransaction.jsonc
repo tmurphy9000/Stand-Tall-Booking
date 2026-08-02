@@ -1,0 +1,46 @@
+{
+  "name": "CashTransaction",
+  "type": "object",
+  "properties": {
+    "type": {
+      "type": "string",
+      "enum": [
+        "inflow",
+        "outflow",
+        "withdrawal"
+      ],
+      "description": "Transaction type"
+    },
+    "amount": {
+      "type": "number"
+    },
+    "barber_id": {
+      "type": "string"
+    },
+    "barber_name": {
+      "type": "string"
+    },
+    "note": {
+      "type": "string"
+    },
+    "booking_id": {
+      "type": "string",
+      "description": "Related booking if applicable"
+    },
+    "location": {
+      "type": "string",
+      "description": "Device location at time of transaction"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "time": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "type",
+    "amount"
+  ]
+}

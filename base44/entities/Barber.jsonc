@@ -1,0 +1,87 @@
+{
+  "name": "Barber",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Barber's full name"
+    },
+    "email": {
+      "type": "string",
+      "description": "Barber's email"
+    },
+    "phone": {
+      "type": "string",
+      "description": "Barber's phone number"
+    },
+    "photo_url": {
+      "type": "string",
+      "description": "Profile photo URL"
+    },
+    "service_commission_rate": {
+      "type": "number",
+      "description": "Commission rate percentage for services",
+      "default": 50
+    },
+    "product_commission_rate": {
+      "type": "number",
+      "description": "Commission rate percentage for products",
+      "default": 10
+    },
+    "available_services": {
+      "type": "array",
+      "description": "List of service IDs this barber can perform",
+      "items": {
+        "type": "string"
+      }
+    },
+    "service_durations": {
+      "type": "object",
+      "description": "Custom service durations per service: {service_id: duration_in_minutes}"
+    },
+    "service_prices": {
+      "type": "object",
+      "description": "Custom service prices per service: {service_id: price}"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "online_bookable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this barber appears and accepts bookings via the online client booking widget"
+    },
+    "bookings_blocked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Block all future bookings (for termination/leave)"
+    },
+    "hours": {
+      "type": "object",
+      "description": "Weekly bookable hours per day: {monday: {start, end}, ...}"
+    },
+    "group_index": {
+      "type": "number",
+      "default": 0,
+      "description": "Display group for calendar (0-based)"
+    },
+    "user_id": {
+      "type": "string",
+      "description": "Linked user account ID"
+    },
+    "permission_level": {
+      "type": "string",
+      "enum": [
+        "owner",
+        "manager",
+        "service_provider"
+      ],
+      "default": "service_provider",
+      "description": "Staff permission level"
+    }
+  },
+  "required": [
+    "name"
+  ]
+}

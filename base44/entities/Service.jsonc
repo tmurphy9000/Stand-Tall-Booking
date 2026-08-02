@@ -1,0 +1,58 @@
+{
+  "name": "Service",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Service name"
+    },
+    "duration": {
+      "type": "number",
+      "description": "Duration in minutes (multiples of 15)"
+    },
+    "price": {
+      "type": "number",
+      "description": "Service price"
+    },
+    "commission_type": {
+      "type": "string",
+      "enum": [
+        "flat",
+        "percentage",
+        "tiered"
+      ],
+      "default": "percentage"
+    },
+    "commission_value": {
+      "type": "number",
+      "description": "Commission value (flat $ or %)"
+    },
+    "tiered_commissions": {
+      "type": "array",
+      "description": "Tiered commission rules: [{min_sales, rate}]",
+      "items": {
+        "type": "object",
+        "properties": {
+          "min_sales": {
+            "type": "number"
+          },
+          "rate": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "category": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "name",
+    "duration",
+    "price"
+  ]
+}

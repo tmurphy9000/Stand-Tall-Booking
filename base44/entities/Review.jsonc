@@ -1,0 +1,46 @@
+{
+  "name": "Review",
+  "type": "object",
+  "properties": {
+    "client_id": {
+      "type": "string",
+      "description": "Reference to Client entity"
+    },
+    "client_name": {
+      "type": "string"
+    },
+    "barber_id": {
+      "type": "string",
+      "description": "Reference to Barber entity"
+    },
+    "barber_name": {
+      "type": "string"
+    },
+    "booking_id": {
+      "type": "string",
+      "description": "Reference to Booking entity"
+    },
+    "service_name": {
+      "type": "string"
+    },
+    "rating": {
+      "type": "number",
+      "minimum": 1,
+      "maximum": 5,
+      "description": "Rating from 1 to 5 stars"
+    },
+    "comment": {
+      "type": "string",
+      "description": "Review comment"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    }
+  },
+  "required": [
+    "client_id",
+    "barber_id",
+    "rating"
+  ]
+}

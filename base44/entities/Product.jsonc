@@ -1,0 +1,63 @@
+{
+  "name": "Product",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "sku": {
+      "type": "string"
+    },
+    "category": {
+      "type": "string"
+    },
+    "cost_per_unit": {
+      "type": "number"
+    },
+    "retail_price": {
+      "type": "number"
+    },
+    "stock_quantity": {
+      "type": "number",
+      "default": 0
+    },
+    "tax_enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "tax_rate": {
+      "type": "number",
+      "default": 7.5,
+      "description": "Tax rate percentage"
+    },
+    "total_units_sold": {
+      "type": "number",
+      "default": 0
+    },
+    "total_revenue": {
+      "type": "number",
+      "default": 0
+    },
+    "commission_type": {
+      "type": "string",
+      "enum": [
+        "flat",
+        "percentage",
+        "tiered"
+      ],
+      "default": "percentage"
+    },
+    "commission_value": {
+      "type": "number",
+      "default": 10
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "name",
+    "retail_price"
+  ]
+}

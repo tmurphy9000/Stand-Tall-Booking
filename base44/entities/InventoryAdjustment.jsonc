@@ -1,0 +1,57 @@
+{
+  "name": "InventoryAdjustment",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string",
+      "description": "Reference to Product entity"
+    },
+    "product_name": {
+      "type": "string",
+      "description": "Product name snapshot"
+    },
+    "adjustment_type": {
+      "type": "string",
+      "enum": [
+        "add",
+        "subtract"
+      ],
+      "description": "Type of adjustment"
+    },
+    "quantity": {
+      "type": "number",
+      "description": "Quantity adjusted"
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "return",
+        "received_new_order",
+        "lost",
+        "damaged",
+        "stolen",
+        "business_use"
+      ],
+      "description": "Reason for adjustment"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional notes"
+    },
+    "date": {
+      "type": "string",
+      "format": "date"
+    },
+    "adjusted_by": {
+      "type": "string",
+      "description": "User who made adjustment"
+    }
+  },
+  "required": [
+    "product_id",
+    "product_name",
+    "adjustment_type",
+    "quantity",
+    "reason"
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "name": "BarberSensitiveInfo",
+  "type": "object",
+  "properties": {
+    "barber_id": {
+      "type": "string",
+      "description": "Reference to Barber entity"
+    },
+    "full_legal_name": {
+      "type": "string",
+      "description": "Full legal name"
+    },
+    "drivers_license_number": {
+      "type": "string",
+      "description": "Driver's license number"
+    },
+    "ssn": {
+      "type": "string",
+      "description": "Social security number (encrypted)"
+    },
+    "bank_name": {
+      "type": "string",
+      "description": "Name of bank for direct deposit"
+    },
+    "account_number": {
+      "type": "string",
+      "description": "Bank account number (encrypted)"
+    },
+    "routing_number": {
+      "type": "string",
+      "description": "Bank routing number"
+    }
+  },
+  "required": [
+    "barber_id",
+    "full_legal_name"
+  ]
+}
