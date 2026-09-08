@@ -771,6 +771,117 @@ async function run() {
   await page.screenshot({ path: outPath('checkout', 'deposit-settings'), fullPage: false });
   console.log('  ✓ deposit-settings.png');
 
+  // ── 27. Campaign editor ───────────────────────────────────────────────────
+  // Navigate to Marketing, wait for templates to auto-seed, open the template
+  // picker, select "We Miss You", and capture the populated editor.
+  console.log('→ Campaign editor');
+  await page.goto(`${BASE_URL}/Marketing`, { waitUntil: 'domcontentloaded' });
+  await waitForPageLoad(page);
+  await page.waitForTimeout(NAV_WAIT); // templates may be seeding on first load
+  {
+    // Click "New campaign" button
+    const newBtn = page.locator('button').filter({ hasText: /new campaign/i }).first();
+    if (await newBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await newBtn.click();
+      await page.waitForTimeout(NAV_WAIT);
+      // Select the first non-blank template ("We Miss You")
+      const templateBtn = page.locator('button').filter({ hasText: /we miss you/i }).first();
+      if (await templateBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+        await templateBtn.click();
+        await page.waitForTimeout(NAV_WAIT);
+        await waitForPageLoad(page);
+        await page.screenshot({ path: outPath('marketing', 'campaign-editor'), fullPage: false });
+        console.log('  ✓ campaign-editor.png');
+      } else {
+        // Fall back: capture whatever is visible (template grid or blank editor)
+        await page.screenshot({ path: outPath('marketing', 'campaign-editor'), fullPage: false });
+        console.log('  ✓ campaign-editor.png (template not found, captured fallback)');
+      }
+    } else {
+      console.log('  ⚠ New campaign button not found, skipping campaign-editor.png');
+    }
+  }
+
+  // ── 28. Marketing automations (Settings tab) ──────────────────────────────
+  console.log('→ Marketing automations (Settings tab)');
+  await page.goto(`${BASE_URL}/Marketing`, { waitUntil: 'domcontentloaded' });
+  await waitForPageLoad(page);
+  {
+    // Click the Settings tab
+    const settingsTab = page.locator('button').filter({ hasText: /^settings$/i }).first();
+    if (await settingsTab.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await settingsTab.click();
+      await page.waitForTimeout(NAV_WAIT);
+      await waitForPageLoad(page);
+      await page.screenshot({ path: outPath('marketing', 'marketing-automations'), fullPage: false });
+      console.log('  ✓ marketing-automations.png');
+    } else {
+      console.log('  ⚠ Marketing Settings tab not found, skipping');
+    }
+  }
+
+  // ── 29. Promo code creation form ──────────────────────────────────────────
+  console.log('→ Promo code creation form');
+  await page.goto(`${BASE_URL}/Marketing`, { waitUntil: 'domcontentloaded' });
+  await waitForPageLoad(page);
+  {
+    // Click "Promo Codes" tab
+    const promoTab = page.locator('button').filter({ hasText: /promo codes/i }).first();
+    if (await promoTab.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await promoTab.click();
+      await page.waitForTimeout(SETTLE);
+      // Click "Create Code" button
+      const createBtn = page.locator('button').filter({ hasText: /create code/i }).first();
+      if (await createBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+        await createBtn.click();
+        await page.waitForTimeout(SETTLE);
+        // Pre-fill with example values so the form looks meaningful
+        const codeInput = page.locator('input[placeholder="SUMMER20"]').first();
+        if (await codeInput.isVisible({ timeout: 2000 }).catch(() => false)) {
+          await codeInput.fill('COMEBACK10');
+          const valueInput = page.locator('input[placeholder="20"]').first();
+          if (await valueInput.isVisible({ timeout: 1000 }).catch(() => false)) {
+            await valueInput.fill('10');
+          }
+          const maxInput = page.locator('input[placeholder="Unlimited"]').first();
+          if (await maxInput.isVisible({ timeout: 1000 }).catch(() => false)) {
+            await maxInput.fill('100');
+          }
+        }
+        await page.waitForTimeout(400);
+        await page.screenshot({ path: outPath('marketing', 'promo-code-form'), fullPage: false });
+        console.log('  ✓ promo-code-form.png');
+      } else {
+        console.log('  ⚠ Create Code button not found, skipping');
+      }
+    } else {
+      console.log('  ⚠ Promo Codes tab not found, skipping');
+    }
+  }
+
+  // ── 30. Campaign analytics / History tab ──────────────────────────────────
+  // Only captures if sent campaigns with open/click data exist in the demo shop.
+  console.log('→ Campaign analytics (History tab)');
+  await page.goto(`${BASE_URL}/Marketing`, { waitUntil: 'domcontentloaded' });
+  await waitForPageLoad(page);
+  {
+    const historyTab = page.locator('button').filter({ hasText: /^history$/i }).first();
+    if (await historyTab.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await historyTab.click();
+      await page.waitForTimeout(NAV_WAIT);
+      await waitForPageLoad(page);
+      const bodyText = await page.evaluate(() => document.body.innerText);
+      if (bodyText.includes('No send history yet')) {
+        console.log('  ⚠ No sent campaigns yet — campaign-analytics.png skipped (seed data needed)');
+      } else {
+        await page.screenshot({ path: outPath('marketing', 'campaign-analytics'), fullPage: false });
+        console.log('  ✓ campaign-analytics.png');
+      }
+    } else {
+      console.log('  ⚠ History tab not found, skipping');
+    }
+  }
+
   await browser.close();
 
   console.log(`
@@ -809,6 +920,11 @@ async function run() {
      refund-dialog.png (skipped if no Stripe card transactions in demo shop)
      cash-drawer-log.png
      deposit-settings.png
+   marketing/
+     campaign-editor.png
+     marketing-automations.png
+     promo-code-form.png
+     campaign-analytics.png (skipped if no sent campaigns exist)
 `);
 }
 
