@@ -13,7 +13,9 @@ const SUPABASE_URL = 'https://mmmkachplbkaxvhauhaa.supabase.co';
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 if (!SERVICE_KEY) {
   console.error('Error: SUPABASE_SERVICE_ROLE_KEY is not set.');
-  console.error('Add it to .env.local and run: source .env.local && node scripts/seed-demo-shop.mjs');
+  console.error('Provide it per-session by typing in the Claude Code chat:');
+  console.error('  ! export SUPABASE_SERVICE_ROLE_KEY=sb_secret_...');
+  console.error('Then run this script in the same session.');
   process.exit(1);
 }
 
