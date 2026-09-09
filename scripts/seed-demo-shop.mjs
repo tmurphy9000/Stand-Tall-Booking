@@ -10,8 +10,12 @@ import { createClient } from '@supabase/supabase-js';
 import { format, addDays, subDays } from 'date-fns';
 
 const SUPABASE_URL = 'https://mmmkachplbkaxvhauhaa.supabase.co';
-const SERVICE_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tbWthY2hwbGJrYXh2aGF1aGFhIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NjU4MTQ5MSwiZXhwIjoyMDkyMTU3NDkxfQ.shDouG_VAtSFmM9jZrr7RARIP9ovgZ38MKQkBdxDrpM';
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!SERVICE_KEY) {
+  console.error('Error: SUPABASE_SERVICE_ROLE_KEY is not set.');
+  console.error('Add it to .env.local and run: source .env.local && node scripts/seed-demo-shop.mjs');
+  process.exit(1);
+}
 
 export const DEMO_EMAIL    = 'demo@standtallbooking.com';
 export const DEMO_PASSWORD = 'DemoShop2025!';
